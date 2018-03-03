@@ -10,7 +10,7 @@ using namespace std;
 
 
 void ControlUnit::run() {
-    graph.print();
+    graph.print(0);
 }
 
 ControlUnit::ControlUnit(const string &inputFile) {
@@ -60,7 +60,7 @@ ControlUnit::ControlUnit(const string &inputFile) {
     /* Hold reverse direction edges temporarily */
     vector<vector<uint32_t> > reverseEdges(nodes);
 
-    /* Build graph, keep edges sorted */
+    /* Build graph with both edge directions, keep them sorted */
     uint32_t sourceNode, targetNode, previousNode, straightEdges, offset;
     previousNode = NONE;
     straightEdges = 0;
@@ -68,20 +68,49 @@ ControlUnit::ControlUnit(const string &inputFile) {
     while(fgets(buf, MAXLINE, f) != NULL) {
         parseNodeIDs(buf, &sourceNode, &targetNode);
         if (previousNode != sourceNode && previousNode != NONE) {
-            uint32_t previousEdges = straightEdges + reverseEdges[previousNode].size();
-            graph.nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));        
-            offset += previousEdges;
-            graph.edgeBuffer.insert(graph.edgeBuffer.end(), reverseEdges[sourceNode].begin(), reverseEdges[sourceNode].end());
-            straightEdges = 0;
+            /* Add reverse direction edges */
+            uint32_t node;
+            for (int i = 0 ; ;) {
+                /* i==0: Add node's reverse direction edges
+                 * i>0 : Add reverse direction edges of in-between nodes that don't appear as source nodes */
+                if (!i) {
+                    node = previousNode;
+                } else if (i == 1) {
+                    node = graph.nodeIndex.size();
+                }
+                if (i && node >= sourceNode) {
+                    break;
+                }
+                uint32_t previousEdges = straightEdges + reverseEdges[node].size();
+                graph.nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
+                offset += previousEdges;
+                graph.edgeBuffer.insert(graph.edgeBuffer.end(), reverseEdges[(!i ? sourceNode : node)].begin(), reverseEdges[(!i ? sourceNode : node)].end());
+                straightEdges = 0;
+                if (i) {
+                    node++;
+                }
+                if (i < 2) {
+                    i++;
+                }
+            }
         }
+        /* Add straight direction edges */
         graph.edgeBuffer.push_back(targetNode);
         straightEdges++;
         reverseEdges[targetNode].push_back(sourceNode);
         previousNode = sourceNode;
     }
-    graph.nodeIndex[previousNode].setOffset(offset);
+    /* Add final node's reverse direction edges*/
     uint32_t previousEdges = straightEdges + reverseEdges[previousNode].size();
-    graph.nodeIndex[previousNode].setEdges(previousEdges);
+    graph.nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
+    offset += previousEdges;
+    /* Add reverse direction edges of the nodes left that don't appear as source nodes */
+    for (uint32_t missingNode = graph.nodeIndex.size() ; missingNode < nodes ; missingNode++) {
+        previousEdges = reverseEdges[missingNode].size();
+        graph.nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
+        offset += previousEdges;
+        graph.edgeBuffer.insert(graph.edgeBuffer.end(), reverseEdges[missingNode].begin(), reverseEdges[missingNode].end());
+    }
     fclose(f);
 }
 

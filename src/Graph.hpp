@@ -1,8 +1,9 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include "EdgeBuffer.hpp"
-#include "NodeIndex.hpp"
+#include <iostream>
+#include <vector>
+#include "Util.hpp"
 
 class Graph {
 
@@ -16,7 +17,7 @@ public:
     std::vector<uint32_t> &getEdgeBuffer() {
         return edgeBuffer;
     }
-    void print() const;
+    void print(bool direction) const;
 
 
 private:
