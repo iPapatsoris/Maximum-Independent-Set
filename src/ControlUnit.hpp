@@ -6,7 +6,7 @@
 
 class ControlUnit {
 public:
-    ControlUnit(const std::string &inputFile);
+    ControlUnit(const std::string &inputFile) : graph(inputFile) {}
     void run();
 
 private:
