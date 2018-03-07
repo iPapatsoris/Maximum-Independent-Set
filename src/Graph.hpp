@@ -35,6 +35,7 @@ public:
 
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
+    void fill(const uint32_t &size);
 
     class NodeInfo {
     public:

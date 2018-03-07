@@ -81,12 +81,14 @@ Graph::Graph(const string &inputFile) : posToId(NULL) {
     offset = 0;
     while(fgets(buf, MAXLINE, f) != NULL) {
         parseNodeIDs(buf, &sourceNode, &targetNode);
+        if (previousNode == NONE && sourceNode) {
+            this->fill(sourceNode);
+        }
         if (previousNode != sourceNode && previousNode != NONE) {
-            /* Add reverse direction edges */
             uint32_t node;
             for (int i = 0 ; ;) {
-                /* i==0: Add node's reverse direction edges
-                 * i>0 : Add reverse direction edges of in-between nodes that don't appear as source nodes */
+                /* i==0: Add source node's smaller neighbors
+                 * i>0 : Add smaller neighbors of nodes in-between previous node and source node (aka missing source nodes) */
                 if (!i) {
                     node = previousNode;
                 } else if (i == 1) {
@@ -101,6 +103,7 @@ Graph::Graph(const string &inputFile) : posToId(NULL) {
                 edgeBuffer.insert(edgeBuffer.end(), reverseEdges[(!i ? sourceNode : node)].begin(), reverseEdges[(!i ? sourceNode : node)].end());
                 straightEdges = 0;
                 if (i) {
+                    //cout << "in between missing node " << node << endl;
                     node++;
                 }
                 if (i < 2) {
@@ -108,18 +111,19 @@ Graph::Graph(const string &inputFile) : posToId(NULL) {
                 }
             }
         }
-        /* Add straight direction edges */
+        /* Add source node's bigger neighbors */
         edgeBuffer.push_back(targetNode);
         straightEdges++;
         reverseEdges[targetNode].push_back(sourceNode);
         previousNode = sourceNode;
     }
-    /* Add final node's reverse direction edges*/
+    /* Add final source node's info */
     uint32_t previousEdges = straightEdges + reverseEdges[previousNode].size();
     nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
     offset += previousEdges;
-    /* Add reverse direction edges of the nodes left that don't appear as source nodes */
+    /* Add smaller neighbors of the nodes left that don't appear as source nodes */
     for (uint32_t missingNode = nodeIndex.size() ; missingNode < nodes ; missingNode++) {
+        //cout << "end missing node " << missingNode << endl;
         previousEdges = reverseEdges[missingNode].size();
         nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
         offset += previousEdges;
@@ -140,6 +144,14 @@ void Graph::parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode) 
         for (; *buf == ' ' || *buf == '\t' ; buf++);
     }
 }
+
+void Graph::fill(const uint32_t &size) {
+    //cout << "start missing nodes from " << nodeIndex.size() << " to " << size << endl;
+    while (nodeIndex.size() < size) {
+        nodeIndex.push_back(NodeInfo(edgeBuffer.size(), 0));
+    }
+}
+
 
 Graph::~Graph() {
     if (posToId != NULL) {
