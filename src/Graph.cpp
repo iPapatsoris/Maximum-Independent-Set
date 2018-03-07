@@ -11,8 +11,8 @@ using namespace std;
 void Graph::print(bool direction) const {
     cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
     for (uint32_t node = 0 ; node < nodeIndex.size() ; node++) {
-        for (uint32_t offset = nodeIndex[node].getOffset() ; offset < nodeIndex[node].getOffset() + nodeIndex[node].getEdges() ; offset++) {
-            uint32_t actualNode = (posToId == NULL ? node : (*posToId)[node]);
+        for (uint32_t offset = nodeIndex[node].getOffset() ; offset < nodeIndex[node].offset + nodeIndex[node].edges ; offset++) {
+            uint32_t actualNode = (!mapping ? node : (*posToId)[node]);
             if (direction || !direction && actualNode < edgeBuffer[offset]) {
                 cout << actualNode << "\t" << edgeBuffer[offset] << "\n";
             }
@@ -27,7 +27,7 @@ void Graph::printEdgeCounts() const {
     }
 }
 
-Graph::Graph(const string &inputFile) : posToId(NULL) {
+Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(NULL) {
     /* Open graph input file */
     FILE *f;
     f = fopen(inputFile.c_str(), "r");
@@ -152,9 +152,19 @@ void Graph::fill(const uint32_t &size) {
     }
 }
 
+Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
+    curNode = NONE;
+    curEdgeOffset = NONE;
+    graph.getNextNode(*this);
+    cout << curNode << endl;
+    //curNode = (!graph.mapping ? 0 : (*graph.posToId)[0]);
+    //uint32_t pos = (!graph.mapping ? 0 : (*graph.idToPos)[0]);
+    //curEdgeOffset = (graph.nodeIndex[pos].edges ? graph.nodeIndex[pos].offset : NONE);
+}
 
 Graph::~Graph() {
-    if (posToId != NULL) {
+    if (mapping) {
+        delete idToPos;
         delete posToId;
     }
 }
