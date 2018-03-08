@@ -51,8 +51,10 @@ public:
         this->mapping = mapping;
     }
     void print(bool direction) const;
+    void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
 
+    /* For graph traversal through functions */
     struct GraphTraversal {
     public:
         GraphTraversal(const Graph &graph);
@@ -62,18 +64,19 @@ public:
     };
 
     void getNextNode(GraphTraversal &graphTraversal) const {
-        bool checkEdgeNum = false;
+        bool firstTime = true;
+        uint32_t pos;
         if (graphTraversal.curNode == NONE) {
-            graphTraversal.curNode = (!mapping ? 0 : (*posToId)[0]);
-            checkEdgeNum = true;
+            pos = NONE;
+        } else {
+            pos = (!mapping ? graphTraversal.curNode : (*idToPos)[graphTraversal.curNode]);
         }
-        uint32_t pos = (!mapping ? graphTraversal.curNode : (*idToPos)[graphTraversal.curNode]);
-        while (checkEdgeNum && !nodeIndex[pos].edges || !checkEdgeNum) {
-            if (pos < nodeIndex.size() - 1) {
-                graphTraversal.curNode = (!mapping ? 1 + pos : (*posToId)[1 + pos]);
+        while (firstTime || pos == NONE || !nodeIndex[pos].edges) { // Ignore nodes with no edges
+            if (pos == NONE && nodeIndex.size() || pos < nodeIndex.size() - 1) {
+                pos = (pos == NONE ? 0 : pos+1);
+                graphTraversal.curNode = (!mapping ? pos : (*posToId)[pos]);
                 graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);
-                checkEdgeNum = true;
-                pos = graphTraversal.curNode;
+                firstTime = false;
             }
             else {
                 graphTraversal.curNode = NONE;

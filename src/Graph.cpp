@@ -10,13 +10,26 @@ using namespace std;
 
 void Graph::print(bool direction) const {
     cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
-    for (uint32_t node = 0 ; node < nodeIndex.size() ; node++) {
-        for (uint32_t offset = nodeIndex[node].getOffset() ; offset < nodeIndex[node].offset + nodeIndex[node].edges ; offset++) {
-            uint32_t actualNode = (!mapping ? node : (*posToId)[node]);
-            if (direction || !direction && actualNode < edgeBuffer[offset]) {
-                cout << actualNode << "\t" << edgeBuffer[offset] << "\n";
+    for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
+        for (uint32_t offset = nodeIndex[pos].getOffset() ; offset < nodeIndex[pos].offset + nodeIndex[pos].edges ; offset++) {
+            uint32_t node = (!mapping ? pos : (*posToId)[pos]);
+            if (direction || !direction && node < edgeBuffer[offset]) {
+                cout << node << "\t" << edgeBuffer[offset] << "\n";
             }
         }
+    }
+}
+
+void Graph::printWithGraphTraversal(bool direction) const {
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        while (graphTraversal.curEdgeOffset != NONE) {
+            if (direction || !direction && graphTraversal.curNode < this->edgeBuffer[graphTraversal.curEdgeOffset]) {
+                cout << graphTraversal.curNode << "\t" << this->edgeBuffer[graphTraversal.curEdgeOffset] << "\n";
+            }
+            this->getNextEdge(graphTraversal);
+        }
+        this->getNextNode(graphTraversal);
     }
 }
 
@@ -156,10 +169,6 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
     curNode = NONE;
     curEdgeOffset = NONE;
     graph.getNextNode(*this);
-    cout << curNode << endl;
-    //curNode = (!graph.mapping ? 0 : (*graph.posToId)[0]);
-    //uint32_t pos = (!graph.mapping ? 0 : (*graph.idToPos)[0]);
-    //curEdgeOffset = (graph.nodeIndex[pos].edges ? graph.nodeIndex[pos].offset : NONE);
 }
 
 Graph::~Graph() {
