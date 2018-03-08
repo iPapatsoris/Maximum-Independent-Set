@@ -99,6 +99,12 @@ public:
         }
     }
 
+    void goToNode(const uint32_t &node, GraphTraversal &graphTraversal) {
+        graphTraversal.curNode = node;
+        uint32_t pos = (!mapping ? node : (*idToPos)[node]);
+        graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);
+    }
+
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
     void fill(const uint32_t &size);
