@@ -44,50 +44,30 @@ void ExactAlg::reduce(const int &degree, const int &cliqueSize) {
     newGraph.printWithGraphTraversal(false);
 
     /* Clique detection */
-    Graph::GraphTraversal graphTraversal(newGraph);
     vector<Graph::GraphTraversal> clique1;
+    vector<Graph::GraphTraversal> clique2;
+    Graph::GraphTraversal graphTraversal(graph);
     clique1.reserve(cliqueSize);
+    clique2.reserve(cliqueSize);
     clique1.push_back(graphTraversal);
-    while (clique1.size() < cliqueSize) {
-        cout << "Clique: \n";
+
+    while (findCliques(cliqueSize, newGraph, clique1, graphTraversal)) {
+        cout << "\nClique: " << endl;
         for (uint32_t i = 0 ; i < clique1.size() ; i++) {
             cout << clique1[i].curNode << endl;
         }
-
-        uint32_t neighbor = newEdgeBuffer[graphTraversal.curEdgeOffset];
-        if (find(clique1, neighbor) && isSubsetOfNeighbors(clique1, neighbor, newGraph)) {
-            newGraph.goToNode(neighbor, graphTraversal);
-            clique1.push_back(graphTraversal);
-        } else {
-            bool validNeighbor = false;
-            while(!validNeighbor) {
-                graphTraversal = clique1.back();
-                newGraph.getNextEdge(graphTraversal);
-                clique1.back() = graphTraversal;
-                if (graphTraversal.curEdgeOffset != NONE) {
-                    validNeighbor = true;
-                } else {
-                    graphTraversal = clique1.back();
-                    clique1.pop_back();
-                    if (clique1.empty()) {
-                        newGraph.getNextNode(graphTraversal);
-                        if (graphTraversal.curNode == NONE) {
-                            cout << "No clique" << endl;
-                            return;
-                        }
-                        clique1.push_back(graphTraversal);
-                    }
-                }
+        graphTraversal = clique1.back();
+        clique1.pop_back();
+        if (clique1.empty()) {
+            newGraph.getNextNode(graphTraversal);
+            if (graphTraversal.curNode == NONE) {
+                cout << "No second clique" << endl;
+                return;
             }
+            clique1.push_back(graphTraversal);
         }
+        advance(clique1, graphTraversal, graph);
     }
-
-    cout << "Clique: " << endl;
-    for (uint32_t i = 0 ; i < clique1.size() ; i++) {
-        cout << clique1[i].curNode << endl;
-    }
-
-
 
     /* Clique detection *
     unordered_set<uint32_t> clique1;
@@ -140,3 +120,38 @@ void ExactAlg::reduce(const int &degree, const int &cliqueSize) {
         cout << "remove " << node << endl;
     }*/
 }
+
+bool ExactAlg::findCliques(const uint32_t &cliqueSize, const Graph &graph, vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal) {
+    while (clique.size() < cliqueSize) {
+        /*cout << "Cur clique: \n";
+        for (uint32_t i = 0 ; i < clique.size() ; i++) {
+            cout << clique[i].curNode << endl;
+        }*/
+        uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
+        if (!find(clique, neighbor) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+            graph.goToNode(neighbor, graphTraversal);
+            clique.push_back(graphTraversal);
+        } else {
+            if (!advance(clique, graphTraversal, graph)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/*
+clique2 = clique1;
+graphTraversal = clique2.back();
+clique2.pop_back();
+if (clique2.empty()) {
+    graph.getNextNode(graphTraversal);
+    if (graphTraversal.curNode == NONE) {
+        cout << "No second clique" << endl;
+        return;
+    }
+    clique2.push_back(graphTraversal);
+}
+advance(clique2, graphTraversal, graph);
+filledClique = &clique1;
+fillingClique = &clique2;*/

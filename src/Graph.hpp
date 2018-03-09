@@ -99,7 +99,7 @@ public:
         }
     }
 
-    void goToNode(const uint32_t &node, GraphTraversal &graphTraversal) {
+    void goToNode(const uint32_t &node, GraphTraversal &graphTraversal) const {
         graphTraversal.curNode = node;
         uint32_t pos = (!mapping ? node : (*idToPos)[node]);
         graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);

@@ -19,7 +19,7 @@ private:
         }
         return !count;
     }
-    
+
     static bool find(const std::vector<Graph::GraphTraversal> &subset, const uint32_t &node) {
         for (uint32_t i = 0 ; i < subset.size() ; i++) {
             if (subset[i].curNode == node) {
@@ -28,7 +28,33 @@ private:
         }
         return false;
     }
+
+    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
+        bool validNeighbor = false;
+        while(!validNeighbor) {
+            graphTraversal = clique.back();
+            graph.getNextEdge(graphTraversal);
+            clique.back() = graphTraversal;
+            if (graphTraversal.curEdgeOffset != NONE) {
+                validNeighbor = true;
+            } else {
+                graphTraversal = clique.back();
+                clique.pop_back();
+                if (clique.empty()) {
+                    graph.getNextNode(graphTraversal);
+                    if (graphTraversal.curNode == NONE) {
+                        std::cout << "No clique" << std::endl;
+                        return false;
+                    }
+                    clique.push_back(graphTraversal);
+                }
+            }
+        }
+        return true;
+    }
+
     void reduce(const int &degree, const int &cliqueSize);
+    bool findCliques(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal);
     Graph &graph;
 };
 
