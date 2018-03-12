@@ -5,9 +5,10 @@
 using namespace std;
 
 void ControlUnit::run() {
+    //return;
     //graph.print(true); return;
     //graph.printEdgeCounts(); return;
-    //graph.printWithGraphTraversal(true); return;
+    //graph.printWithGraphTraversal(false); return;
     ExactAlg exactAlg(graph);
     exactAlg.run();
 }

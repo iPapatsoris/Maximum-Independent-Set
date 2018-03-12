@@ -21,6 +21,22 @@ Graph::~Graph() {
     }
 }
 
+void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes) {
+    for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
+        uint32_t pos = (!mapping ? it->curNode : (*idToPos)[it->curNode]);
+        if (!nodeIndex[pos].removed) {
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                uint32_t nPos = (!mapping ? edgeBuffer[offset] : (*idToPos)[edgeBuffer[offset]]);
+                nodeIndex[nPos].edges--;
+            }
+        }
+        nodeIndex[pos].edges = 0;
+        nodeIndex[pos].removed = true;
+    }
+}
+
+
 uint32_t Graph::getNextBiggerNeighborOffset(const uint32_t &node) const {
     uint32_t pos = (!mapping ? node : (*idToPos)[node]);
     uint32_t offset = nodeIndex[pos].offset;
@@ -58,10 +74,14 @@ uint32_t Graph::getNextBiggerNeighborOffset(const uint32_t &node) const {
 void Graph::print(bool direction) const {
     cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
-        for (uint32_t offset = nodeIndex[pos].getOffset() ; offset < nodeIndex[pos].offset + nodeIndex[pos].edges ; offset++) {
-            uint32_t node = (!mapping ? pos : (*posToId)[pos]);
-            if (direction || !direction && node < edgeBuffer[offset]) {
-                cout << node << "\t" << edgeBuffer[offset] << "\n";
+        if (!nodeIndex[pos].removed) {
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                uint32_t node = (!mapping ? pos : (*posToId)[pos]);
+                uint32_t nPos = (!mapping ? edgeBuffer[offset] : (*idToPos)[edgeBuffer[offset]]);
+                if (!nodeIndex[nPos].removed && (direction || !direction && node < edgeBuffer[offset])) {
+                    cout << node << "\t" << edgeBuffer[offset] << "\n";
+                }
             }
         }
     }
@@ -71,12 +91,12 @@ void Graph::printWithGraphTraversal(bool direction) const {
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         while (graphTraversal.curEdgeOffset != NONE) {
-            if (direction || !direction && graphTraversal.curNode < this->edgeBuffer[graphTraversal.curEdgeOffset]) {
-                cout << graphTraversal.curNode << "\t" << this->edgeBuffer[graphTraversal.curEdgeOffset] << "\n";
+            if (direction || !direction && graphTraversal.curNode < edgeBuffer[graphTraversal.curEdgeOffset]) {
+                cout << graphTraversal.curNode << "\t" << edgeBuffer[graphTraversal.curEdgeOffset] << "\n";
             }
-            this->getNextEdge(graphTraversal);
+            getNextEdge(graphTraversal);
         }
-        this->getNextNode(graphTraversal);
+        getNextNode(graphTraversal);
     }
 }
 
@@ -154,7 +174,7 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
                 edgeBuffer.insert(edgeBuffer.end(), reverseEdges[node].begin(), reverseEdges[node].end());
                 straightEdges = 0;
                 if (node < sourceNode) {
-                    cout << "in between missing node " << node << endl;
+                    //cout << "in between missing node " << node << endl;
                 }
             }
         }
@@ -170,7 +190,7 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
     offset += previousEdges;
     /* Add smaller neighbors of the nodes left that don't appear as source nodes */
     for (uint32_t missingNode = nodeIndex.size() ; missingNode < nodes ; missingNode++) {
-        cout << "end missing node " << missingNode << endl;
+        //cout << "end missing node " << missingNode << endl;
         previousEdges = reverseEdges[missingNode].size();
         nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
         offset += previousEdges;

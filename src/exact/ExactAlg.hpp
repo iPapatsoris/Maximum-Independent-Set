@@ -60,6 +60,8 @@ private:
     }
 
     void reduce(const int &degree, const int &cliqueSize);
+    bool reduce(std::vector<Graph::GraphTraversal> &clique1, std::vector<Graph::GraphTraversal> &clique2, const uint32_t cliqueSize, const Graph &graph);
+    void buildNDegreeSubgraph(const int &degree, Graph &subgraph);
     bool findCliques(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, std::vector<Graph::GraphTraversal> *previousClique = NULL);
     Graph &graph;
 };

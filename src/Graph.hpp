@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <assert.h>
 #include "Util.hpp"
 
 class Graph {
@@ -14,6 +15,7 @@ friend class ExactAlg;
 class NodeInfo;
 
 public:
+    struct GraphTraversal;
     Graph(const std::string &inputFile);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
     std::vector<NodeInfo> &getNodeIndex() {
@@ -50,6 +52,8 @@ public:
     void setMapping(const bool &mapping) {
         this->mapping = mapping;
     }
+
+    void remove(const std::vector<Graph::GraphTraversal> &nodes);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
@@ -74,9 +78,23 @@ public:
         while (firstTime || pos == NONE || !nodeIndex[pos].edges) { // Ignore nodes with no edges
             if (pos == NONE && nodeIndex.size() || pos < nodeIndex.size() - 1) {
                 pos = (pos == NONE ? 0 : pos+1);
+                if (nodeIndex[pos].removed) {
+                    continue;
+                }
                 graphTraversal.curNode = (!mapping ? pos : (*posToId)[pos]);
-                graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);
-                firstTime = false;
+                bool validNeighbor = false;
+                uint32_t offset = nodeIndex[pos].offset;
+                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+                for ( ; offset < nextNodeOffset ; offset++) {
+                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : (*idToPos)[edgeBuffer[offset]]);
+                    if (!nodeIndex[nPos].removed) {
+                        validNeighbor = true;
+                        break;
+                    }
+                }
+                if ((graphTraversal.curEdgeOffset = (validNeighbor ? offset : NONE)) != NONE) {
+                    firstTime = false;
+                }
             }
             else {
                 graphTraversal.curNode = NONE;
@@ -97,12 +115,28 @@ public:
         } else {
             graphTraversal.curEdgeOffset = (graphTraversal.curEdgeOffset + 1 < nodeIndex[pos].offset + nodeIndex[pos].edges ? graphTraversal.curEdgeOffset + 1 : NONE);
         }
+        if (graphTraversal.curEdgeOffset == NONE) {
+            return;
+        }
+        bool validNeighbor = false;
+        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+        for ( ; graphTraversal.curEdgeOffset  < nextNodeOffset ; graphTraversal.curEdgeOffset++) {
+            uint32_t nPos = (!mapping ? edgeBuffer[graphTraversal.curEdgeOffset] : (*idToPos)[edgeBuffer[graphTraversal.curEdgeOffset]]);
+            if (!nodeIndex[nPos].removed) {
+                validNeighbor = true;
+                break;
+            }
+        }
+        if (!validNeighbor) {
+            graphTraversal.curEdgeOffset = NONE;
+        }
     }
 
     void goToNode(const uint32_t &node, GraphTraversal &graphTraversal) const {
         graphTraversal.curNode = node;
         uint32_t pos = (!mapping ? node : (*idToPos)[node]);
         graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);
+        assert(graphTraversal.curEdgeOffset == NONE || !nodeIndex[(!mapping ? graphTraversal.curEdgeOffset : (*idToPos)[graphTraversal.curEdgeOffset])].removed);
     }
 
 private:
@@ -112,7 +146,7 @@ private:
 
     struct NodeInfo {
     public:
-        NodeInfo(const uint32_t &offset, const uint32_t &edges) : offset(offset), edges(edges) {}
+        NodeInfo(const uint32_t &offset, const uint32_t &edges) : offset(offset), edges(edges), removed(false) {}
         uint32_t getOffset() const {
             return offset;
         }
@@ -122,6 +156,7 @@ private:
 
         uint32_t offset; // Offset of neighbors in edgeBuffer
         uint32_t edges;
+        bool removed;
     };
 
     std::vector<NodeInfo> nodeIndex;
