@@ -29,7 +29,7 @@ private:
         return false;
     }
 
-    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
+    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph, uint32_t *commonNode = NULL, std::vector<Graph::GraphTraversal> *previousClique = NULL) {
         bool validNeighbor = false;
         while(!validNeighbor) {
             graphTraversal = clique.back();
@@ -39,6 +39,9 @@ private:
                 validNeighbor = true;
             } else {
                 graphTraversal = clique.back();
+                if (commonNode != NULL && graphTraversal.curNode == *commonNode) {
+                    *commonNode = NONE;
+                }
                 clique.pop_back();
                 if (clique.empty()) {
                     graph.getNextNode(graphTraversal);
@@ -47,6 +50,9 @@ private:
                         return false;
                     }
                     clique.push_back(graphTraversal);
+                    if (previousClique != NULL && find(*previousClique, graphTraversal.curNode)) {
+                        *commonNode = graphTraversal.curNode;
+                    }
                 }
             }
         }
@@ -54,7 +60,7 @@ private:
     }
 
     void reduce(const int &degree, const int &cliqueSize);
-    bool findCliques(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal);
+    bool findCliques(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, std::vector<Graph::GraphTraversal> *previousClique = NULL);
     Graph &graph;
 };
 

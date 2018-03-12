@@ -8,6 +8,53 @@
 
 using namespace std;
 
+Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
+    curNode = NONE;
+    curEdgeOffset = NONE;
+    graph.getNextNode(*this);
+}
+
+Graph::~Graph() {
+    if (mapping) {
+        delete idToPos;
+        delete posToId;
+    }
+}
+
+uint32_t Graph::getNextBiggerNeighborOffset(const uint32_t &node) const {
+    uint32_t pos = (!mapping ? node : (*idToPos)[node]);
+    uint32_t offset = nodeIndex[pos].offset;
+    uint32_t endOffset = offset + nodeIndex[pos].edges - 1;
+    if (offset == endOffset) {
+        return NONE;
+    }
+    uint32_t startIndex = 0;
+    uint32_t endIndex = nodeIndex[pos].edges - 1;
+    uint32_t index = (endIndex - startIndex) / 2;
+    while (startIndex != endIndex) {
+        //cout << "val " << node << "\n";
+        //cout << "start " << startIndex << " end " << endIndex << "\n";
+        //cout << edgeBuffer[offset + startIndex + index] << "\n";
+        if (edgeBuffer[offset + startIndex + index] == node) {
+            return (offset + startIndex + index + 1 <= endOffset ? offset + startIndex + index + 1 : NONE);
+        } else if (edgeBuffer[offset + startIndex + index] < node) {
+            startIndex += index + 1;
+        } else {
+            if (!index) {
+                return offset + startIndex + index;
+            }
+            endIndex = startIndex + index - 1;
+        }
+        index = (endIndex - startIndex) / 2;
+    }
+    if (edgeBuffer[offset + startIndex + index] <= node) {
+        //cout << "it's " << offset + startIndex + index + 1 << " vs " << endOffset << endl;
+        return (offset + startIndex + index + 1 <= endOffset ? offset + startIndex + index + 1 : NONE);
+    } else {
+        return offset + startIndex + index;
+    }
+}
+
 void Graph::print(bool direction) const {
     cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
@@ -98,29 +145,16 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
             this->fill(sourceNode);
         }
         if (previousNode != sourceNode && previousNode != NONE) {
-            uint32_t node;
-            for (int i = 0 ; ;) {
+            for (uint32_t node = previousNode + 1 ; node <= sourceNode ; node++) {
                 /* i==0: Add source node's smaller neighbors
                  * i>0 : Add smaller neighbors of nodes in-between previous node and source node (aka missing source nodes) */
-                if (!i) {
-                    node = previousNode;
-                } else if (i == 1) {
-                    node = nodeIndex.size();
-                }
-                if (i && node >= sourceNode) {
-                    break;
-                }
-                uint32_t previousEdges = straightEdges + reverseEdges[node].size();
+                uint32_t previousEdges = straightEdges + reverseEdges[node - 1].size();
                 nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
                 offset += previousEdges;
-                edgeBuffer.insert(edgeBuffer.end(), reverseEdges[(!i ? sourceNode : node)].begin(), reverseEdges[(!i ? sourceNode : node)].end());
+                edgeBuffer.insert(edgeBuffer.end(), reverseEdges[node].begin(), reverseEdges[node].end());
                 straightEdges = 0;
-                if (i) {
-                    //cout << "in between missing node " << node << endl;
-                    node++;
-                }
-                if (i < 2) {
-                    i++;
+                if (node < sourceNode) {
+                    cout << "in between missing node " << node << endl;
                 }
             }
         }
@@ -136,7 +170,7 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
     offset += previousEdges;
     /* Add smaller neighbors of the nodes left that don't appear as source nodes */
     for (uint32_t missingNode = nodeIndex.size() ; missingNode < nodes ; missingNode++) {
-        //cout << "end missing node " << missingNode << endl;
+        cout << "end missing node " << missingNode << endl;
         previousEdges = reverseEdges[missingNode].size();
         nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
         offset += previousEdges;
@@ -162,18 +196,5 @@ void Graph::fill(const uint32_t &size) {
     //cout << "start missing nodes from " << nodeIndex.size() << " to " << size << endl;
     while (nodeIndex.size() < size) {
         nodeIndex.push_back(NodeInfo(edgeBuffer.size(), 0));
-    }
-}
-
-Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
-    curNode = NONE;
-    curEdgeOffset = NONE;
-    graph.getNextNode(*this);
-}
-
-Graph::~Graph() {
-    if (mapping) {
-        delete idToPos;
-        delete posToId;
     }
 }

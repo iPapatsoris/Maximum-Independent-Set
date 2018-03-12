@@ -39,34 +39,48 @@ void ExactAlg::reduce(const int &degree, const int &cliqueSize) {
     newGraph.setIdToPos(idToPos);
     newGraph.setPosToId(posToId);
     cout << " \n\nExactAlg\n\n";
-    graph.printEdgeCounts();
-    //newGraph.print(false);
-    newGraph.printWithGraphTraversal(false);
+    //graph.printEdgeCounts();
+    //newGraph.print(true); return;
+    //newGraph.printWithGraphTraversal(true); return;
 
     /* Clique detection */
     vector<Graph::GraphTraversal> clique1;
     vector<Graph::GraphTraversal> clique2;
-    Graph::GraphTraversal graphTraversal(graph);
+    Graph::GraphTraversal graphTraversal1(newGraph);
     clique1.reserve(cliqueSize);
     clique2.reserve(cliqueSize);
-    clique1.push_back(graphTraversal);
+    clique1.push_back(graphTraversal1);
 
-    while (findCliques(cliqueSize, newGraph, clique1, graphTraversal)) {
-        cout << "\nClique: " << endl;
+    while (findCliques(cliqueSize, newGraph, clique1, graphTraversal1)) {
+        cout << "\nClique 1: " << endl;
         for (uint32_t i = 0 ; i < clique1.size() ; i++) {
             cout << clique1[i].curNode << endl;
         }
-        graphTraversal = clique1.back();
+
+        clique2.clear();
+        Graph::GraphTraversal graphTraversal2(newGraph);
+        clique2.push_back(graphTraversal2);
+        while (findCliques(cliqueSize, newGraph, clique2, graphTraversal2, &clique1)) {
+            cout << "\nClique 2: " << endl;
+            for (uint32_t i = 0 ; i < clique2.size() ; i++) {
+                cout << clique2[i].curNode << endl;
+            }
+            break;
+        }
+
+        graphTraversal1 = clique1.back();
         clique1.pop_back();
         if (clique1.empty()) {
-            newGraph.getNextNode(graphTraversal);
-            if (graphTraversal.curNode == NONE) {
+            newGraph.getNextNode(graphTraversal1);
+            if (graphTraversal1.curNode == NONE) {
                 cout << "No second clique" << endl;
                 return;
             }
-            clique1.push_back(graphTraversal);
+            clique1.push_back(graphTraversal1);
         }
-        advance(clique1, graphTraversal, graph);
+        uint32_t dummy = NONE;
+        advance(clique1, graphTraversal1, newGraph);
+        //cout << "it's " << graphTraversal1.curNode << " and " << graphTraversal1.curEdgeOffset << endl;
     }
 
     /* Clique detection *
@@ -121,18 +135,30 @@ void ExactAlg::reduce(const int &degree, const int &cliqueSize) {
     }*/
 }
 
-bool ExactAlg::findCliques(const uint32_t &cliqueSize, const Graph &graph, vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal) {
+bool ExactAlg::findCliques(const uint32_t &cliqueSize, const Graph &graph, vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, vector<Graph::GraphTraversal> *previousClique) {
+    uint32_t commonNode = NONE; // Used for excluding cliques with a common edge
+    if (previousClique != NULL && find(*previousClique, graphTraversal.curNode)) {
+        commonNode = graphTraversal.curNode;
+    }
     while (clique.size() < cliqueSize) {
         /*cout << "Cur clique: \n";
         for (uint32_t i = 0 ; i < clique.size() ; i++) {
             cout << clique[i].curNode << endl;
         }*/
+        //cout << "ni " << graphTraversal.curEdgeOffset << endl;
         uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
-        if (!find(clique, neighbor) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+        bool existsInPreviousClique = (previousClique == NULL ? false : find(*previousClique, neighbor));
+        if ((previousClique == NULL || previousClique != NULL && (commonNode == NONE || commonNode != NONE && !existsInPreviousClique)) &&
+           !find(clique, neighbor) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+            //cout << "going to " << neighbor << endl;
+            //cout << "commonNode is " << commonNode << endl;
+            if (existsInPreviousClique) {
+                commonNode = neighbor;
+            }
             graph.goToNode(neighbor, graphTraversal);
             clique.push_back(graphTraversal);
         } else {
-            if (!advance(clique, graphTraversal, graph)) {
+            if (!advance(clique, graphTraversal, graph, &commonNode, previousClique)) {
                 return false;
             }
         }

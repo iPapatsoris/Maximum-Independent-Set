@@ -108,6 +108,7 @@ public:
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
     void fill(const uint32_t &size);
+    uint32_t getNextBiggerNeighborOffset(const uint32_t &node) const;
 
     struct NodeInfo {
     public:
