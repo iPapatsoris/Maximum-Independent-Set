@@ -110,16 +110,16 @@ public:
             return;
         }
         uint32_t pos = (!mapping ? graphTraversal.curNode : (*idToPos)[graphTraversal.curNode]);
+        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
         if (graphTraversal.curEdgeOffset == NONE) {
             graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);
         } else {
-            graphTraversal.curEdgeOffset = (graphTraversal.curEdgeOffset + 1 < nodeIndex[pos].offset + nodeIndex[pos].edges ? graphTraversal.curEdgeOffset + 1 : NONE);
+            graphTraversal.curEdgeOffset = (graphTraversal.curEdgeOffset + 1 < nextNodeOffset ? graphTraversal.curEdgeOffset + 1 : NONE);
         }
         if (graphTraversal.curEdgeOffset == NONE) {
             return;
         }
         bool validNeighbor = false;
-        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
         for ( ; graphTraversal.curEdgeOffset  < nextNodeOffset ; graphTraversal.curEdgeOffset++) {
             uint32_t nPos = (!mapping ? edgeBuffer[graphTraversal.curEdgeOffset] : (*idToPos)[edgeBuffer[graphTraversal.curEdgeOffset]]);
             if (!nodeIndex[nPos].removed) {

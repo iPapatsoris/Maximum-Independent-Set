@@ -59,10 +59,12 @@ private:
         return true;
     }
 
-    void reduce(const int &degree, const int &cliqueSize);
-    bool reduce(std::vector<Graph::GraphTraversal> &clique1, std::vector<Graph::GraphTraversal> &clique2, const uint32_t cliqueSize, const Graph &graph);
-    void buildNDegreeSubgraph(const int &degree, Graph &subgraph);
-    bool findCliques(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, std::vector<Graph::GraphTraversal> *previousClique = NULL);
+    void reduce();
+    void removeLineGraphs(const uint32_t &degree, const uint32_t &clique1Size, const uint32_t &clique2Size);
+    void removeLineGraphs(const uint32_t &degree, const uint32_t &cliqueSize);
+    bool findCliques(std::vector<Graph::GraphTraversal> &clique1, std::vector<Graph::GraphTraversal> &clique2, const uint32_t &clique1Size, const uint32_t &clique2Size, const Graph &graph);
+    void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
+    bool findClique(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, std::vector<Graph::GraphTraversal> *previousClique = NULL);
     Graph &graph;
 };
 

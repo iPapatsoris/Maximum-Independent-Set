@@ -8,23 +8,33 @@ using namespace std;
 
 void ExactAlg::run() {
     cout << " \n\nExactAlg\n\n";
-    this->reduce(6, 4);
-    //graph.print(true);
+    reduce();
+    graph.print(true);
     //graph.printEdgeCounts();
-    graph.printWithGraphTraversal(true);
+    //graph.printWithGraphTraversal(true);
 }
 
-void ExactAlg::reduce(const int &degree, const int &cliqueSize) {
+void ExactAlg::reduce() {
+    removeLineGraphs(6, 4);
+    removeLineGraphs(7, 4, 5);
+    removeLineGraphs(8, 5);
+}
+
+void ExactAlg::removeLineGraphs(const uint32_t &degree, const uint32_t &cliqueSize) {
+    removeLineGraphs(degree, cliqueSize, cliqueSize);
+}
+
+void ExactAlg::removeLineGraphs(const uint32_t &degree, const uint32_t &clique1Size, const uint32_t &clique2Size) {
     vector<Graph::GraphTraversal> clique1;
     vector<Graph::GraphTraversal> clique2;
-    clique1.reserve(cliqueSize);
-    clique2.reserve(cliqueSize);
+    clique1.reserve(clique1Size);
+    clique2.reserve(clique2Size);
     while (true) {
         Graph subgraph;
         buildNDegreeSubgraph(degree, subgraph);
         //cout << "Subgraph is" << endl;
         //subgraph.print(true);
-        if (!reduce(clique1, clique2, cliqueSize, subgraph)) {
+        if (!findCliques(clique1, clique2, clique1Size, clique2Size, subgraph)) {
             break;
         }
         graph.remove(clique1);
@@ -32,7 +42,7 @@ void ExactAlg::reduce(const int &degree, const int &cliqueSize) {
     }
 }
 
-void ExactAlg::buildNDegreeSubgraph(const int &degree, Graph &subgraph) {
+void ExactAlg::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
     unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
     vector<uint32_t> *posToId = new vector<uint32_t>();
     vector<Graph::NodeInfo> &newNodeIndex = subgraph.getNodeIndex();
@@ -62,11 +72,11 @@ void ExactAlg::buildNDegreeSubgraph(const int &degree, Graph &subgraph) {
     subgraph.setPosToId(posToId);
 }
 
-    bool ExactAlg::reduce(vector<Graph::GraphTraversal> &clique1, vector<Graph::GraphTraversal> &clique2, const uint32_t cliqueSize, const Graph &graph) {
+    bool ExactAlg::findCliques(vector<Graph::GraphTraversal> &clique1, vector<Graph::GraphTraversal> &clique2, const uint32_t &clique1Size, const uint32_t &clique2Size, const Graph &graph) {
         clique1.clear();
         Graph::GraphTraversal graphTraversal1(graph);
         clique1.push_back(graphTraversal1);
-        while (findCliques(cliqueSize, graph, clique1, graphTraversal1)) {
+        while (findClique(clique1Size, graph, clique1, graphTraversal1)) {
             cout << "\nClique 1: " << endl;
             for (uint32_t i = 0 ; i < clique1.size() ; i++) {
                 cout << clique1[i].curNode << endl;
@@ -75,7 +85,7 @@ void ExactAlg::buildNDegreeSubgraph(const int &degree, Graph &subgraph) {
             clique2.clear();
             Graph::GraphTraversal graphTraversal2(graph);
             clique2.push_back(graphTraversal2);
-            while (findCliques(cliqueSize, graph, clique2, graphTraversal2, &clique1)) {
+            while (findClique(clique2Size, graph, clique2, graphTraversal2, &clique1)) {
                 cout << "\nClique 2: " << endl;
                 for (uint32_t i = 0 ; i < clique2.size() ; i++) {
                     cout << clique2[i].curNode << endl;
@@ -99,7 +109,7 @@ void ExactAlg::buildNDegreeSubgraph(const int &degree, Graph &subgraph) {
         return false;
     }
 
-bool ExactAlg::findCliques(const uint32_t &cliqueSize, const Graph &graph, vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, vector<Graph::GraphTraversal> *previousClique) {
+bool ExactAlg::findClique(const uint32_t &cliqueSize, const Graph &graph, vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, vector<Graph::GraphTraversal> *previousClique) {
     uint32_t commonNode = NONE; // Used for excluding cliques with a common edge
     if (previousClique != NULL && find(*previousClique, graphTraversal.curNode)) {
         commonNode = graphTraversal.curNode;
@@ -129,19 +139,3 @@ bool ExactAlg::findCliques(const uint32_t &cliqueSize, const Graph &graph, vecto
     }
     return true;
 }
-
-/*
-clique2 = clique1;
-graphTraversal = clique2.back();
-clique2.pop_back();
-if (clique2.empty()) {
-    graph.getNextNode(graphTraversal);
-    if (graphTraversal.curNode == NONE) {
-        cout << "No second clique" << endl;
-        return;
-    }
-    clique2.push_back(graphTraversal);
-}
-advance(clique2, graphTraversal, graph);
-filledClique = &clique1;
-fillingClique = &clique2;*/
