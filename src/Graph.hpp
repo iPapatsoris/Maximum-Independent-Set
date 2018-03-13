@@ -16,6 +16,7 @@ class NodeInfo;
 
 public:
     struct GraphTraversal;
+    struct ReduceInfo;
     Graph(const std::string &inputFile);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
     std::vector<NodeInfo> &getNodeIndex() {
@@ -53,7 +54,8 @@ public:
         this->mapping = mapping;
     }
 
-    void remove(const std::vector<Graph::GraphTraversal> &nodes);
+    void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
+    void rebuild(const ReduceInfo &reduceInfo);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
@@ -139,10 +141,18 @@ public:
         assert(graphTraversal.curEdgeOffset == NONE || !nodeIndex[(!mapping ? graphTraversal.curEdgeOffset : (*idToPos)[graphTraversal.curEdgeOffset])].removed);
     }
 
+    struct ReduceInfo {
+    public:
+        ReduceInfo() : nodesRemoved(0), edgesRemoved(0) {}
+        uint32_t nodesRemoved;
+        uint32_t edgesRemoved;
+    };
+
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
     void fill(const uint32_t &size);
     uint32_t getNextBiggerNeighborOffset(const uint32_t &node) const;
+    void rebuild(uint32_t nodesRemoved);
 
     struct NodeInfo {
     public:

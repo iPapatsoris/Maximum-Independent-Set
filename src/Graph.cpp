@@ -21,21 +21,78 @@ Graph::~Graph() {
     }
 }
 
-void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes) {
+void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? it->curNode : (*idToPos)[it->curNode]);
         if (!nodeIndex[pos].removed) {
+            reduceInfo.nodesRemoved++;
             uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
             for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
                 uint32_t nPos = (!mapping ? edgeBuffer[offset] : (*idToPos)[edgeBuffer[offset]]);
                 nodeIndex[nPos].edges--;
+                reduceInfo.edgesRemoved++;
             }
         }
         nodeIndex[pos].edges = 0;
         nodeIndex[pos].removed = true;
     }
+
 }
 
+void Graph::rebuild(const ReduceInfo &reduceInfo) {
+    if (!reduceInfo.nodesRemoved) {
+        return;
+    }
+    cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    vector<NodeInfo> nodeIndex;
+    nodeIndex.reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
+    vector<uint32_t> edgeBuffer;
+    edgeBuffer.reserve(this->edgeBuffer.size() - reduceInfo.edgesRemoved);
+    unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
+    vector<uint32_t> *posToId = new vector<uint32_t>();
+    posToId->reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
+    uint32_t offset = 0;
+
+    for (uint32_t pos = 0 ; pos < this->nodeIndex.size() ; pos++) {
+        if (this->nodeIndex[pos].removed) {
+            continue;
+        }
+        if (!this->nodeIndex[pos].edges) {
+            // put in mis, unless initial node ids can differ from pos
+            continue;
+        }
+        uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
+        uint32_t edges = 0;
+        uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer.size() : this->nodeIndex[pos+1].offset);
+        for (uint32_t i = this->nodeIndex[pos].offset ; i < nextNodeOffset ; i++) {
+            uint32_t nPos = (!mapping ? this->edgeBuffer[i] : (*this->idToPos)[this->edgeBuffer[i]]);
+            if (!this->nodeIndex[nPos].removed) {
+                edgeBuffer.push_back(this->edgeBuffer[i]);
+                edges++;
+            }
+            if (edges == this->nodeIndex[pos].edges) {
+                break;
+            }
+        }
+        assert(edges > 0);
+        idToPos->insert({node, nodeIndex.size()});
+        posToId->push_back(node);
+        nodeIndex.push_back(Graph::NodeInfo(offset, edges));
+        offset += edges;
+    }
+    this->mapping = true;
+    if (this->idToPos != NULL) {
+        delete this->idToPos;
+    }
+    if (this->posToId != NULL) {
+        delete this->posToId;
+    }
+    this->idToPos = idToPos;
+    this->posToId = posToId;
+    assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved);
+    this->nodeIndex = nodeIndex;
+    this->edgeBuffer = edgeBuffer;
+}
 
 uint32_t Graph::getNextBiggerNeighborOffset(const uint32_t &node) const {
     uint32_t pos = (!mapping ? node : (*idToPos)[node]);
