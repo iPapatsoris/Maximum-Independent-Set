@@ -29,7 +29,7 @@ void ExactAlg::removeLineGraphs(const uint32_t &degree, const uint32_t &clique1S
     clique2.reserve(clique2Size);
     while (true) {
         Graph subgraph;
-        buildSubgraph(degree, subgraph);
+        graph.buildNDegreeSubgraph(degree, subgraph);
         //cout << "Subgraph is" << endl;
         //subgraph.print(true);
         if (!findCliques(clique1, clique2, clique1Size, clique2Size, subgraph)) {
@@ -38,36 +38,6 @@ void ExactAlg::removeLineGraphs(const uint32_t &degree, const uint32_t &clique1S
         graph.remove(clique1, reduceInfo);
         graph.remove(clique2, reduceInfo);
     }
-}
-
-void ExactAlg::buildSubgraph(const uint32_t &degree, Graph &subgraph) {
-    unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
-    vector<uint32_t> *posToId = new vector<uint32_t>();
-    vector<Graph::NodeInfo> &newNodeIndex = subgraph.getNodeIndex();
-    vector<uint32_t> &newEdgeBuffer = subgraph.getEdgeBuffer();
-    vector<Graph::NodeInfo> &nodeIndex = graph.getNodeIndex();
-    vector<uint32_t> &edgeBuffer = graph.getEdgeBuffer();
-    for (uint32_t node = 0 ; node < nodeIndex.size() ; node++) {
-        if (1 || degree == NONE || nodeIndex[node].getEdges() == degree) {
-            uint32_t newOffset = newEdgeBuffer.size();
-            uint32_t newEdges = 0;
-            uint32_t nextNodeOffset = (node == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[node+1].offset);
-            for (uint32_t offset = nodeIndex[node].offset ; offset < nextNodeOffset ; offset++) {
-                if (!nodeIndex[edgeBuffer[offset]].removed && (1 || degree == NONE || nodeIndex[edgeBuffer[offset]].getEdges() == degree)) {
-                    newEdgeBuffer.push_back(edgeBuffer[offset]);
-                    newEdges++;
-                }
-            }
-            if (newEdges) {
-                idToPos->insert({node, newNodeIndex.size()});
-                posToId->push_back(node);
-                newNodeIndex.push_back(Graph::NodeInfo(newOffset, newEdges));
-            }
-        }
-    }
-    subgraph.setMapping(true);
-    subgraph.setIdToPos(idToPos);
-    subgraph.setPosToId(posToId);
 }
 
 bool ExactAlg::findCliques(vector<Graph::GraphTraversal> &clique1, vector<Graph::GraphTraversal> &clique2, const uint32_t &clique1Size, const uint32_t &clique2Size, const Graph &graph) {

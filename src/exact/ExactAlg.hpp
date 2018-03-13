@@ -62,7 +62,6 @@ private:
     void reduce();
     void removeLineGraphs(const uint32_t &degree, const uint32_t &clique1Size, const uint32_t &clique2Size, Graph::ReduceInfo &reduceInfo);
     bool findCliques(std::vector<Graph::GraphTraversal> &clique1, std::vector<Graph::GraphTraversal> &clique2, const uint32_t &clique1Size, const uint32_t &clique2Size, const Graph &graph);
-    void buildSubgraph(const uint32_t &degree, Graph &subgraph);
     bool findClique(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, std::vector<Graph::GraphTraversal> *previousClique = NULL);
     Graph &graph;
 };

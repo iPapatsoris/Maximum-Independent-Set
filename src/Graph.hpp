@@ -45,9 +45,15 @@ public:
     ~Graph();
 
     void setIdToPos(std::unordered_map<uint32_t, uint32_t> *idToPos) {
+        if (this->idToPos != NULL) {
+            delete this->idToPos;
+        }
         this->idToPos = idToPos;
     }
     void setPosToId(std::vector<uint32_t> *posToId) {
+        if (this->posToId != NULL) {
+            delete this->posToId;
+        }
         this->posToId = posToId;
     }
     void setMapping(const bool &mapping) {
@@ -56,6 +62,7 @@ public:
 
     void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
     void rebuild(const ReduceInfo &reduceInfo);
+    void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
