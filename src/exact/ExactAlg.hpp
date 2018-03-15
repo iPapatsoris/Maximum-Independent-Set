@@ -29,7 +29,7 @@ private:
         return false;
     }
 
-    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph, uint32_t *commonNode = NULL, std::vector<Graph::GraphTraversal> *previousClique = NULL) {
+    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
         bool validNeighbor = false;
         while(!validNeighbor) {
             graphTraversal = clique.back();
@@ -39,9 +39,6 @@ private:
                 validNeighbor = true;
             } else {
                 graphTraversal = clique.back();
-                if (commonNode != NULL && graphTraversal.curNode == *commonNode) {
-                    *commonNode = NONE;
-                }
                 clique.pop_back();
                 if (clique.empty()) {
                     graph.getNextNode(graphTraversal);
@@ -50,9 +47,6 @@ private:
                         return false;
                     }
                     clique.push_back(graphTraversal);
-                    if (previousClique != NULL && find(*previousClique, graphTraversal.curNode)) {
-                        *commonNode = graphTraversal.curNode;
-                    }
                 }
             }
         }
@@ -60,9 +54,8 @@ private:
     }
 
     void reduce();
-    void removeLineGraphs(const uint32_t &degree, const uint32_t &clique1Size, const uint32_t &clique2Size, Graph::ReduceInfo &reduceInfo);
-    bool findCliques(std::vector<Graph::GraphTraversal> &clique1, std::vector<Graph::GraphTraversal> &clique2, const uint32_t &clique1Size, const uint32_t &clique2Size, const Graph &graph);
-    bool findClique(const uint32_t &cliqueSize, const Graph &graph, std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, std::vector<Graph::GraphTraversal> *previousClique = NULL);
+    void removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduceInfo);
+    bool findClique(std::vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph);
     Graph &graph;
 };
 

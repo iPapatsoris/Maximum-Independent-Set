@@ -97,25 +97,32 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
 void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
     unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
     vector<uint32_t> *posToId = new vector<uint32_t>();
-    vector<Graph::NodeInfo> &newNodeIndex = subgraph.nodeIndex;
-    vector<uint32_t> &newEdgeBuffer = subgraph.edgeBuffer;
+    vector<Graph::NodeInfo> &nodeIndex = subgraph.nodeIndex;
+    vector<uint32_t> &edgeBuffer = subgraph.edgeBuffer;
     for (uint32_t pos = 0 ; pos < this->nodeIndex.size() ; pos++) {
         if (1 || degree == NONE || this->nodeIndex[pos].edges == degree) {
-            uint32_t newOffset = newEdgeBuffer.size();
-            uint32_t newEdges = 0;
+            uint32_t newOffset = edgeBuffer.size();
+            uint32_t edges = 0;
             uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer.size() : this->nodeIndex[pos+1].offset);
-            for (uint32_t offset = this->nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                uint32_t nPos = (!this->mapping ? this->edgeBuffer[offset] : (*this->idToPos)[this->edgeBuffer[offset]]);
-                if (!this->nodeIndex[nPos].removed && (1 || degree == NONE || this->nodeIndex[nPos].getEdges() == degree)) {
-                    newEdgeBuffer.push_back(this->edgeBuffer[offset]);
-                    newEdges++;
+            if (degree != NONE) {
+                for (uint32_t offset = this->nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                    uint32_t nPos = (!this->mapping ? this->edgeBuffer[offset] : (*this->idToPos)[this->edgeBuffer[offset]]);
+                    if (!this->nodeIndex[nPos].removed && (1 || degree == NONE || this->nodeIndex[nPos].edges == degree)) {
+                        edges++;
+                    }
                 }
             }
-            if (newEdges) {
+            if (degree == NONE || edges == degree) {
+                for (uint32_t offset = this->nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                    uint32_t nPos = (!this->mapping ? this->edgeBuffer[offset] : (*this->idToPos)[this->edgeBuffer[offset]]);
+                    if (!this->nodeIndex[nPos].removed) {
+                        edgeBuffer.push_back(this->edgeBuffer[offset]);
+                    }
+                }
                 uint32_t node = (!this->mapping ? pos : (*this->posToId)[pos]);
-                idToPos->insert({node, newNodeIndex.size()});
+                idToPos->insert({node, nodeIndex.size()});
                 posToId->push_back(node);
-                newNodeIndex.push_back(Graph::NodeInfo(newOffset, newEdges));
+                nodeIndex.push_back(Graph::NodeInfo(newOffset, edges));
             }
         }
     }
