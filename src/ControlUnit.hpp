@@ -11,8 +11,6 @@ public:
 
 private:
     Graph graph;
-
-    void parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
 };
 
 #endif

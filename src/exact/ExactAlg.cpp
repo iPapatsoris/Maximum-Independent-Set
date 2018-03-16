@@ -9,7 +9,7 @@ using namespace std;
 void ExactAlg::run() {
     cout << " \n\nExactAlg\n\n";
     reduce();
-    //graph.print(true);
+    graph.print(false);
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
     cout << "Mis: " << endl;
@@ -59,7 +59,7 @@ bool ExactAlg::findClique(vector<Graph::GraphTraversal> &clique, const uint32_t 
         //}
         uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
         //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
-        if (graph.idToPos->find(neighbor) != graph.idToPos->end() && !find(clique, neighbor) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+        if (graph.idToPos->find(neighbor) != graph.idToPos->end() && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
             //cout << "going to " << neighbor << endl;
             //cout << "commonNode is " << commonNode << endl;
             graph.goToNode(neighbor, graphTraversal);
