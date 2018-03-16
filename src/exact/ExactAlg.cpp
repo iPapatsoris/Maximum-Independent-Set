@@ -9,9 +9,13 @@ using namespace std;
 void ExactAlg::run() {
     cout << " \n\nExactAlg\n\n";
     reduce();
-    graph.print(true);
+    //graph.print(true);
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
+    cout << "Mis: " << endl;
+    for (uint32_t i = 0 ; i < mis.size() ; i++) {
+        cout << mis[i] << endl;
+    }
 }
 
 void ExactAlg::reduce() {
@@ -28,12 +32,17 @@ void ExactAlg::removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduc
     while (true) {
         Graph subgraph;
         graph.buildNDegreeSubgraph(degree, subgraph);
+        cout << "Subgraph size " << subgraph.getNodeCount() << endl;
+        if (!subgraph.getNodeCount()) {
+            break;
+        }
         //cout << "Subgraph is" << endl;
         //subgraph.print(true);
         if (!findClique(clique, degree+1, subgraph)) {
             break;
         }
         graph.remove(clique, reduceInfo);
+        mis.push_back(clique[0].curNode);
     }
 }
 
@@ -45,12 +54,12 @@ bool ExactAlg::findClique(vector<Graph::GraphTraversal> &clique, const uint32_t 
         //if (clique[0].curNode == 11) {
         //cout << "Cur clique: \n";
         //for (uint32_t i = 0 ; i < clique.size() ; i++) {
-        //    cout << clique[i].curNode << endl;
+        //cout << clique[i].curNode << endl;
         //}
         //}
-        //cout << "ni " << graphTraversal.curEdgeOffset << endl;
         uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
-        if (!find(clique, neighbor) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+        //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
+        if (graph.idToPos->find(neighbor) != graph.idToPos->end() && !find(clique, neighbor) && isSubsetOfNeighbors(clique, neighbor, graph)) {
             //cout << "going to " << neighbor << endl;
             //cout << "commonNode is " << commonNode << endl;
             graph.goToNode(neighbor, graphTraversal);
