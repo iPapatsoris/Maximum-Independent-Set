@@ -134,68 +134,6 @@ void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
     subgraph.setPosToId(posToId);
 }
 
-/* Check whether a particular edge exists with binary search */
-bool Graph::edgeExists(const uint32_t &node, const uint32_t &neighbor) const {
-    uint32_t pos = (!mapping ? node : idToPos->at(node));
-    uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
-    assert(!nodeIndex[pos].removed && !nodeIndex[nPos].removed);
-    uint32_t offset = nodeIndex[pos].offset;
-    uint32_t endOffset = offset + nodeIndex[pos].edges - 1;
-    if (offset == endOffset) {
-        return NONE;
-    }
-    uint32_t startIndex = 0;
-    uint32_t endIndex = nodeIndex[pos].edges - 1;
-    uint32_t index = (endIndex - startIndex) / 2;
-    while (startIndex != endIndex) {
-        if (edgeBuffer[offset + startIndex + index] == neighbor) {
-            return true;
-        } else if (edgeBuffer[offset + startIndex + index] < neighbor) {
-            startIndex += index + 1;
-        } else {
-            if (!index) {
-                return false;
-            }
-            endIndex = startIndex + index - 1;
-        }
-        index = (endIndex - startIndex) / 2;
-    }
-    return edgeBuffer[offset + startIndex + index] == neighbor;
-}
-
-void Graph::getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, uint32_t &outerNeighbor, bool &exactlyOne) const {
-    outerNeighbor = NONE;
-    exactlyOne = false;
-    bool found = false;
-    GraphTraversal graphTraversal(*this, neighbor);
-    while (graphTraversal.curEdgeOffset != NONE) {
-        uint32_t extendedGrandchild = edgeBuffer[graphTraversal.curEdgeOffset];
-        if (!edgeExists(extendedGrandchild, node)) {
-            if (!found) {
-                found = true;
-                outerNeighbor = extendedGrandchild;
-            } else {
-                return;
-            }
-        }
-        getNextEdge(graphTraversal);
-    }
-    if (found) {
-        exactlyOne = true;
-    }
-}
-
-bool Graph::isIndependentSet(const vector<uint32_t> &set) const {
-    for (uint32_t i = 0 ; i < set.size() ; i++) {
-        for (uint32_t j = i+1 ; j < set.size() ; j++) {
-            if (edgeExists(set[i], set[j])) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 void Graph::print(bool direction) const {
     cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
