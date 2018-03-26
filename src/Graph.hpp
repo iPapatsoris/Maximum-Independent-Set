@@ -48,7 +48,10 @@ public:
 
     bool edgeExists(const uint32_t &node, const uint32_t &neighbor) const;
     void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
+    void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const ReduceInfo &reduceInfo);
+    void getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, uint32_t &outerNeighbor, bool &exactlyOne) const;
+    bool isIndependentSet(const std::vector<uint32_t> &set) const;
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
@@ -58,6 +61,8 @@ public:
     struct GraphTraversal {
     public:
         GraphTraversal(const Graph &graph);
+        GraphTraversal(const Graph &graph, const uint32_t &node);
+        GraphTraversal(const uint32_t &curNode, const uint32_t &curEdgeOffset) : curNode(curNode), curEdgeOffset(curEdgeOffset) {}
 
         uint32_t curNode;
         uint32_t curEdgeOffset;

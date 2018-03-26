@@ -14,6 +14,10 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
     graph.getNextNode(*this);
 }
 
+Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) {
+    graph.goToNode(node, *this);
+}
+
 Graph::~Graph() {
     if (mapping) {
         delete idToPos;
@@ -37,7 +41,10 @@ void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &
         nodeIndex[pos].edges = 0;
         nodeIndex[pos].removed = true;
     }
+}
 
+void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
+    remove(std::vector<GraphTraversal>(1, GraphTraversal(node, NONE)), reduceInfo);
 }
 
 /* Rebuild structures, completely removing nodes that are marked as removed */
@@ -54,14 +61,14 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     vector<uint32_t> *posToId = new vector<uint32_t>();
     posToId->reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
     uint32_t offset = 0;
-    uint32_t initialZeroDegreeNodeCount = zeroDegreeNodes.size();
 
     for (uint32_t pos = 0 ; pos < this->nodeIndex.size() ; pos++) {
         if (this->nodeIndex[pos].removed) {
             continue;
         }
         uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
-        if (!this->nodeIndex[pos].edges) { // Only possible when we can have outer neighbors
+        if (!this->nodeIndex[pos].edges) {
+            cout << "Found node " << node << " with no edges at rebuilding\n";
             zeroDegreeNodes.push_back(node);
             continue;
         }
@@ -93,7 +100,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     }
     this->idToPos = idToPos;
     this->posToId = posToId;
-    assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - initialZeroDegreeNodeCount);
+    assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
     this->nodeIndex = nodeIndex;
     this->edgeBuffer = edgeBuffer;
 }
@@ -130,6 +137,8 @@ void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
 /* Check whether a particular edge exists with binary search */
 bool Graph::edgeExists(const uint32_t &node, const uint32_t &neighbor) const {
     uint32_t pos = (!mapping ? node : idToPos->at(node));
+    uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
+    assert(!nodeIndex[pos].removed && !nodeIndex[nPos].removed);
     uint32_t offset = nodeIndex[pos].offset;
     uint32_t endOffset = offset + nodeIndex[pos].edges - 1;
     if (offset == endOffset) {
@@ -152,6 +161,39 @@ bool Graph::edgeExists(const uint32_t &node, const uint32_t &neighbor) const {
         index = (endIndex - startIndex) / 2;
     }
     return edgeBuffer[offset + startIndex + index] == neighbor;
+}
+
+void Graph::getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, uint32_t &outerNeighbor, bool &exactlyOne) const {
+    outerNeighbor = NONE;
+    exactlyOne = false;
+    bool found = false;
+    GraphTraversal graphTraversal(*this, neighbor);
+    while (graphTraversal.curEdgeOffset != NONE) {
+        uint32_t extendedGrandchild = edgeBuffer[graphTraversal.curEdgeOffset];
+        if (!edgeExists(extendedGrandchild, node)) {
+            if (!found) {
+                found = true;
+                outerNeighbor = extendedGrandchild;
+            } else {
+                return;
+            }
+        }
+        getNextEdge(graphTraversal);
+    }
+    if (found) {
+        exactlyOne = true;
+    }
+}
+
+bool Graph::isIndependentSet(const vector<uint32_t> &set) const {
+    for (uint32_t i = 0 ; i < set.size() ; i++) {
+        for (uint32_t j = i+1 ; j < set.size() ; j++) {
+            if (edgeExists(set[i], set[j])) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void Graph::print(bool direction) const {

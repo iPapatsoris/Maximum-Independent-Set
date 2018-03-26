@@ -9,7 +9,7 @@ using namespace std;
 void ExactAlg::run() {
     cout << " \n\nExactAlg\n\n";
     reduce();
-    graph.print(false);
+    //graph.print(false);
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
     cout << "Mis: " << endl;
@@ -23,7 +23,40 @@ void ExactAlg::reduce() {
     removeLineGraphs(6, reduceInfo);
     removeLineGraphs(7, reduceInfo);
     removeLineGraphs(8, reduceInfo);
+    removeUnconfinedNodes(reduceInfo);
+
+    /*Graph::ReduceInfo old = reduceInfo;
+    removeUnconfinedNodes(reduceInfo);
+    assert(old.nodesRemoved == reduceInfo.nodesRemoved && old.edgesRemoved == reduceInfo.edgesRemoved);*/
+
     graph.rebuild(reduceInfo);
+}
+
+void ExactAlg::removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo) {
+    Graph::GraphTraversal graphTraversal(graph);
+    while (graphTraversal.curNode != NONE) {
+        cout << "node " << graphTraversal.curNode << "\n";
+        bool isUnconfined = false;
+        vector<uint32_t> extendedGrandchildren;
+        while (graphTraversal.curEdgeOffset != NONE) {
+            uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
+            uint32_t outerNeighbor;
+            bool exactlyOne;
+            graph.getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
+            if (outerNeighbor == NONE) {
+                isUnconfined = true;
+                break;
+            } else if (exactlyOne) {
+                extendedGrandchildren.push_back(outerNeighbor);
+            }
+            graph.getNextEdge(graphTraversal);
+        }
+        if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
+            cout << "Unconfined node " << graphTraversal.curNode << "\n";
+            graph.remove(graphTraversal.curNode, reduceInfo);
+        }
+        graph.getNextNode(graphTraversal);
+    }
 }
 
 void ExactAlg::removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduceInfo) {
