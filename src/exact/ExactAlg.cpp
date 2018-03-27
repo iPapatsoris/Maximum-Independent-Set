@@ -7,32 +7,39 @@
 using namespace std;
 
 void ExactAlg::run() {
-    cout << " \n\nExactAlg\n\n";
+    cout << " \nExactAlg\n";
     reduce();
-    graph.print(false);
+    //graph.print(false);
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
-    cout << "Mis: " << endl;
-    for (uint32_t i = 0 ; i < mis.size() ; i++) {
-        cout << mis[i] << endl;
-    }
+    cout << "Mis size: " << mis.size() << "\n";
+    cout << "Zero degree nodes: " << graph.zeroDegreeNodes.size() << "\n";
+    //cout << "Mis: " << endl;
+    //for (uint32_t i = 0 ; i < mis.size() ; i++) {
+    //    cout << mis[i] << endl;
+    //}
 }
 
 void ExactAlg::reduce() {
     Graph::ReduceInfo reduceInfo;
-    removeLineGraphs(6, reduceInfo);
-    removeLineGraphs(7, reduceInfo);
-    removeLineGraphs(8, reduceInfo);
+    removeLineGraphs(reduceInfo);
     removeUnconfinedNodes(reduceInfo);
-
-    /*Graph::ReduceInfo old = reduceInfo;
-    removeUnconfinedNodes(reduceInfo);
-    assert(old.nodesRemoved == reduceInfo.nodesRemoved && old.edgesRemoved == reduceInfo.edgesRemoved);*/
-
     graph.rebuild(reduceInfo);
 }
 
 void ExactAlg::removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo) {
+    cout << "\n**Performing unconfined nodes reduction**" << endl;
+    removeUnconfinedNodes2(reduceInfo);
+    Graph::ReduceInfo old;
+    do {
+        cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+        old = reduceInfo;
+        removeUnconfinedNodes2(reduceInfo);
+        //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
+    } while (old.nodesRemoved != reduceInfo.nodesRemoved);
+}
+
+void ExactAlg::removeUnconfinedNodes2(Graph::ReduceInfo &reduceInfo) {
     Graph::GraphTraversal graphTraversal(graph);
     while (graphTraversal.curNode != NONE) {
         //cout << "node " << graphTraversal.curNode << "\n";
@@ -54,11 +61,19 @@ void ExactAlg::removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo) {
             graph.getNextEdge(graphTraversal);
         }
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
-            cout << "Unconfined node " << graphTraversal.curNode << "\n";
+            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
     }
+}
+
+void ExactAlg::removeLineGraphs(Graph::ReduceInfo &reduceInfo) {
+    cout << "\n**Perfoming line graph reduction**" << endl;
+    removeLineGraphs(6, reduceInfo);
+    removeLineGraphs(7, reduceInfo);
+    removeLineGraphs(8, reduceInfo);
+    cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << "\n";
 }
 
 void ExactAlg::removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduceInfo) {
@@ -67,7 +82,7 @@ void ExactAlg::removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduc
     while (true) {
         Graph subgraph;
         graph.buildNDegreeSubgraph(degree, subgraph);
-        cout << "Subgraph size " << subgraph.getNodeCount() << endl;
+        cout << degree << "-degree subgraph size: " << subgraph.getNodeCount() << endl;
         if (!subgraph.getNodeCount()) {
             break;
         }
@@ -108,7 +123,7 @@ bool ExactAlg::findClique(vector<Graph::GraphTraversal> &clique, const uint32_t 
             }
         }
     }
-    cout << "\nClique: " << endl;
+    cout << "Clique: " << endl;
     for (uint32_t i = 0 ; i < clique.size() ; i++) {
         cout << clique[i].curNode << endl;
     }

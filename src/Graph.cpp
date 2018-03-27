@@ -52,7 +52,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     if (!reduceInfo.nodesRemoved) {
         return;
     }
-    cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    cout << "\nRebuilding" << endl;//: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     vector<NodeInfo> nodeIndex;
     nodeIndex.reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
     vector<uint32_t> edgeBuffer;
@@ -68,7 +68,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
         }
         uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
         if (!this->nodeIndex[pos].edges) {
-            cout << "Found node " << node << " with no edges at rebuilding\n";
+            //cout << "Found node " << node << " with no edges at rebuilding\n";
             zeroDegreeNodes.push_back(node);
             continue;
         }
@@ -103,6 +103,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
     this->nodeIndex = nodeIndex;
     this->edgeBuffer = edgeBuffer;
+    //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
 }
 
 /* Build subgraph of nodes with N degree. Neighbors of these nodes do not necessarily need to
