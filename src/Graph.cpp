@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include "Graph.hpp"
 
 #define MAXLINE 100
@@ -133,6 +134,60 @@ void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
     subgraph.setMapping(true);
     subgraph.setIdToPos(idToPos);
     subgraph.setPosToId(posToId);
+}
+
+/* Contract 'nodes' and 'neighbors' to a single node.
+ * It is taken for granted that the only neighbors of 'nodes' are 'neighbors' */
+void Graph::contractToSingleNode(const vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors) {
+    uint32_t newNode = nodeIndex.size();
+    assert(idToPos->find(newNode) == idToPos->end());
+    for (auto it = neighbors.begin() ; it != neighbors.end() ; it++) {
+        GraphTraversal graphTraversal(*this, *it);
+        while (graphTraversal.curEdge != NONE) {
+            uint32_t neighbor = edgeBuffer[graphTraversal.curEdge];
+            if (neighbors.find(neighbor) == neighbors.end()) {
+                // add se set wste na min exei diplwtipa, kai na einai kai sorted
+            }
+            graphTraversal.getNextEdge(*this);
+        }
+    }
+    // vale to sorted set sto telos tou edgebuffer, addare kai ton kombo sto nodeIndex
+    // kane kai ta inverted
+}
+
+/* Gather node's neighbors in a vector. Useful when there are removed neighbors
+ * in between non-removed ones, and access is frequent */
+void Graph::gatherNeighbors(const uint32_t &node, vector<uint32_t> &neighbors) const {
+    uint32_t pos = (!mapping ? node : idToPos->at(node));
+    uint32_t neighborCount = nodeIndex[pos].neighbors;
+    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+    for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
+        uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+        if (!nodeIndex[nPos].removed) {
+            neighbors.push_back(edgeBuffer[offset]);
+            neighborCount--;
+        }
+    }
+}
+
+uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const vector<uint32_t> &neighbors) const {
+    uint32_t pos = (!mapping ? previousNode : idToPos->at(previousNode));
+    for (pos = pos+1 ; pos < nodeIndex.size() ; pos++) {
+        if (nodeIndex[pos].neighbors == neighbors.size()) {
+            uint32_t neighborCount = neighbors.size();
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
+                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                if (!nodeIndex[nPos].removed && neighbors.find(neighbors.begin(), neighbors.end(), edgeBuffer[offset]) != neighbors.end()) {
+                    neighborCount--;
+                }
+            }
+            if (!neighborCount) {
+                return posToId->at(pos);
+            }
+        }
+    }
+    return NONE;
 }
 
 void Graph::print(bool direction) const {

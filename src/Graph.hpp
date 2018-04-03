@@ -36,20 +36,31 @@ public:
         }
         this->idToPos = idToPos;
     }
+
     void setPosToId(std::vector<uint32_t> *posToId) {
         if (this->posToId != NULL) {
             delete this->posToId;
         }
         this->posToId = posToId;
     }
+
     void setMapping(const bool &mapping) {
         this->mapping = mapping;
+    }
+
+    bool getNodeDegree(const uint32_t &node) {
+        uint32_t pos = (!mapping ? node : idToPos->at(node));
+        assert(!nodeIndex[pos].removed);
+        return nodeIndex[pos].neighbors;
     }
 
     void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
+    void contractToSingleNode(const vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors);
+    void gatherNeighbors(const uint32_t &node, std::vector<uint32_t> &neighbors) const;
+    uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
@@ -84,6 +95,7 @@ public:
         return edgeBuffer[offset + startIndex + index] == neighbor;
     }
 
+    /* Return the first "outer neighbor of 'neighbor' at 'node'", and a flag of whether its the only one */
     void getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, uint32_t &outerNeighbor, bool &exactlyOne) const {
         outerNeighbor = NONE;
         exactlyOne = false;

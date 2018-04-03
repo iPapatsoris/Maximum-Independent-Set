@@ -24,8 +24,21 @@ void ExactAlg::reduce() {
     Graph::ReduceInfo reduceInfo;
     removeLineGraphs(reduceInfo);
     removeUnconfinedNodes(reduceInfo);
+    foldCompleteKIndependentSets(reduceInfo);
     graph.rebuild(reduceInfo);
 }
+
+void ExactAlg::foldCompleteKIndependentSets(Graph::ReduceInfo &reduceInfo) {
+    cout << "\n**Performing K-Independent set folding reduction**" << endl;
+    foldCompleteKIndependentSets2(reduceInfo);
+    Graph::ReduceInfo old;
+    do {
+        cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+        old = reduceInfo;
+        foldCompleteKIndependentSets2(reduceInfo);
+    } while (old.nodesRemoved != reduceInfo.nodesRemoved);
+}
+
 
 void ExactAlg::removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo) {
     cout << "\n**Performing unconfined nodes reduction**" << endl;
@@ -37,6 +50,45 @@ void ExactAlg::removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo) {
         removeUnconfinedNodes2(reduceInfo);
         //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
+}
+
+ExactAlg::foldCompleteKIndependentSets2(Graph::ReduceInfo &reduceInfo) {
+    foldCompleteKIndependentSets(1, reduceInfo);
+    foldCompleteKIndependentSets(2, reduceInfo);
+}
+
+ExactAlg::foldCompleteKIndependentSets(const uint32_t &k, Graph::ReduceInfo &reduceInfo) {
+    Graph::GraphTraversal graphTraversal(graph);
+    while (graphTraversal.curNode != NONE) {
+        if (graph.getNodeDegree(graphTraversal.curNode) == k+1) {
+            vector<uint32_t> neighbors;
+            graph.gatherNeighbors(graphTraversal.curNode, neighbors);
+            uint32_t secondNode;
+            if (k == 2) {
+                secondNode = graph.getNextNodeWithIdenticalNeighbors(graphTraversal.curNode, neighbors);
+            }
+            if (k == 1 || k == 2 && secondNode != NONE) {
+                mis.push_back(graphTraversal.curNode);
+                if (k == 2) {
+                    mis.push_back(secondNode);
+                }
+                if (graph.isIndependentSet(neighbors)) {
+                    vector<uint32_t> nodes;
+                    nodes.push_back(graphTraversal.curNode);
+                    if (k == 2) {
+                        nodes.push_back(secondNode);
+                    }
+                    graph.contractToSingleNode(nodes, neighbors);
+                }
+                neighbors.push_back(graphTraversal.curNode);
+                if (k == 2) {
+                    neighbors.push_back(secondNode);
+                }
+                graph.remove(neighbors, reduceInfo);
+            }
+        }
+        graph.getNextNode(graphTraversal);
+    }
 }
 
 void ExactAlg::removeUnconfinedNodes2(Graph::ReduceInfo &reduceInfo) {

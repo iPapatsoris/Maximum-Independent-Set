@@ -59,6 +59,9 @@ private:
     void removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo);
     void removeUnconfinedNodes2(Graph::ReduceInfo &reduceInfo);
     void removeLineGraphs(Graph::ReduceInfo &reduceInfo);
+    void foldCompleteKIndependentSets(Graph::ReduceInfo &reduceInfo);
+    void foldCompleteKIndependentSets2(Graph::ReduceInfo &reduceInfo);
+    void foldCompleteKIndependentSets(const uint32_t &k, Graph::ReduceInfo &reduceInfo);
     void removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduceInfo);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph);
     Graph &graph;
