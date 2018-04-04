@@ -1,11 +1,11 @@
-#ifndef EXACTALG_H
-#define EXACTALG_H
+#ifndef REDUCTIONS_H
+#define REDUCTIONS_H
 
-#include "../Graph.hpp"
+#include "Graph.hpp"
 
-class ExactAlg {
+class Reductions {
 public:
-    ExactAlg(Graph &graph) : graph(graph) {}
+    Reductions(Graph &graph, std::vector<uint32_t> &mis) : graph(graph), mis(mis) {}
     void run();
 
 private:
@@ -56,16 +56,17 @@ private:
     }
 
     void reduce();
-    void removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo);
-    void removeUnconfinedNodes2(Graph::ReduceInfo &reduceInfo);
-    void removeLineGraphs(Graph::ReduceInfo &reduceInfo);
-    void foldCompleteKIndependentSets(Graph::ReduceInfo &reduceInfo);
-    void foldCompleteKIndependentSets2(Graph::ReduceInfo &reduceInfo);
-    void foldCompleteKIndependentSets(const uint32_t &k, Graph::ReduceInfo &reduceInfo);
-    void removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduceInfo);
+    void removeUnconfinedNodes();
+    void removeUnconfinedNodes2();
+    void removeLineGraphs();
+    void foldCompleteKIndependentSets(std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
+    void foldCompleteKIndependentSets2(std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
+    void foldCompleteKIndependentSets(const uint32_t &k, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
+    void removeLineGraphs(const uint32_t &degree);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph);
     Graph &graph;
-    std::vector<uint32_t> mis;
+    std::vector<uint32_t> &mis;
+    ReduceInfo reduceInfo;
 };
 
 #endif

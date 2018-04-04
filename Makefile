@@ -1,12 +1,12 @@
-OBJS =  Graph.o Launcher.o ControlUnit.o ExactAlg.o
-HEADER = src/Graph.hpp src/ControlUnit.hpp src/exact/ExactAlg.hpp
+OBJS =  Graph.o Launcher.o ControlUnit.o Reductions.o Alg.o
+HEADER = src/Graph.hpp src/ControlUnit.hpp src/Reductions.hpp src/Alg.hpp
 all: mis
 
 CC 	= g++
-FLAGS	= -std=c++11 -O2 -c
+FLAGS	= -g -std=c++11 -O2 -c
 
 mis: $(OBJS) $(HEADER)
-	$(CC) -O2 -o mis $(OBJS)
+	$(CC) -g -O2 -o mis $(OBJS)
 
 Graph.o: src/Graph.cpp
 	$(CC) $(FLAGS) src/Graph.cpp
@@ -17,11 +17,14 @@ Launcher.o: src/Launcher.cpp
 ControlUnit.o: src/ControlUnit.cpp
 	$(CC) $(FLAGS) src/ControlUnit.cpp
 
-ExactAlg.o: src/exact/ExactAlg.cpp
-	$(CC) $(FLAGS) src/exact/ExactAlg.cpp
+Reductions.o: src/Reductions.cpp
+	$(CC) $(FLAGS) src/Reductions.cpp
+
+Alg.o: src/Alg.cpp
+	$(CC) $(FLAGS) src/Alg.cpp
 
 clean:
 	rm -f mis $(OBJS)
 
 count:
-	wc -l src/*.cpp src/*.hpp src/exact/*.cpp src/exact/*.hpp $(HEADER)
+	wc -l src/*.cpp src/*.hpp

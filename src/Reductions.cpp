@@ -2,12 +2,12 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
-#include "ExactAlg.hpp"
+#include "Reductions.hpp"
 
 using namespace std;
 
-void ExactAlg::run() {
-    cout << " \nExactAlg\n";
+void Reductions::run() {
+    cout << " \nReductions\n";
     reduce();
     //graph.print(false);
     //graph.printEdgeCounts();
@@ -20,70 +20,63 @@ void ExactAlg::run() {
     //}
 }
 
-void ExactAlg::reduce() {
-    Graph::ReduceInfo reduceInfo;
-    removeLineGraphs(reduceInfo);
-    removeUnconfinedNodes(reduceInfo);
-    foldCompleteKIndependentSets(reduceInfo);
-    graph.rebuild(reduceInfo);
+void Reductions::reduce() {
+    removeLineGraphs();
+    removeUnconfinedNodes();
+    unordered_set<uint32_t> nodesWithoutSortedNeighbors;
+    //foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
+    graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
 }
 
-void ExactAlg::foldCompleteKIndependentSets(Graph::ReduceInfo &reduceInfo) {
+void Reductions::foldCompleteKIndependentSets(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     cout << "\n**Performing K-Independent set folding reduction**" << endl;
-    foldCompleteKIndependentSets2(reduceInfo);
-    Graph::ReduceInfo old;
+    ReduceInfo old = reduceInfo;
+    foldCompleteKIndependentSets2(nodesWithoutSortedNeighbors);
     do {
-        cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+        cout << "Nodes removed " << reduceInfo.nodesRemoved - old.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved - old.edgesRemoved << endl;
         old = reduceInfo;
-        foldCompleteKIndependentSets2(reduceInfo);
+        foldCompleteKIndependentSets2(nodesWithoutSortedNeighbors);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
 }
 
 
-void ExactAlg::removeUnconfinedNodes(Graph::ReduceInfo &reduceInfo) {
+void Reductions::removeUnconfinedNodes() {
     cout << "\n**Performing unconfined nodes reduction**" << endl;
-    removeUnconfinedNodes2(reduceInfo);
-    Graph::ReduceInfo old;
+    ReduceInfo old = reduceInfo;
+    removeUnconfinedNodes2();
     do {
-        cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+        cout << "Nodes removed " << reduceInfo.nodesRemoved - old.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved - old.edgesRemoved << endl;
         old = reduceInfo;
-        removeUnconfinedNodes2(reduceInfo);
+        removeUnconfinedNodes2();
         //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
 }
 
-ExactAlg::foldCompleteKIndependentSets2(Graph::ReduceInfo &reduceInfo) {
-    foldCompleteKIndependentSets(1, reduceInfo);
-    foldCompleteKIndependentSets(2, reduceInfo);
+void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
+    foldCompleteKIndependentSets(1, nodesWithoutSortedNeighbors);
+    foldCompleteKIndependentSets(2, nodesWithoutSortedNeighbors);
 }
 
-ExactAlg::foldCompleteKIndependentSets(const uint32_t &k, Graph::ReduceInfo &reduceInfo) {
+void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     Graph::GraphTraversal graphTraversal(graph);
     while (graphTraversal.curNode != NONE) {
         if (graph.getNodeDegree(graphTraversal.curNode) == k+1) {
+            vector<uint32_t> nodes;
             vector<uint32_t> neighbors;
+            nodes.push_back(graphTraversal.curNode);
             graph.gatherNeighbors(graphTraversal.curNode, neighbors);
-            uint32_t secondNode;
             if (k == 2) {
-                secondNode = graph.getNextNodeWithIdenticalNeighbors(graphTraversal.curNode, neighbors);
+                uint32_t secondNode = graph.getNextNodeWithIdenticalNeighbors(graphTraversal.curNode, neighbors);
+                if (secondNode != NONE) {
+                    nodes.push_back(secondNode);
+                }
             }
-            if (k == 1 || k == 2 && secondNode != NONE) {
-                mis.push_back(graphTraversal.curNode);
-                if (k == 2) {
-                    mis.push_back(secondNode);
-                }
+            if (k == 1 || k == 2 && nodes.size() == 2) {
+                mis.insert(mis.end(), nodes.begin(), nodes.end());
                 if (graph.isIndependentSet(neighbors)) {
-                    vector<uint32_t> nodes;
-                    nodes.push_back(graphTraversal.curNode);
-                    if (k == 2) {
-                        nodes.push_back(secondNode);
-                    }
-                    graph.contractToSingleNode(nodes, neighbors);
+                    graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors);
                 }
-                neighbors.push_back(graphTraversal.curNode);
-                if (k == 2) {
-                    neighbors.push_back(secondNode);
-                }
+                neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
                 graph.remove(neighbors, reduceInfo);
             }
         }
@@ -91,7 +84,7 @@ ExactAlg::foldCompleteKIndependentSets(const uint32_t &k, Graph::ReduceInfo &red
     }
 }
 
-void ExactAlg::removeUnconfinedNodes2(Graph::ReduceInfo &reduceInfo) {
+void Reductions::removeUnconfinedNodes2() {
     Graph::GraphTraversal graphTraversal(graph);
     while (graphTraversal.curNode != NONE) {
         //cout << "node " << graphTraversal.curNode << "\n";
@@ -120,15 +113,15 @@ void ExactAlg::removeUnconfinedNodes2(Graph::ReduceInfo &reduceInfo) {
     }
 }
 
-void ExactAlg::removeLineGraphs(Graph::ReduceInfo &reduceInfo) {
+void Reductions::removeLineGraphs() {
     cout << "\n**Perfoming line graph reduction**" << endl;
-    removeLineGraphs(6, reduceInfo);
-    removeLineGraphs(7, reduceInfo);
-    removeLineGraphs(8, reduceInfo);
+    removeLineGraphs(6);
+    removeLineGraphs(7);
+    removeLineGraphs(8);
     cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << "\n";
 }
 
-void ExactAlg::removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduceInfo) {
+void Reductions::removeLineGraphs(const uint32_t &degree) {
     vector<Graph::GraphTraversal> clique;
     clique.reserve(degree+1);
     while (true) {
@@ -148,7 +141,7 @@ void ExactAlg::removeLineGraphs(const uint32_t &degree, Graph::ReduceInfo &reduc
     }
 }
 
-bool ExactAlg::findClique(vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph) {
+bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph) {
     clique.clear();
     Graph::GraphTraversal graphTraversal(graph);
     if (graphTraversal.curNode == NONE) {

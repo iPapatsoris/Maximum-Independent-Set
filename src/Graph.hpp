@@ -5,18 +5,19 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <assert.h>
 #include "Util.hpp"
 
 class Graph {
 
 friend class ControlUnit;
-friend class ExactAlg;
+friend class Reductions;
+friend class Alg;
 class NodeInfo;
 
 public:
     struct GraphTraversal;
-    struct ReduceInfo;
     Graph(const std::string &inputFile);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
 
@@ -51,22 +52,29 @@ public:
     bool getNodeDegree(const uint32_t &node) {
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         assert(!nodeIndex[pos].removed);
-        return nodeIndex[pos].neighbors;
+        return nodeIndex[pos].edges;
     }
 
     void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
+    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
-    void rebuild(const ReduceInfo &reduceInfo);
+    void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
-    void contractToSingleNode(const vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors);
+    void contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
     void gatherNeighbors(const uint32_t &node, std::vector<uint32_t> &neighbors) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
+    void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
 
-    /* Check whether a particular edge exists with binary search */
-    bool edgeExists(const uint32_t &node, const uint32_t &neighbor) const {
+    bool edgeExists(const uint32_t &node, const uint32_t &neighbor, const bool &binarySearch = true) const {
+        return (findEdgeOffset(node, neighbor, binarySearch) != NONE);
+    }
+
+    /* Check whether a particular edge exists with binary search,
+     * return neighbor's offset in edge buffer */
+    uint32_t findEdgeOffset(const uint32_t &node, const uint32_t &neighbor, const bool &binarySearch = true) const {
         //std::cout << "testing edge " << node << " " << neighbor << std::endl;
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
@@ -74,25 +82,25 @@ public:
         uint32_t offset = nodeIndex[pos].offset;
         uint32_t endOffset = offset + nodeIndex[pos].edges - 1;
         if (offset == endOffset) {
-            return false;
+            return NONE;
         }
         uint32_t startIndex = 0;
         uint32_t endIndex = nodeIndex[pos].edges - 1;
         uint32_t index = (endIndex - startIndex) / 2;
         while (startIndex != endIndex) {
             if (edgeBuffer[offset + startIndex + index] == neighbor) {
-                return true;
+                return offset + startIndex + index;
             } else if (edgeBuffer[offset + startIndex + index] < neighbor) {
                 startIndex += index + 1;
             } else {
                 if (!index) {
-                    return false;
+                    return NONE;
                 }
                 endIndex = startIndex + index - 1;
             }
             index = (endIndex - startIndex) / 2;
         }
-        return edgeBuffer[offset + startIndex + index] == neighbor;
+        return (edgeBuffer[offset + startIndex + index] == neighbor ? offset + startIndex + index : NONE);
     }
 
     /* Return the first "outer neighbor of 'neighbor' at 'node'", and a flag of whether its the only one */
@@ -209,15 +217,6 @@ public:
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         graphTraversal.curEdgeOffset = getFirstValidNeighborOffset(pos);
     }
-
-    /* Used by algorithms that reduce the graph. If eventually only 1 algorithm does this,
-     * move this struct to that algorithm module */
-    struct ReduceInfo {
-    public:
-        ReduceInfo() : nodesRemoved(0), edgesRemoved(0) {}
-        uint32_t nodesRemoved;
-        uint32_t edgesRemoved;
-    };
 
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
