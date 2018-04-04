@@ -9,22 +9,21 @@ using namespace std;
 void Reductions::run() {
     cout << " \nReductions\n";
     reduce();
-    //graph.print(false);
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
-    cout << "Mis size: " << mis.size() << "\n";
-    cout << "Zero degree nodes: " << graph.zeroDegreeNodes.size() << "\n";
     //cout << "Mis: " << endl;
     //for (uint32_t i = 0 ; i < mis.size() ; i++) {
     //    cout << mis[i] << endl;
     //}
+    mis.print(graph.zeroDegreeNodes);
+    graph.print(true);
 }
 
 void Reductions::reduce() {
     removeLineGraphs();
-    removeUnconfinedNodes();
+    //removeUnconfinedNodes();
     unordered_set<uint32_t> nodesWithoutSortedNeighbors;
-    //foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
+    foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
     graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
 }
 
@@ -33,7 +32,7 @@ void Reductions::foldCompleteKIndependentSets(unordered_set<uint32_t> &nodesWith
     ReduceInfo old = reduceInfo;
     foldCompleteKIndependentSets2(nodesWithoutSortedNeighbors);
     do {
-        cout << "Nodes removed " << reduceInfo.nodesRemoved - old.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved - old.edgesRemoved << endl;
+        reduceInfo.print(&old);
         old = reduceInfo;
         foldCompleteKIndependentSets2(nodesWithoutSortedNeighbors);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
@@ -45,7 +44,7 @@ void Reductions::removeUnconfinedNodes() {
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
     do {
-        cout << "Nodes removed " << reduceInfo.nodesRemoved - old.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved - old.edgesRemoved << endl;
+        reduceInfo.print(&old);
         old = reduceInfo;
         removeUnconfinedNodes2();
         //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
@@ -72,9 +71,13 @@ void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<u
                 }
             }
             if (k == 1 || k == 2 && nodes.size() == 2) {
-                mis.insert(mis.end(), nodes.begin(), nodes.end());
+                vector<uint32_t> &mis = this->mis.getMis();
                 if (graph.isIndependentSet(neighbors)) {
-                    graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors);
+                    mis.insert(mis.end(), neighbors.begin()+1, neighbors.end());
+                    uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors);
+                    this->mis.markHypernode(newNode, neighbors[0]);
+                } else {
+                    mis.insert(mis.end(), nodes.begin(), nodes.end());
                 }
                 neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
                 graph.remove(neighbors, reduceInfo);
@@ -118,7 +121,7 @@ void Reductions::removeLineGraphs() {
     removeLineGraphs(6);
     removeLineGraphs(7);
     removeLineGraphs(8);
-    cout << "Nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << "\n";
+    reduceInfo.print();
 }
 
 void Reductions::removeLineGraphs(const uint32_t &degree) {
@@ -137,7 +140,7 @@ void Reductions::removeLineGraphs(const uint32_t &degree) {
             break;
         }
         graph.remove(clique, reduceInfo);
-        mis.push_back(clique[0].curNode);
+        mis.getMis().push_back(clique[0].curNode);
     }
 }
 

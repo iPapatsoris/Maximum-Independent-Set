@@ -2,16 +2,17 @@
 #define ALG_H
 
 #include "Graph.hpp"
+#include "Mis.hpp"
 
 
 class Alg {
 public:
-    Alg(Graph &graph, std::vector<uint32_t> &mis) : graph(graph), mis(mis) {}
+    Alg(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
 
 
 private:
     Graph &graph;
-    std::vector<uint32_t> &mis;
+    Mis &mis;
 };
 
 #endif

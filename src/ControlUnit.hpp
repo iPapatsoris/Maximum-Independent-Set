@@ -5,6 +5,7 @@
 #include "Graph.hpp"
 #include "Reductions.hpp"
 #include "Alg.hpp"
+#include "Mis.hpp"
 
 class ControlUnit {
 public:
@@ -13,7 +14,7 @@ public:
 
 private:
     Graph graph;
-    std::vector<uint32_t> mis;
+    Mis mis;
     Reductions reductions;
     Alg alg;
 };

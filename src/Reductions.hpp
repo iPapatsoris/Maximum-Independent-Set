@@ -2,10 +2,11 @@
 #define REDUCTIONS_H
 
 #include "Graph.hpp"
+#include "Mis.hpp"
 
 class Reductions {
 public:
-    Reductions(Graph &graph, std::vector<uint32_t> &mis) : graph(graph), mis(mis) {}
+    Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
     void run();
 
 private:
@@ -65,7 +66,7 @@ private:
     void removeLineGraphs(const uint32_t &degree);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph);
     Graph &graph;
-    std::vector<uint32_t> &mis;
+    Mis &mis;
     ReduceInfo reduceInfo;
 };
 

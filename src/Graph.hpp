@@ -49,7 +49,7 @@ public:
         this->mapping = mapping;
     }
 
-    bool getNodeDegree(const uint32_t &node) {
+    uint32_t getNodeDegree(const uint32_t &node) {
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         assert(!nodeIndex[pos].removed);
         return nodeIndex[pos].edges;
@@ -60,7 +60,7 @@ public:
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
-    void contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
+    uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
     void gatherNeighbors(const uint32_t &node, std::vector<uint32_t> &neighbors) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
     void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
