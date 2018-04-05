@@ -28,19 +28,17 @@ Graph::~Graph() {
 }
 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
-void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges) {
+void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
-            if (removeEdges) {
-                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
-                for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                    if (!nodeIndex[nPos].removed) {
-                        nodeIndex[nPos].edges--;
-                        reduceInfo.edgesRemoved++;
-                    }
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                if (!nodeIndex[nPos].removed) {
+                    nodeIndex[nPos].edges--;
+                    reduceInfo.edgesRemoved++;
                 }
             }
         }
@@ -50,19 +48,17 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, c
 }
 
 /* Same as above, but with a different type, to avoid conversions. Templates and c++17 'if constexpr' would not work for 1 generic function */
-void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges) {
+void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? it->curNode : idToPos->at(it->curNode));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
-            if (removeEdges) {
-                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
-                for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                    if (!nodeIndex[nPos].removed) {
-                        nodeIndex[nPos].edges--;
-                        reduceInfo.edgesRemoved++;
-                    }
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                if (!nodeIndex[nPos].removed) {
+                    nodeIndex[nPos].edges--;
+                    reduceInfo.edgesRemoved++;
                 }
             }
         }
@@ -131,7 +127,7 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
     }
     this->idToPos = idToPos;
     this->posToId = posToId;
-    assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
+    //assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
     this->nodeIndex = nodeIndex;
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
@@ -168,7 +164,7 @@ void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
 
 /* Contract 'nodes' and 'neighbors' to a single node.
  * It is taken for granted that the only neighbors of 'nodes' are 'neighbors' */
-uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector<uint32_t> &neighbors, unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
+uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector<uint32_t> &neighbors, unordered_set<uint32_t> &nodesWithoutSortedNeighbors, ReduceInfo &reduceInfo) {
     cout << "Contracting node " << nodes[0];
     if (nodes.size() == 2) {
         cout << " and " << nodes[1];
@@ -181,11 +177,14 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         GraphTraversal graphTraversal(*this, *it);
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t neighbor = edgeBuffer[graphTraversal.curEdgeOffset];
-            //cout << "neighbor " << neighbor << endl;
+            cout << "\nneighbor " << neighbor << endl;
             if (find(nodes.begin(), nodes.end(), neighbor) == nodes.end() && find(neighbors.begin(), neighbors.end(), neighbor) == neighbors.end()) {
                 if (newNeighbors.insert(neighbor).second) {
                     replaceNeighbor(neighbor, *it, newNode, nodesWithoutSortedNeighbors);
                     nodesWithoutSortedNeighbors.insert(neighbor);
+                    uint32_t pos = (!mapping ? neighbor : idToPos->at(neighbor));
+                    nodeIndex[pos].edges++;
+                    reduceInfo.edgesRemoved--;
                 }
             }
             getNextEdge(graphTraversal);
@@ -199,12 +198,17 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         idToPos->insert({newNode, newNode});
         posToId->push_back(newNode);
     }
+    reduceInfo.nodesRemoved--;
     print(true);
     return newNode;
 }
 
 void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     bool binarySearch = (nodesWithoutSortedNeighbors.find(node) == nodesWithoutSortedNeighbors.end());
+    cout << "nodes without sorted neighbors: \n";
+    for (auto it = nodesWithoutSortedNeighbors.begin() ; it != nodesWithoutSortedNeighbors.end() ; it++) {
+        cout << *it << endl;
+    }
     uint32_t offset;
     offset = findEdgeOffset(node, oldNeighbor, binarySearch);
     //print(true);
@@ -240,7 +244,7 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
                 }
             }
             if (!neighborCount) {
-                return posToId->at(pos);
+                return (!mapping ? pos : posToId->at(pos));
             }
         }
     }

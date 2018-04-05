@@ -53,7 +53,7 @@ void Reductions::removeUnconfinedNodes() {
 
 void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     foldCompleteKIndependentSets(1, nodesWithoutSortedNeighbors);
-    foldCompleteKIndependentSets(2, nodesWithoutSortedNeighbors);
+    //foldCompleteKIndependentSets(2, nodesWithoutSortedNeighbors);
 }
 
 void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
@@ -72,16 +72,15 @@ void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<u
             }
             if (k == 1 || k == 2 && nodes.size() == 2) {
                 vector<uint32_t> &mis = this->mis.getMis();
-                bool independentNeighbors = graph.isIndependentSet(neighbors);
-                if (independentNeighbors) {
+                if (graph.isIndependentSet(neighbors)) {
                     mis.insert(mis.end(), neighbors.begin()+1, neighbors.end());
-                    uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors);
+                    uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors, reduceInfo);
                     this->mis.markHypernode(newNode, neighbors[0]);
                 } else {
                     mis.insert(mis.end(), nodes.begin(), nodes.end());
                 }
                 neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
-                graph.remove(neighbors, reduceInfo, !independentNeighbors);
+                graph.remove(neighbors, reduceInfo);
                 graph.print(true);
             }
         }

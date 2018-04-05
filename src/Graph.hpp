@@ -56,12 +56,12 @@ public:
         return nodeIndex[pos].edges;
     }
 
-    void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges = true);
-    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges = true);
+    void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
+    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
-    uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
+    uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, ReduceInfo &reduceInfo);
     void gatherNeighbors(const uint32_t &node, std::vector<uint32_t> &neighbors) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
     void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
@@ -76,21 +76,22 @@ public:
     /* Check whether a particular edge exists with binary search,
      * return neighbor's offset in edge buffer */
     uint32_t findEdgeOffset(const uint32_t &node, const uint32_t &neighbor, const bool &binarySearch = true) const {
-        //std::cout << "testing edge " << node << " " << neighbor << std::endl;
+        std::cout << "testing edge " << node << " " << neighbor << ", binary search: " << binarySearch << std::endl;
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
         assert(!nodeIndex[pos].removed && !nodeIndex[nPos].removed);
         uint32_t offset = nodeIndex[pos].offset;
-        uint32_t endOffset = offset + nodeIndex[pos].edges - 1;
-        if (offset == endOffset) {
+        uint32_t endOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() - 1 : nodeIndex[pos+1].offset - 1);
+        if (offset == endOffset+1) {
             return NONE;
         }
+        //std::cout <<"hey" << std::endl;
         if (!binarySearch) {
             auto it = find(edgeBuffer.begin()+offset, edgeBuffer.begin()+endOffset+1, neighbor);
             return (it != edgeBuffer.begin()+endOffset+1 ? it - edgeBuffer.begin() : NONE);
         }
         uint32_t startIndex = 0;
-        uint32_t endIndex = nodeIndex[pos].edges - 1;
+        uint32_t endIndex = endOffset - offset;
         uint32_t index = (endIndex - startIndex) / 2;
         while (startIndex != endIndex) {
             //std::cout << "endIndex " << endIndex << ", startIndex " << startIndex << ", index " << index << std::endl;
