@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm>
 #include <assert.h>
 #include "Util.hpp"
 
@@ -55,8 +56,8 @@ public:
         return nodeIndex[pos].edges;
     }
 
-    void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
-    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo);
+    void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges = true);
+    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges = true);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
@@ -84,10 +85,16 @@ public:
         if (offset == endOffset) {
             return NONE;
         }
+        if (!binarySearch) {
+            auto it = find(edgeBuffer.begin()+offset, edgeBuffer.begin()+endOffset+1, neighbor);
+            return (it != edgeBuffer.begin()+endOffset+1 ? it - edgeBuffer.begin() : NONE);
+        }
         uint32_t startIndex = 0;
         uint32_t endIndex = nodeIndex[pos].edges - 1;
         uint32_t index = (endIndex - startIndex) / 2;
         while (startIndex != endIndex) {
+            //std::cout << "endIndex " << endIndex << ", startIndex " << startIndex << ", index " << index << std::endl;
+            //std::cout << "size is " << edgeBuffer.size() << " vs " << offset+startIndex+index << std::endl;
             if (edgeBuffer[offset + startIndex + index] == neighbor) {
                 return offset + startIndex + index;
             } else if (edgeBuffer[offset + startIndex + index] < neighbor) {

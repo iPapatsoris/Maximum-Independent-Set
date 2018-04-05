@@ -28,17 +28,19 @@ Graph::~Graph() {
 }
 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
-void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo) {
+void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
-            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
-            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                if (!nodeIndex[nPos].removed) {
-                    nodeIndex[nPos].edges--;
-                    reduceInfo.edgesRemoved++;
+            if (removeEdges) {
+                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+                for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                    if (!nodeIndex[nPos].removed) {
+                        nodeIndex[nPos].edges--;
+                        reduceInfo.edgesRemoved++;
+                    }
                 }
             }
         }
@@ -48,17 +50,19 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo) {
 }
 
 /* Same as above, but with a different type, to avoid conversions. Templates and c++17 'if constexpr' would not work for 1 generic function */
-void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo) {
+void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo, const bool &removeEdges) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? it->curNode : idToPos->at(it->curNode));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
-            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
-            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                if (!nodeIndex[nPos].removed) {
-                    nodeIndex[nPos].edges--;
-                    reduceInfo.edgesRemoved++;
+            if (removeEdges) {
+                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+                for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                    if (!nodeIndex[nPos].removed) {
+                        nodeIndex[nPos].edges--;
+                        reduceInfo.edgesRemoved++;
+                    }
                 }
             }
         }
@@ -177,18 +181,25 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         GraphTraversal graphTraversal(*this, *it);
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t neighbor = edgeBuffer[graphTraversal.curEdgeOffset];
+            //cout << "neighbor " << neighbor << endl;
             if (find(nodes.begin(), nodes.end(), neighbor) == nodes.end() && find(neighbors.begin(), neighbors.end(), neighbor) == neighbors.end()) {
-                newNeighbors.insert(neighbor);
-                replaceNeighbor(neighbor, *it, newNode, nodesWithoutSortedNeighbors);
-                nodesWithoutSortedNeighbors.insert(neighbor);
+                if (newNeighbors.insert(neighbor).second) {
+                    replaceNeighbor(neighbor, *it, newNode, nodesWithoutSortedNeighbors);
+                    nodesWithoutSortedNeighbors.insert(neighbor);
+                }
             }
             getNextEdge(graphTraversal);
         }
     }
     uint32_t offset = edgeBuffer.size();
     edgeBuffer.reserve(edgeBuffer.size() + newNeighbors.size());
-    copy(newNeighbors.begin(), newNeighbors.end(), edgeBuffer.end());
+    copy(newNeighbors.begin(), newNeighbors.end(), back_inserter(edgeBuffer));
     nodeIndex.push_back(NodeInfo(offset, newNeighbors.size()));
+    if (mapping) {
+        idToPos->insert({newNode, newNode});
+        posToId->push_back(newNode);
+    }
+    print(true);
     return newNode;
 }
 

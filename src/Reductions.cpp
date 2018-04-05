@@ -72,7 +72,8 @@ void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<u
             }
             if (k == 1 || k == 2 && nodes.size() == 2) {
                 vector<uint32_t> &mis = this->mis.getMis();
-                if (graph.isIndependentSet(neighbors)) {
+                bool independentNeighbors = graph.isIndependentSet(neighbors);
+                if (independentNeighbors) {
                     mis.insert(mis.end(), neighbors.begin()+1, neighbors.end());
                     uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors);
                     this->mis.markHypernode(newNode, neighbors[0]);
@@ -80,7 +81,8 @@ void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<u
                     mis.insert(mis.end(), nodes.begin(), nodes.end());
                 }
                 neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
-                graph.remove(neighbors, reduceInfo);
+                graph.remove(neighbors, reduceInfo, !independentNeighbors);
+                graph.print(true);
             }
         }
         graph.getNextNode(graphTraversal);
