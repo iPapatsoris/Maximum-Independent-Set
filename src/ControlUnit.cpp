@@ -9,4 +9,5 @@ void ControlUnit::run() {
     //graph.printEdgeCounts(); return;
     //graph.printWithGraphTraversal(false); return;
     reductions.run();
+    mis.print(graph.zeroDegreeNodes);
 }

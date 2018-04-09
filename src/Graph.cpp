@@ -165,11 +165,11 @@ void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
 /* Contract 'nodes' and 'neighbors' to a single node.
  * It is taken for granted that the only neighbors of 'nodes' are 'neighbors' */
 uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector<uint32_t> &neighbors, unordered_set<uint32_t> &nodesWithoutSortedNeighbors, ReduceInfo &reduceInfo) {
-    cout << "Contracting node " << nodes[0];
+    /*cout << "Contracting node " << nodes[0];
     if (nodes.size() == 2) {
         cout << " and " << nodes[1];
     }
-    cout <<" with their neighbors" << endl;
+    cout <<" with their neighbors" << endl;*/
     uint32_t newNode = nodeIndex.size();
     assert(!mapping || mapping && idToPos->find(newNode) == idToPos->end());
     set<uint32_t> newNeighbors;
@@ -177,7 +177,7 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         GraphTraversal graphTraversal(*this, *it);
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t neighbor = edgeBuffer[graphTraversal.curEdgeOffset];
-            cout << "\nneighbor " << neighbor << endl;
+            //cout << "\nneighbor " << neighbor << endl;
             if (find(nodes.begin(), nodes.end(), neighbor) == nodes.end() && find(neighbors.begin(), neighbors.end(), neighbor) == neighbors.end()) {
                 if (newNeighbors.insert(neighbor).second) {
                     replaceNeighbor(neighbor, *it, newNode, nodesWithoutSortedNeighbors);
@@ -199,16 +199,16 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         posToId->push_back(newNode);
     }
     reduceInfo.nodesRemoved--;
-    print(true);
+    //print(true);
     return newNode;
 }
 
 void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     bool binarySearch = (nodesWithoutSortedNeighbors.find(node) == nodesWithoutSortedNeighbors.end());
-    cout << "nodes without sorted neighbors: \n";
+    /*cout << "nodes without sorted neighbors: \n";
     for (auto it = nodesWithoutSortedNeighbors.begin() ; it != nodesWithoutSortedNeighbors.end() ; it++) {
         cout << *it << endl;
-    }
+    }*/
     uint32_t offset;
     offset = findEdgeOffset(node, oldNeighbor, binarySearch);
     //print(true);
