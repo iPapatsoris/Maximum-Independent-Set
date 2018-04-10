@@ -10,6 +10,8 @@
 #include <assert.h>
 #include "Util.hpp"
 
+#define MAXLINE 100
+
 class Graph {
 
 friend class ControlUnit;
@@ -19,7 +21,7 @@ class NodeInfo;
 
 public:
     struct GraphTraversal;
-    Graph(const std::string &inputFile);
+    Graph(const std::string &inputFile, const bool &checkIndependentSet);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
 
     uint32_t getNodeCount() const {
@@ -135,10 +137,14 @@ public:
         }
     }
 
-    bool isIndependentSet(const std::vector<uint32_t> &set) const {
+    bool isIndependentSet(const std::vector<uint32_t> &set, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
         for (uint32_t i = 0 ; i < set.size() ; i++) {
             for (uint32_t j = i+1 ; j < set.size() ; j++) {
                 if (edgeExists(set[i], set[j])) {
+                    if (node1 != NULL && node2 != NULL) {
+                        *node1 = set[i];
+                        *node2 = set[j];
+                    }
                     return false;
                 }
             }
@@ -228,7 +234,7 @@ public:
 
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
-    void fill(const uint32_t &size);
+    void fill(const uint32_t &size, const bool &checkIndependentSet);
 
     struct NodeInfo {
     public:

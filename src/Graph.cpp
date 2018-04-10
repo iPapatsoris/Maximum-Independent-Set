@@ -6,8 +6,6 @@
 #include <set>
 #include "Graph.hpp"
 
-#define MAXLINE 100
-
 using namespace std;
 
 Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
@@ -303,7 +301,7 @@ void Graph::printEdgeCounts() const {
 /* Build graph from file, include both edge directions, keep them sorted.
  * Zero degree nodes are included in nodeIndex, but are makred as removed.
  * They are also held on zeroDegreeNodes separate structure */
-Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(NULL) {
+Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping(false), idToPos(NULL), posToId(NULL) {
     /* Open graph input file */
     FILE *f;
     f = fopen(inputFile.c_str(), "r");
@@ -359,14 +357,14 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
         parseNodeIDs(buf, &sourceNode, &targetNode);
         /* Add smaller nodes than first source node */
         if (previousNode == NONE && sourceNode) {
-            this->fill(sourceNode);
+            this->fill(sourceNode, checkIndependentSet);
         }
         if (previousNode != sourceNode && previousNode != NONE) {
             /* At new source node, add previous nodes' (including those who don't appear as source nodes) smaller neighbors */
             for (uint32_t node = previousNode + 1 ; node <= sourceNode ; node++) {
                 uint32_t previousEdges = straightEdges + reverseEdges[node - 1].size();
                 nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
-                if (!previousEdges) {
+                if (!previousEdges && !checkIndependentSet) {
                     zeroDegreeNodes.push_back(nodeIndex.size()-1);
                     nodeIndex[nodeIndex.size()-1].removed = true;
                 }
@@ -387,7 +385,7 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
     /* Add final source node's info */
     uint32_t previousEdges = straightEdges + reverseEdges[previousNode].size();
     nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
-    if (!previousEdges) {
+    if (!previousEdges && !checkIndependentSet) {
         zeroDegreeNodes.push_back(nodeIndex.size()-1);
         nodeIndex[nodeIndex.size()-1].removed = true;
     }
@@ -397,7 +395,7 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
         //cout << "end missing node " << missingNode << endl;
         previousEdges = reverseEdges[missingNode].size();
         nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
-        if (!previousEdges) {
+        if (!previousEdges && !checkIndependentSet) {
             zeroDegreeNodes.push_back(nodeIndex.size()-1);
             nodeIndex[nodeIndex.size()-1].removed = true;
         }
@@ -407,12 +405,14 @@ Graph::Graph(const string &inputFile) : mapping(false), idToPos(NULL), posToId(N
     fclose(f);
 }
 
-void Graph::fill(const uint32_t &size) {
+void Graph::fill(const uint32_t &size, const bool &checkIndependentSet) {
     //cout << "start missing nodes from " << nodeIndex.size() << " to " << size << endl;
     while (nodeIndex.size() < size) {
         nodeIndex.push_back(NodeInfo(edgeBuffer.size(), 0));
-        zeroDegreeNodes.push_back(nodeIndex.size()-1);
-        nodeIndex[nodeIndex.size()-1].removed = true;
+        if (!checkIndependentSet) {
+            zeroDegreeNodes.push_back(nodeIndex.size()-1);
+            nodeIndex[nodeIndex.size()-1].removed = true;
+        }
     }
 }
 

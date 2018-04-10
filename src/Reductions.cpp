@@ -20,7 +20,7 @@ void Reductions::run() {
 
 void Reductions::reduce() {
     removeLineGraphs();
-    //removeUnconfinedNodes();
+    removeUnconfinedNodes();
     unordered_set<uint32_t> nodesWithoutSortedNeighbors;
     foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
     graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
@@ -50,37 +50,44 @@ void Reductions::removeUnconfinedNodes() {
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
 }
 
-void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
+/*void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     foldCompleteKIndependentSets(1, nodesWithoutSortedNeighbors);
     foldCompleteKIndependentSets(2, nodesWithoutSortedNeighbors);
-}
+}*/
 
-void Reductions::foldCompleteKIndependentSets(const uint32_t &k, unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
+void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
     Graph::GraphTraversal graphTraversal(graph);
+    uint32_t bound = 25000;
     while (graphTraversal.curNode != NONE) {
-        if (graph.getNodeDegree(graphTraversal.curNode) == k+1) {
-            //cout << "Checking node " << graphTraversal.curNode << "\n";
-            vector<uint32_t> nodes;
-            vector<uint32_t> neighbors;
-            nodes.push_back(graphTraversal.curNode);
-            graph.gatherNeighbors(graphTraversal.curNode, neighbors);
-            if (k == 2) {
-                uint32_t secondNode = graph.getNextNodeWithIdenticalNeighbors(graphTraversal.curNode, neighbors);
-                if (secondNode != NONE) {
-                    nodes.push_back(secondNode);
+        for (uint32_t k = 1 ; k <= 2 ; k++) {
+            if (graph.getNodeDegree(graphTraversal.curNode) == k+1) {
+                if (graphTraversal.curNode >= bound) {
+                    cout << "Node " << graphTraversal.curNode << "\n";
+                    bound += 25000;
                 }
-            }
-            if (k == 1 || k == 2 && nodes.size() == 2) {
-                vector<uint32_t> &mis = this->mis.getMis();
-                if (graph.isIndependentSet(neighbors)) {
-                    uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors, reduceInfo);
-                    this->mis.markHypernode(newNode, nodes, neighbors);
-                } else {
-                    mis.insert(mis.end(), nodes.begin(), nodes.end());
+                vector<uint32_t> nodes;
+                vector<uint32_t> neighbors;
+                nodes.push_back(graphTraversal.curNode);
+                graph.gatherNeighbors(graphTraversal.curNode, neighbors);
+                if (k == 2) {
+                    uint32_t secondNode = graph.getNextNodeWithIdenticalNeighbors(graphTraversal.curNode, neighbors);
+                    if (secondNode != NONE) {
+                        nodes.push_back(secondNode);
+                    }
                 }
-                neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
-                graph.remove(neighbors, reduceInfo);
-                //graph.print(true);
+                if (k == 1 || k == 2 && nodes.size() == 2) {
+                    vector<uint32_t> &mis = this->mis.getMis();
+                    if (graph.isIndependentSet(neighbors)) {
+                        uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors, reduceInfo);
+                        this->mis.markHypernode(newNode, nodes, neighbors);
+                    } else {
+                        mis.insert(mis.end(), nodes.begin(), nodes.end());
+                    }
+                    neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
+                    graph.remove(neighbors, reduceInfo);
+                    //graph.print(true);
+                }
+                break;
             }
         }
         graph.getNextNode(graphTraversal);
@@ -109,7 +116,7 @@ void Reductions::removeUnconfinedNodes2() {
             graph.getNextEdge(graphTraversal);
         }
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
-            cout << "Unconfined node " << graphTraversal.curNode << "\n";
+            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
