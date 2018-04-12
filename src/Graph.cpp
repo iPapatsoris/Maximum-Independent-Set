@@ -50,26 +50,6 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, c
     }
 }
 
-/* Same as above, but with a different type, to avoid conversions. Templates and c++17 'if constexpr' would not work for 1 generic function */
-void Graph::remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo) {
-    for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
-        uint32_t pos = (!mapping ? it->curNode : idToPos->at(it->curNode));
-        if (!nodeIndex[pos].removed) {
-            reduceInfo.nodesRemoved++;
-            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
-            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                if (!nodeIndex[nPos].removed) {
-                    nodeIndex[nPos].edges--;
-                    reduceInfo.edgesRemoved++;
-                }
-            }
-        }
-        nodeIndex[pos].edges = 0;
-        nodeIndex[pos].removed = true;
-    }
-}
-
 void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
     remove(std::vector<uint32_t>(1, node), reduceInfo);
 }
@@ -134,35 +114,6 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
     this->nodeIndex = nodeIndex;
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
-}
-
-/* Build subgraph of nodes with N degree. Neighbors of these nodes do not necessarily need to
- * be of n-degree. If they are not, they are not included in nodeIndex. Thus, on the output subgraph,
- * it is vital to first check whether a neighbor exists in the idToPos index, before accessing them as nodes */
-void Graph::buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph) {
-    unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
-    vector<uint32_t> *posToId = new vector<uint32_t>();
-    vector<Graph::NodeInfo> &nodeIndex = subgraph.nodeIndex;
-    vector<uint32_t> &edgeBuffer = subgraph.edgeBuffer;
-    for (uint32_t pos = 0 ; pos < this->nodeIndex.size() ; pos++) {
-        if (!this->nodeIndex[pos].removed && this->nodeIndex[pos].edges == degree) {
-            uint32_t newOffset = edgeBuffer.size();
-            uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer.size() : this->nodeIndex[pos+1].offset);
-            for (uint32_t offset = this->nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                uint32_t nPos = (!this->mapping ? this->edgeBuffer[offset] : this->idToPos->at(this->edgeBuffer[offset]));
-                if (!this->nodeIndex[nPos].removed) {
-                    edgeBuffer.push_back(this->edgeBuffer[offset]);
-                }
-            }
-            uint32_t node = (!this->mapping ? pos : (*this->posToId)[pos]);
-            idToPos->insert({node, nodeIndex.size()});
-            posToId->push_back(node);
-            nodeIndex.push_back(Graph::NodeInfo(newOffset, degree));
-        }
-    }
-    subgraph.setMapping(true);
-    subgraph.setIdToPos(idToPos);
-    subgraph.setPosToId(posToId);
 }
 
 /* Contract 'nodes' and 'neighbors' to a single node.
