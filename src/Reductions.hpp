@@ -6,7 +6,8 @@
 
 class Reductions {
 public:
-    Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
+    Reductions(Graph &graph, Mis &mis);
+    ~Reductions();
     void run();
 
 private:
@@ -65,9 +66,14 @@ private:
     void foldCompleteKIndependentSets(const uint32_t &k, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
     void removeLineGraphs(const uint32_t &degree);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph);
+    void printCC() const;
+    void printCCSizes() const;
+
     Graph &graph;
     Mis &mis;
     ReduceInfo reduceInfo;
+    std::unordered_map<uint32_t, uint32_t> nodeToCC;
+    std::vector<std::vector<uint32_t>* > ccToNodes;
 };
 
 #endif

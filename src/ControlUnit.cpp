@@ -40,4 +40,5 @@ void ControlUnit::checkIndependentSet(const string &misInputFile) const {
     } else {
         cout << "NOT an independent set!\nConflict between nodes " << node1 << " and " << node2 << endl;
     }
+    fclose(f);
 }

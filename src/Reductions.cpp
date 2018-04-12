@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <stack>
 #include <unordered_map>
 #include <algorithm>
 #include "Reductions.hpp"
@@ -8,7 +9,9 @@ using namespace std;
 
 void Reductions::run() {
     cout << " \nReductions\n";
-    reduce();
+    printCCSizes();
+    //printCC();
+    //reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
     //cout << "Mis: " << endl;
@@ -183,4 +186,55 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, const uint32_
         cout << clique[i].curNode << endl;
     }
     return true;
+}
+
+Reductions::Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {
+    unordered_set<uint32_t> exploredSet;
+    stack<uint32_t> frontier;
+    Graph::GraphTraversal graphTraversal(graph);
+    while (graphTraversal.curNode != NONE) {
+        if (exploredSet.insert(graphTraversal.curNode).second) {
+            vector<uint32_t> *componentNodes = new vector<uint32_t>();
+            componentNodes->push_back(graphTraversal.curNode);
+            nodeToCC.insert({graphTraversal.curNode, (uint32_t)ccToNodes.size()});
+            frontier.push(graphTraversal.curNode);
+            while (!frontier.empty()) {
+                uint32_t node = frontier.top();
+                frontier.pop();
+                Graph::GraphTraversal neighbors(graph, node);
+                while (neighbors.curEdgeOffset != NONE) {
+                    node = graph.edgeBuffer[neighbors.curEdgeOffset];
+                    if (exploredSet.insert(node).second) {
+                        frontier.push(node);
+                        nodeToCC.insert({node, ccToNodes.size()});
+                        componentNodes->push_back(node);
+                    }
+                    graph.getNextEdge(neighbors);
+                }
+            }
+            ccToNodes.push_back(componentNodes);
+        }
+        graph.getNextNode(graphTraversal);
+    }
+}
+
+Reductions::~Reductions() {
+    for (uint32_t i = 0 ; i < ccToNodes.size() ; i++) {
+        delete ccToNodes[i];
+    }
+}
+
+void Reductions::printCC() const {
+    for (uint32_t cc = 0 ; cc < ccToNodes.size() ; cc++) {
+        cout << "\nCC " << cc << ":\n";
+        for (auto node : (*ccToNodes[cc])) {
+            cout << node << ", belongs to cc " << nodeToCC.at(node) << "\n";
+        }
+    }
+}
+
+void Reductions::printCCSizes() const {
+    for (uint32_t cc = 0 ; cc < ccToNodes.size() ; cc++) {
+        cout << "CC " << cc << " size: " << ccToNodes[cc]->size() << "\n";
+    }
 }

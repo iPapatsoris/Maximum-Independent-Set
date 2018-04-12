@@ -59,7 +59,7 @@ public:
         for (auto node : finalMis) {
             fprintf(f, "%" PRIu32 "\n", node);
         }
-
+        fclose(f);
         //std::cout << "Zero degree nodes: " << zeroDegreeNodes.size() << "\n";
     }
 
