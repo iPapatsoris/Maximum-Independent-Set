@@ -25,23 +25,28 @@ Graph::~Graph() {
     }
 }
 
+
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
-void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo) {
+void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
-            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
-            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                if (!nodeIndex[nPos].removed) {
-                    nodeIndex[nPos].edges--;
-                    reduceInfo.edgesRemoved++;
+            if (sameComponent) {
+                reduceInfo.edgesRemoved += nodeIndex[pos].edges;
+            } else {
+                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+                for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                    if (!nodeIndex[nPos].removed) {
+                        nodeIndex[nPos].edges--;
+                        reduceInfo.edgesRemoved++;
+                    }
                 }
             }
+            nodeIndex[pos].edges = 0;
+            nodeIndex[pos].removed = true;
         }
-        nodeIndex[pos].edges = 0;
-        nodeIndex[pos].removed = true;
     }
 }
 

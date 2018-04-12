@@ -52,14 +52,14 @@ public:
         this->mapping = mapping;
     }
 
-    uint32_t getNodeDegree(const uint32_t &node) {
+    uint32_t getNodeDegree(const uint32_t &node) const {
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         assert(!nodeIndex[pos].removed);
         return nodeIndex[pos].edges;
     }
 
     void remove(const std::vector<Graph::GraphTraversal> &nodes, ReduceInfo &reduceInfo);
-    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo);
+    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);

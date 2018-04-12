@@ -33,7 +33,7 @@ private:
         return false;
     }
 
-    /* Get current node's next valid neighbor. If none, advance to next node */
+    /* Get current node's next valid neighbor */
     static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
         bool validNeighbor = false;
         while(!validNeighbor) {
@@ -46,12 +46,17 @@ private:
                 graphTraversal = clique.back();
                 clique.pop_back();
                 if (clique.empty()) {
-                    graph.getNextNode(graphTraversal);
-                    if (graphTraversal.curNode == NONE) {
-                        return false;
-                    }
-                    clique.push_back(graphTraversal);
+                    return false;
                 }
+            }
+        }
+        return true;
+    }
+
+    static bool nodeDegreesEqualTo(std::vector<uint32_t> &nodes, const uint32_t &degree, const Graph &graph) {
+        for (auto node : nodes) {
+            if (graph.getNodeDegree(node) != degree) {
+                return false;
             }
         }
         return true;
@@ -60,12 +65,12 @@ private:
     void reduce();
     void removeUnconfinedNodes();
     void removeUnconfinedNodes2();
-    void removeLineGraphs();
     void foldCompleteKIndependentSets(std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
     void foldCompleteKIndependentSets2(std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
     void foldCompleteKIndependentSets(const uint32_t &k, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
-    void removeLineGraphs(const uint32_t &degree);
-    bool findClique(std::vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph);
+    void checkLineGraphs(const uint32_t &component = NONE);
+    bool findClique(std::vector<Graph::GraphTraversal> &clique, std::vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize);
+    void findMisInComponent(const std::vector<uint32_t> &cc);
     void printCC() const;
     void printCCSizes() const;
 
@@ -73,7 +78,7 @@ private:
     Mis &mis;
     ReduceInfo reduceInfo;
     std::unordered_map<uint32_t, uint32_t> nodeToCC;
-    std::vector<std::vector<uint32_t>* > ccToNodes;
+    std::unordered_map<uint32_t, std::vector<uint32_t>* > ccToNodes;
 };
 
 #endif

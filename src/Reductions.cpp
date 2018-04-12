@@ -9,8 +9,8 @@ using namespace std;
 
 void Reductions::run() {
     cout << " \nReductions\n";
-    printCCSizes();
-    //printCC();
+    //printCCSizes();
+    printCC();
     //reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
@@ -22,10 +22,10 @@ void Reductions::run() {
 }
 
 void Reductions::reduce() {
-    removeLineGraphs();
-    removeUnconfinedNodes();
+    checkLineGraphs();
+    //removeUnconfinedNodes();
     unordered_set<uint32_t> nodesWithoutSortedNeighbors;
-    foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
+    //foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
     graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
 }
 
@@ -126,41 +126,89 @@ void Reductions::removeUnconfinedNodes2() {
     }
 }
 
-void Reductions::removeLineGraphs() {
-    cout << "\n**Perfoming line graph reduction**" << endl;
-    removeLineGraphs(6);
-    removeLineGraphs(7);
-    removeLineGraphs(8);
-    reduceInfo.print();
-}
-
-void Reductions::removeLineGraphs(const uint32_t &degree) {
-    vector<Graph::GraphTraversal> clique;
-    clique.reserve(degree+1);
-    while (true) {
-        Graph subgraph;
-        graph.buildNDegreeSubgraph(degree, subgraph);
-        cout << degree << "-degree subgraph size: " << subgraph.getNodeCount() << endl;
-        if (!subgraph.getNodeCount()) {
+void Reductions::checkLineGraphs(const uint32_t &component) {
+    vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
+    for (auto it = (component == NONE ? ccToNodes.begin() : ccToNodes.find(component)) ; it != ccToNodes.end() ; it++) {
+        vector<uint32_t> *cc = it->second;
+        vector<Graph::GraphTraversal> clique1;
+        vector<Graph::GraphTraversal> clique2;
+        clique1.reserve(5);
+        clique2.reserve(5);
+        for (uint32_t i = 0 ; i < 3 ; i++) {
+            uint32_t nodes, degree, clique1Size, clique2Size;
+            switch (i) {
+                case 0:
+                    nodes = 10;
+                    degree = 6;
+                    clique1Size = clique2Size = 4;
+                    break;
+                case 1:
+                    nodes = 15;
+                    degree = 8;
+                    clique1Size = clique2Size = 5;
+                    break;
+                case 2:
+                    nodes = 20;
+                    degree = 7;
+                    clique1Size = 4;
+                    clique2Size = 5;
+                    break;
+            }
+            if (cc->size() == nodes && nodeDegreesEqualTo(*cc, degree, graph)) {
+                bool foundCliques = true;
+                for (auto node : *cc) {
+                    clique1.clear();
+                    clique2.clear();
+                    clique1.push_back(Graph::GraphTraversal(graph, node));
+                    if (!findClique(clique1, NULL, clique1Size)) {
+                        foundCliques = false;
+                        break;
+                    }
+                    clique2.push_back(Graph::GraphTraversal(graph, node));
+                    if (!findClique(clique2, &clique1, clique2Size)) {
+                        foundCliques = false;
+                        break;
+                    }
+                }
+                if (foundCliques) {
+                    cout << "Removing component " << it->first << "\n";
+                    findMisInComponent(*cc);
+                    graph.remove(*cc, reduceInfo, true);
+                    for (auto node : *cc) {
+                        nodeToCC.erase(node);
+                    }
+                    removedCCs.push_back(it);
+                    break;
+                }
+            }
+        }
+        if (component != NONE) {
             break;
         }
-        //cout << "Subgraph is" << endl;
-        //subgraph.print(true);
-        if (!findClique(clique, degree+1, subgraph)) {
-            break;
-        }
-        graph.remove(clique, reduceInfo);
-        mis.getMis().push_back(clique[0].curNode);
+    }
+    for (auto cc : removedCCs) {
+        ccToNodes.erase(cc);
     }
 }
 
-bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, const uint32_t &cliqueSize, const Graph &graph) {
-    clique.clear();
-    Graph::GraphTraversal graphTraversal(graph);
+void Reductions::findMisInComponent(const vector<uint32_t> &cc) {
+    unordered_set<uint32_t> removedNodes;
+    for (auto node : cc) {
+        if (removedNodes.find(node) == removedNodes.end()) {
+            mis.getMis().push_back(node);
+            Graph::GraphTraversal graphTraversal(graph, node);
+            while (graphTraversal.curEdgeOffset != NONE) {
+                removedNodes.insert(graph.edgeBuffer[graphTraversal.curEdgeOffset]);
+            }
+        }
+    }
+}
+
+bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize) {
+    Graph::GraphTraversal graphTraversal = clique[0];
     if (graphTraversal.curNode == NONE) {
         return false;
     }
-    clique.push_back(graphTraversal);
     while (clique.size() < cliqueSize) {
         //if (clique[0].curNode == 11) {
         //cout << "Cur clique: \n";
@@ -169,8 +217,9 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, const uint32_
         //}
         //}
         uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
+        bool existsInPreviousClique = (previousClique == NULL ? false : find(neighbor, *previousClique));
         //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
-        if (graph.idToPos->find(neighbor) != graph.idToPos->end() && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+        if (graph.idToPos->find(neighbor) != graph.idToPos->end() && !existsInPreviousClique && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
             //cout << "going to " << neighbor << endl;
             //cout << "commonNode is " << commonNode << endl;
             graph.goToNode(neighbor, graphTraversal);
@@ -189,6 +238,7 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, const uint32_
 }
 
 Reductions::Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {
+    uint32_t component = 0;
     unordered_set<uint32_t> exploredSet;
     stack<uint32_t> frontier;
     Graph::GraphTraversal graphTraversal(graph);
@@ -196,7 +246,7 @@ Reductions::Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {
         if (exploredSet.insert(graphTraversal.curNode).second) {
             vector<uint32_t> *componentNodes = new vector<uint32_t>();
             componentNodes->push_back(graphTraversal.curNode);
-            nodeToCC.insert({graphTraversal.curNode, (uint32_t)ccToNodes.size()});
+            nodeToCC.insert({graphTraversal.curNode, component});
             frontier.push(graphTraversal.curNode);
             while (!frontier.empty()) {
                 uint32_t node = frontier.top();
@@ -206,35 +256,36 @@ Reductions::Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {
                     node = graph.edgeBuffer[neighbors.curEdgeOffset];
                     if (exploredSet.insert(node).second) {
                         frontier.push(node);
-                        nodeToCC.insert({node, ccToNodes.size()});
+                        nodeToCC.insert({node, component});
                         componentNodes->push_back(node);
                     }
                     graph.getNextEdge(neighbors);
                 }
             }
-            ccToNodes.push_back(componentNodes);
+            ccToNodes.insert({component, componentNodes});
+            component++;
         }
         graph.getNextNode(graphTraversal);
     }
 }
 
 Reductions::~Reductions() {
-    for (uint32_t i = 0 ; i < ccToNodes.size() ; i++) {
-        delete ccToNodes[i];
+    for (auto &cc : ccToNodes) {
+        delete cc.second;
     }
 }
 
 void Reductions::printCC() const {
-    for (uint32_t cc = 0 ; cc < ccToNodes.size() ; cc++) {
-        cout << "\nCC " << cc << ":\n";
-        for (auto node : (*ccToNodes[cc])) {
+    for (auto &cc : ccToNodes) {
+        cout << "\nCC " << cc.first << ":\n";
+        for (auto node : *(cc.second)) {
             cout << node << ", belongs to cc " << nodeToCC.at(node) << "\n";
         }
     }
 }
 
 void Reductions::printCCSizes() const {
-    for (uint32_t cc = 0 ; cc < ccToNodes.size() ; cc++) {
-        cout << "CC " << cc << " size: " << ccToNodes[cc]->size() << "\n";
+    for (auto &cc : ccToNodes) {
+        cout << "CC " << cc.first << " size: " << (cc.second)->size() << "\n";
     }
 }
