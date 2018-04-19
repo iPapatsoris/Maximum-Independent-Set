@@ -113,14 +113,15 @@ public:
     }
 
     /* Return the first "outer neighbor of 'neighbor' at 'node'", and a flag of whether its the only one */
-    void getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, uint32_t &outerNeighbor, bool &exactlyOne) const {
+    void getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, uint32_t &outerNeighbor, bool &exactlyOne) const {
         outerNeighbor = NONE;
         exactlyOne = false;
         bool found = false;
         GraphTraversal graphTraversal(*this, neighbor);
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t extendedGrandchild = edgeBuffer[graphTraversal.curEdgeOffset];
-            if (extendedGrandchild != node && !edgeExists(extendedGrandchild, node)) {
+            bool binarySearch = (nodesWithoutSortedNeighbors.find(extendedGrandchild) == nodesWithoutSortedNeighbors.end());
+            if (extendedGrandchild != node && !edgeExists(extendedGrandchild, node, binarySearch)) {
                 //std::cout << "edge " << node << " " << extendedGrandchild << " does not exist\n";
                 if (!found) {
                     found = true;
@@ -136,10 +137,11 @@ public:
         }
     }
 
-    bool isIndependentSet(const std::vector<uint32_t> &set, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
+    bool isIndependentSet(const std::vector<uint32_t> &set, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
         for (uint32_t i = 0 ; i < set.size() ; i++) {
             for (uint32_t j = i+1 ; j < set.size() ; j++) {
-                if (edgeExists(set[i], set[j])) {
+                bool binarySearch = (nodesWithoutSortedNeighbors.find(set[i]) == nodesWithoutSortedNeighbors.end());
+                if (edgeExists(set[i], set[j], binarySearch)) {
                     if (node1 != NULL && node2 != NULL) {
                         *node1 = set[i];
                         *node2 = set[j];

@@ -34,7 +34,7 @@ void ControlUnit::checkIndependentSet(const string &misInputFile) const {
         mis.push_back(node);
     }
     uint32_t node1, node2;
-    bool independentSet = graph.isIndependentSet(mis, &node1, &node2);
+    bool independentSet = graph.isIndependentSet(mis, unordered_set<uint32_t>(), &node1, &node2);
     if (independentSet) {
         cout << "Valid independent set\n";
     } else {

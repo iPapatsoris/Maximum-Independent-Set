@@ -311,6 +311,10 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
     offset = 0;
     while(fgets(buf, MAXLINE, f) != NULL) {
         parseNodeIDs(buf, &sourceNode, &targetNode);
+        if (sourceNode >= nodes || targetNode >= nodes) {
+            cerr << "Error: received a node id equal or larger than the total nodes number specified at the beginning of the file" << endl;
+            exit(EXIT_FAILURE);
+        }
         /* Add smaller nodes than first source node */
         if (previousNode == NONE && sourceNode) {
             this->fill(sourceNode, checkIndependentSet);

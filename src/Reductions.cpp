@@ -9,56 +9,63 @@ using namespace std;
 
 void Reductions::run() {
     cout << " \nReductions\n";
-    //printCCSizes();
-    printCC();
-    //reduce();
+    //printCC();
+    reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
-    //cout << "Mis: " << endl;
-    //for (uint32_t i = 0 ; i < mis.size() ; i++) {
-    //    cout << mis[i] << endl;
-    //}
-    //graph.print(true);
+    graph.print(true);
+    printCCSizes();
 }
 
 void Reductions::reduce() {
-    checkLineGraphs();
-    //removeUnconfinedNodes();
-    unordered_set<uint32_t> nodesWithoutSortedNeighbors;
-    //foldCompleteKIndependentSets(nodesWithoutSortedNeighbors);
+    bool firstTime = true;
+    while (removeUnconfinedNodes() || firstTime) {
+        if (firstTime) {
+            firstTime = false;
+        }
+        if (!foldCompleteKIndependentSets()) {
+            break;
+        }
+    }
+    buildCC();
+    printCCSizes();
+    removeLineGraphs();
     graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
 }
 
-void Reductions::foldCompleteKIndependentSets(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
+bool Reductions::foldCompleteKIndependentSets() {
     cout << "\n**Performing K-Independent set folding reduction**" << endl;
     ReduceInfo old = reduceInfo;
-    foldCompleteKIndependentSets2(nodesWithoutSortedNeighbors);
+    foldCompleteKIndependentSets2();
+    if (old.nodesRemoved == reduceInfo.nodesRemoved) {
+        return false;
+    }
     do {
         reduceInfo.print(&old);
         old = reduceInfo;
-        foldCompleteKIndependentSets2(nodesWithoutSortedNeighbors);
+        foldCompleteKIndependentSets2();
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
+    return true;
 }
 
 
-void Reductions::removeUnconfinedNodes() {
+bool Reductions::removeUnconfinedNodes() {
     cout << "\n**Performing unconfined nodes reduction**" << endl;
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
+    if (old.nodesRemoved == reduceInfo.nodesRemoved) {
+        return false;
+    }
     do {
         reduceInfo.print(&old);
         old = reduceInfo;
         removeUnconfinedNodes2();
         //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
+    return true;
 }
 
-/*void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
-    foldCompleteKIndependentSets(1, nodesWithoutSortedNeighbors);
-    foldCompleteKIndependentSets(2, nodesWithoutSortedNeighbors);
-}*/
-
-void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
+void Reductions::foldCompleteKIndependentSets2() {
     Graph::GraphTraversal graphTraversal(graph);
     uint32_t bound = 25000;
     while (graphTraversal.curNode != NONE) {
@@ -80,7 +87,7 @@ void Reductions::foldCompleteKIndependentSets2(unordered_set<uint32_t> &nodesWit
                 }
                 if (k == 1 || k == 2 && nodes.size() == 2) {
                     vector<uint32_t> &mis = this->mis.getMis();
-                    if (graph.isIndependentSet(neighbors)) {
+                    if (graph.isIndependentSet(neighbors, nodesWithoutSortedNeighbors)) {
                         uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors, reduceInfo);
                         this->mis.markHypernode(newNode, nodes, neighbors);
                     } else {
@@ -107,7 +114,7 @@ void Reductions::removeUnconfinedNodes2() {
             uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
             uint32_t outerNeighbor;
             bool exactlyOne;
-            graph.getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
+            graph.getOuterNeighbor(graphTraversal.curNode, neighbor, nodesWithoutSortedNeighbors, outerNeighbor, exactlyOne);
             if (outerNeighbor == NONE) {
                 //cout << "none\n";
                 isUnconfined = true;
@@ -118,17 +125,17 @@ void Reductions::removeUnconfinedNodes2() {
             }
             graph.getNextEdge(graphTraversal);
         }
-        if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
-            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
+        if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren, nodesWithoutSortedNeighbors)) {
+            cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
     }
 }
 
-void Reductions::checkLineGraphs(const uint32_t &component) {
+void Reductions::removeLineGraphs() {
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
-    for (auto it = (component == NONE ? ccToNodes.begin() : ccToNodes.find(component)) ; it != ccToNodes.end() ; it++) {
+    for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
         vector<Graph::GraphTraversal> clique1;
         vector<Graph::GraphTraversal> clique2;
@@ -164,10 +171,18 @@ void Reductions::checkLineGraphs(const uint32_t &component) {
                         foundCliques = false;
                         break;
                     }
+                    cout << "Clique1: " << endl;
+                    for (uint32_t i = 0 ; i < clique1.size() ; i++) {
+                        cout << clique1[i].curNode << endl;
+                    }
                     clique2.push_back(Graph::GraphTraversal(graph, node));
                     if (!findClique(clique2, &clique1, clique2Size)) {
                         foundCliques = false;
                         break;
+                    }
+                    cout << "Clique2: " << endl;
+                    for (uint32_t i = 0 ; i < clique2.size() ; i++) {
+                        cout << clique2[i].curNode << endl;
                     }
                 }
                 if (foundCliques) {
@@ -179,11 +194,10 @@ void Reductions::checkLineGraphs(const uint32_t &component) {
                     }
                     removedCCs.push_back(it);
                     break;
+                } else {
+                    break;
                 }
             }
-        }
-        if (component != NONE) {
-            break;
         }
     }
     for (auto cc : removedCCs) {
@@ -199,6 +213,7 @@ void Reductions::findMisInComponent(const vector<uint32_t> &cc) {
             Graph::GraphTraversal graphTraversal(graph, node);
             while (graphTraversal.curEdgeOffset != NONE) {
                 removedNodes.insert(graph.edgeBuffer[graphTraversal.curEdgeOffset]);
+                graph.getNextEdge(graphTraversal);
             }
         }
     }
@@ -219,7 +234,7 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
         uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
         bool existsInPreviousClique = (previousClique == NULL ? false : find(neighbor, *previousClique));
         //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
-        if (graph.idToPos->find(neighbor) != graph.idToPos->end() && !existsInPreviousClique && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
+        if (!existsInPreviousClique && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
             //cout << "going to " << neighbor << endl;
             //cout << "commonNode is " << commonNode << endl;
             graph.goToNode(neighbor, graphTraversal);
@@ -230,14 +245,10 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
             }
         }
     }
-    cout << "Clique: " << endl;
-    for (uint32_t i = 0 ; i < clique.size() ; i++) {
-        cout << clique[i].curNode << endl;
-    }
     return true;
 }
 
-Reductions::Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {
+void Reductions::buildCC() {
     uint32_t component = 0;
     unordered_set<uint32_t> exploredSet;
     stack<uint32_t> frontier;

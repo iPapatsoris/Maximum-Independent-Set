@@ -6,7 +6,7 @@
 
 class Reductions {
 public:
-    Reductions(Graph &graph, Mis &mis);
+    Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
     ~Reductions();
     void run();
 
@@ -40,7 +40,7 @@ private:
             graphTraversal = clique.back();
             graph.getNextEdge(graphTraversal);
             clique.back() = graphTraversal;
-            if (graphTraversal.curEdgeOffset != NONE && graph.idToPos->find(graph.edgeBuffer[graphTraversal.curEdgeOffset]) != graph.idToPos->end()) {
+            if (graphTraversal.curEdgeOffset != NONE) {
                 validNeighbor = true;
             } else {
                 graphTraversal = clique.back();
@@ -62,15 +62,24 @@ private:
         return true;
     }
 
+    std::unordered_map<uint32_t, std::vector<uint32_t>* >::iterator removeNodeFromComponent(const uint32_t &node) {
+        auto it = nodeToCC.find(node);
+        uint32_t cc = it->second;
+        nodeToCC.erase(it);
+        auto itCC = ccToNodes.find(cc);
+        itCC->second->erase(std::find(itCC->second->begin(), itCC->second->end(), node));
+        return itCC;
+    }
+
     void reduce();
-    void removeUnconfinedNodes();
+    bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
-    void foldCompleteKIndependentSets(std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
-    void foldCompleteKIndependentSets2(std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
-    void foldCompleteKIndependentSets(const uint32_t &k, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
-    void checkLineGraphs(const uint32_t &component = NONE);
+    bool foldCompleteKIndependentSets();
+    void foldCompleteKIndependentSets2();
+    void removeLineGraphs();
     bool findClique(std::vector<Graph::GraphTraversal> &clique, std::vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize);
     void findMisInComponent(const std::vector<uint32_t> &cc);
+    void buildCC();
     void printCC() const;
     void printCCSizes() const;
 
@@ -79,6 +88,7 @@ private:
     ReduceInfo reduceInfo;
     std::unordered_map<uint32_t, uint32_t> nodeToCC;
     std::unordered_map<uint32_t, std::vector<uint32_t>* > ccToNodes;
+    std::unordered_set<uint32_t> nodesWithoutSortedNeighbors;
 };
 
 #endif
