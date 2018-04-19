@@ -3,6 +3,7 @@
 #include <stack>
 #include <unordered_map>
 #include <algorithm>
+#include <iomanip>
 #include "Reductions.hpp"
 
 using namespace std;
@@ -13,8 +14,8 @@ void Reductions::run() {
     reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
-    graph.print(true);
-    printCCSizes();
+    //graph.print(true);
+    //printCCSizes();
 }
 
 void Reductions::reduce() {
@@ -27,8 +28,6 @@ void Reductions::reduce() {
             break;
         }
     }
-    buildCC();
-    printCCSizes();
     removeLineGraphs();
     graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
 }
@@ -38,6 +37,7 @@ bool Reductions::foldCompleteKIndependentSets() {
     ReduceInfo old = reduceInfo;
     foldCompleteKIndependentSets2();
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
+        cout << "No nodes removed." << endl;
         return false;
     }
     do {
@@ -54,6 +54,7 @@ bool Reductions::removeUnconfinedNodes() {
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
+        cout << "No nodes removed." << endl;
         return false;
     }
     do {
@@ -67,13 +68,13 @@ bool Reductions::removeUnconfinedNodes() {
 
 void Reductions::foldCompleteKIndependentSets2() {
     Graph::GraphTraversal graphTraversal(graph);
-    uint32_t bound = 25000;
+    uint32_t bound = 5000;
     while (graphTraversal.curNode != NONE) {
         for (uint32_t k = 1 ; k <= 2 ; k++) {
             if (graph.getNodeDegree(graphTraversal.curNode) == k+1) {
                 if (graphTraversal.curNode >= bound) {
-                    cout << "Node " << graphTraversal.curNode << "\n";
-                    bound += 25000;
+                    cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
+                    bound += 5000;
                 }
                 vector<uint32_t> nodes;
                 vector<uint32_t> neighbors;
@@ -126,7 +127,7 @@ void Reductions::removeUnconfinedNodes2() {
             graph.getNextEdge(graphTraversal);
         }
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren, nodesWithoutSortedNeighbors)) {
-            cout << "Unconfined node " << graphTraversal.curNode << "\n";
+            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
@@ -134,6 +135,9 @@ void Reductions::removeUnconfinedNodes2() {
 }
 
 void Reductions::removeLineGraphs() {
+    cout << "\n**Performing line graph reduction**" << endl;
+    buildCC();
+    printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
@@ -157,8 +161,8 @@ void Reductions::removeLineGraphs() {
                 case 2:
                     nodes = 20;
                     degree = 7;
-                    clique1Size = 4;
-                    clique2Size = 5;
+                    clique1Size = 5;
+                    clique2Size = 4;
                     break;
             }
             if (cc->size() == nodes && nodeDegreesEqualTo(*cc, degree, graph)) {
@@ -200,8 +204,12 @@ void Reductions::removeLineGraphs() {
             }
         }
     }
-    for (auto cc : removedCCs) {
-        ccToNodes.erase(cc);
+    if (removedCCs.empty()) {
+        cout << "No nodes removed" << endl;
+    } else {
+        for (auto cc : removedCCs) {
+            ccToNodes.erase(cc);
+        }
     }
 }
 

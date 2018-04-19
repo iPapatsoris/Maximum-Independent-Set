@@ -28,7 +28,7 @@ public:
 
     /* Changes structures, should be called only once at the end */
         void print(std::vector<uint32_t> &zeroDegreeNodes) {
-        std::cout <<"Writing Maximum Independent Set to file " << misOutputFile << std::endl;
+        std::cout <<"\nWriting Maximum Independent Set to file " << misOutputFile << std::endl;
         std::vector<uint32_t> finalMis;
         finalMis.reserve(zeroDegreeNodes.size() + mis.size());
         print(mis, finalMis);
