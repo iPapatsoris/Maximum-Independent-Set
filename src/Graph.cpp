@@ -27,7 +27,7 @@ Graph::~Graph() {
 
 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
-void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent) {
+void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent, unordered_set<uint32_t> *candidateNodes) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
@@ -41,6 +41,9 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, c
                     if (!nodeIndex[nPos].removed) {
                         nodeIndex[nPos].edges--;
                         reduceInfo.edgesRemoved++;
+                        if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
+                            candidateNodes->insert(edgeBuffer[offset]);
+                        }
                     }
                 }
             }

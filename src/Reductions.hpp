@@ -74,14 +74,15 @@ private:
     void reduce();
     bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
-    bool foldCompleteKIndependentSets();
-    void foldCompleteKIndependentSets2();
+    bool foldCompleteKIndependentSets(bool &firstTime, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes);
+    void foldCompleteKIndependentSets2(const bool &checkAllNodes, std::unordered_set<uint32_t> &oldCandidateNodes, std::unordered_set<uint32_t> &newCandidateNodes);
     void removeLineGraphs();
     bool findClique(std::vector<Graph::GraphTraversal> &clique, std::vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize);
     void findMisInComponent(const std::vector<uint32_t> &cc);
     void buildCC();
     void printCC() const;
     void printCCSizes() const;
+    static void swap(std::unordered_set<uint32_t> **p1, std::unordered_set<uint32_t> **p2);
 
     Graph &graph;
     Mis &mis;

@@ -58,7 +58,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
-    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false);
+    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
