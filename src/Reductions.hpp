@@ -15,9 +15,9 @@ private:
     static bool isSubsetOfNeighbors(const std::vector<Graph::GraphTraversal> &subset, const uint32_t &node, const Graph &graph) {
         uint32_t pos = graph.getPos(node);
         uint32_t count = subset.size();
-        uint32_t nextNodeOffset = (pos == graph.nodeIndex.size()-1 ? graph.edgeBuffer.size() : graph.nodeIndex[pos+1].offset);
+        uint32_t nextNodeOffset = (pos == graph.nodeIndex.size()-1 ? graph.edgeBuffer->size() : graph.nodeIndex[pos+1].offset);
         for (uint32_t offset = graph.nodeIndex[pos].offset ; count && offset < nextNodeOffset ; offset++) {
-            if (find(graph.edgeBuffer[offset], subset)) {
+            if (find((*graph.edgeBuffer)[offset], subset)) {
                 count--;
             }
         }

@@ -10,6 +10,9 @@ void ControlUnit::run() {
     //graph.printWithGraphTraversal(false); return;
     reductions.run();
     mis.print(graph.zeroDegreeNodes);
+    //Graph g = graph;
+    //g.nodeIndex.push_back(NodeInfo(1337, 1337);
+    //g.print
 }
 
 void ControlUnit::checkIndependentSet(const string &misInputFile) const {

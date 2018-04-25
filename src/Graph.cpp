@@ -23,6 +23,7 @@ Graph::~Graph() {
         delete idToPos;
         delete posToId;
     }
+    delete edgeBuffer;
 }
 
 
@@ -35,14 +36,14 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, c
             if (sameComponent) {
                 reduceInfo.edgesRemoved += nodeIndex[pos].edges;
             } else {
-                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
                 for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                    uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+                    uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
                     if (!nodeIndex[nPos].removed) {
                         nodeIndex[nPos].edges--;
                         reduceInfo.edgesRemoved++;
                         if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
-                            candidateNodes->insert(edgeBuffer[offset]);
+                            candidateNodes->insert((*edgeBuffer)[offset]);
                         }
                     }
                 }
@@ -65,8 +66,8 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
     cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     vector<NodeInfo> nodeIndex;
     nodeIndex.reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
-    vector<uint32_t> edgeBuffer;
-    edgeBuffer.reserve(this->edgeBuffer.size() - reduceInfo.edgesRemoved);
+    vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
+    edgeBuffer->reserve(this->edgeBuffer->size() - reduceInfo.edgesRemoved);
     unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
     vector<uint32_t> *posToId = new vector<uint32_t>();
     posToId->reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
@@ -83,12 +84,12 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
             continue;
         }
         uint32_t edges = 0;
-        uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer.size() : this->nodeIndex[pos+1].offset);
+        uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer->size() : this->nodeIndex[pos+1].offset);
         /* Don't add neighbors that are marked as removed */
         for (uint32_t i = this->nodeIndex[pos].offset ; i < nextNodeOffset ; i++) {
-            uint32_t nPos = (!this->mapping ? this->edgeBuffer[i] : this->idToPos->at(this->edgeBuffer[i]));
+            uint32_t nPos = (!this->mapping ? (*this->edgeBuffer)[i] : this->idToPos->at((*this->edgeBuffer)[i]));
             if (!this->nodeIndex[nPos].removed) {
-                edgeBuffer.push_back(this->edgeBuffer[i]);
+                edgeBuffer->push_back((*this->edgeBuffer)[i]);
                 edges++;
             }
             if (edges == this->nodeIndex[pos].edges) {
@@ -97,7 +98,7 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
         }
         assert(edges > 0);
         if (nodesWithoutSortedNeighbors.find(node) != nodesWithoutSortedNeighbors.end()) {
-            sort(this->edgeBuffer.begin() + this->nodeIndex[pos].offset, this->edgeBuffer.begin() + nextNodeOffset);
+            sort(this->edgeBuffer->begin() + this->nodeIndex[pos].offset, this->edgeBuffer->begin() + nextNodeOffset);
         }
         idToPos->insert({node, nodeIndex.size()});
         posToId->push_back(node);
@@ -115,6 +116,7 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
     this->posToId = posToId;
     //assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
     this->nodeIndex = nodeIndex;
+    delete this->edgeBuffer;
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
 }
@@ -133,12 +135,13 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
     for (auto it = neighbors.begin() ; it != neighbors.end() ; it++) {
         GraphTraversal graphTraversal(*this, *it);
         while (graphTraversal.curEdgeOffset != NONE) {
-            uint32_t neighbor = edgeBuffer[graphTraversal.curEdgeOffset];
+            uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
             //cout << "\nneighbor " << neighbor << endl;
             if (find(nodes.begin(), nodes.end(), neighbor) == nodes.end() && find(neighbors.begin(), neighbors.end(), neighbor) == neighbors.end()) {
                 if (newNeighbors.insert(neighbor).second) {
                     replaceNeighbor(neighbor, *it, newNode, nodesWithoutSortedNeighbors);
                     nodesWithoutSortedNeighbors.insert(neighbor);
+                    //cout << nodesWithoutSortedNeighbors.size() << "\n";
                     uint32_t pos = (!mapping ? neighbor : idToPos->at(neighbor));
                     nodeIndex[pos].edges++;
                     reduceInfo.edgesRemoved--;
@@ -147,9 +150,9 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
             getNextEdge(graphTraversal);
         }
     }
-    uint32_t offset = edgeBuffer.size();
-    edgeBuffer.reserve(edgeBuffer.size() + newNeighbors.size());
-    copy(newNeighbors.begin(), newNeighbors.end(), back_inserter(edgeBuffer));
+    uint32_t offset = edgeBuffer->size();
+    edgeBuffer->reserve(edgeBuffer->size() + newNeighbors.size());
+    copy(newNeighbors.begin(), newNeighbors.end(), back_inserter(*edgeBuffer));
     nodeIndex.push_back(NodeInfo(offset, newNeighbors.size()));
     if (mapping) {
         idToPos->insert({newNode, newNode});
@@ -170,7 +173,7 @@ void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, c
     offset = findEdgeOffset(node, oldNeighbor, binarySearch);
     //print(true);
     assert(offset != NONE);
-    edgeBuffer[offset] = newNeighbor;
+    (*edgeBuffer)[offset] = newNeighbor;
 }
 
 /* Gather node's neighbors in a vector. Useful when there are removed neighbors
@@ -178,11 +181,11 @@ void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, c
 void Graph::gatherNeighbors(const uint32_t &node, vector<uint32_t> &neighbors) const {
     uint32_t pos = (!mapping ? node : idToPos->at(node));
     uint32_t neighborCount = nodeIndex[pos].edges;
-    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
     for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
-        uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
+        uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
         if (!nodeIndex[nPos].removed) {
-            neighbors.push_back(edgeBuffer[offset]);
+            neighbors.push_back((*edgeBuffer)[offset]);
             neighborCount--;
         }
     }
@@ -193,10 +196,10 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
     for (pos = pos+1 ; pos < nodeIndex.size() ; pos++) {
         if (nodeIndex[pos].edges == neighbors.size()) {
             uint32_t neighborCount = neighbors.size();
-            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
             for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
-                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                if (!nodeIndex[nPos].removed && find(neighbors.begin(), neighbors.end(), edgeBuffer[offset]) != neighbors.end()) {
+                uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+                if (!nodeIndex[nPos].removed && find(neighbors.begin(), neighbors.end(), (*edgeBuffer)[offset]) != neighbors.end()) {
                     neighborCount--;
                 }
             }
@@ -209,19 +212,19 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
 }
 
 void Graph::print(bool direction) const {
-    cout << "\nNodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
+    cout << "\nNodes: " << nodeIndex.size() << " Edges: " << edgeBuffer->size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
         if (!nodeIndex[pos].removed) {
-            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer.size() : nodeIndex[pos+1].offset);
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
             for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
                 uint32_t node = (!mapping ? pos : (*posToId)[pos]);
-                if (mapping && idToPos->find(edgeBuffer[offset]) == idToPos->end()) { // For printing subgraphs generated by buildNDegreeSubgraph
-                    cout << node << "\t" << edgeBuffer[offset] << "\n";
+                if (mapping && idToPos->find((*edgeBuffer)[offset]) == idToPos->end()) { // For printing subgraphs generated by buildNDegreeSubgraph
+                    cout << node << "\t" << (*edgeBuffer)[offset] << "\n";
                     continue;
                 }
-                uint32_t nPos = (!mapping ? edgeBuffer[offset] : idToPos->at(edgeBuffer[offset]));
-                if (!nodeIndex[nPos].removed && (direction || !direction && node < edgeBuffer[offset])) {
-                    cout << node << "\t" << edgeBuffer[offset] << "\n";
+                uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+                if (!nodeIndex[nPos].removed && (direction || !direction && node < (*edgeBuffer)[offset])) {
+                    cout << node << "\t" << (*edgeBuffer)[offset] << "\n";
                 }
             }
         }
@@ -236,8 +239,8 @@ void Graph::printWithGraphTraversal(bool direction) const {
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         while (graphTraversal.curEdgeOffset != NONE) {
-            if (direction || !direction && graphTraversal.curNode < edgeBuffer[graphTraversal.curEdgeOffset]) {
-                cout << graphTraversal.curNode << "\t" << edgeBuffer[graphTraversal.curEdgeOffset] << "\n";
+            if (direction || !direction && graphTraversal.curNode < (*edgeBuffer)[graphTraversal.curEdgeOffset]) {
+                cout << graphTraversal.curNode << "\t" << (*edgeBuffer)[graphTraversal.curEdgeOffset] << "\n";
             }
             getNextEdge(graphTraversal);
         }
@@ -250,7 +253,7 @@ void Graph::printWithGraphTraversal(bool direction) const {
 }
 
 void Graph::printEdgeCounts() const {
-    cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer.size() / 2 << "\n";
+    cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer->size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
         uint32_t node = (!mapping ? pos : (*posToId)[pos]);
         cout << "Node " << node << " has " << nodeIndex[pos].edges << " edges\n";
@@ -259,7 +262,7 @@ void Graph::printEdgeCounts() const {
 
 /* Build graph from file, include both edge directions, keep them sorted.
  * Zero degree nodes are included in nodeIndex, but are makred as removed.
- * They are also held on zeroDegreeNodes separate structure */
+ * They are also held on zeroDegreeNodes seperate structure */
 Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping(false), idToPos(NULL), posToId(NULL) {
     /* Open graph input file */
     FILE *f;
@@ -296,8 +299,9 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
         exit(EXIT_FAILURE);
     }
 
+    edgeBuffer = new vector<uint32_t>();
     try {
-        edgeBuffer.reserve(edges * 2);
+        edgeBuffer->reserve(edges * 2);
     }
     catch (const length_error &le) {
         cerr << "EdgeBuffer length error: " << le.what() << endl;
@@ -332,7 +336,7 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
                     nodeIndex[nodeIndex.size()-1].removed = true;
                 }
                 offset += previousEdges;
-                edgeBuffer.insert(edgeBuffer.end(), reverseEdges[node].begin(), reverseEdges[node].end());
+                edgeBuffer->insert(edgeBuffer->end(), reverseEdges[node].begin(), reverseEdges[node].end());
                 straightEdges = 0;
                 if (node < sourceNode) {
                     //cout << "in between missing node " << node << endl;
@@ -340,7 +344,7 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
             }
         }
         /* Add source node's bigger neighbors */
-        edgeBuffer.push_back(targetNode);
+        edgeBuffer->push_back(targetNode);
         straightEdges++;
         reverseEdges[targetNode].push_back(sourceNode);
         previousNode = sourceNode;
@@ -363,7 +367,7 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
             nodeIndex[nodeIndex.size()-1].removed = true;
         }
         offset += previousEdges;
-        edgeBuffer.insert(edgeBuffer.end(), reverseEdges[missingNode].begin(), reverseEdges[missingNode].end());
+        edgeBuffer->insert(edgeBuffer->end(), reverseEdges[missingNode].begin(), reverseEdges[missingNode].end());
     }
     fclose(f);
 }
@@ -371,7 +375,7 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
 void Graph::fill(const uint32_t &size, const bool &checkIndependentSet) {
     //cout << "start missing nodes from " << nodeIndex.size() << " to " << size << endl;
     while (nodeIndex.size() < size) {
-        nodeIndex.push_back(NodeInfo(edgeBuffer.size(), 0));
+        nodeIndex.push_back(NodeInfo(edgeBuffer->size(), 0));
         if (!checkIndependentSet) {
             zeroDegreeNodes.push_back(nodeIndex.size()-1);
             nodeIndex[nodeIndex.size()-1].removed = true;

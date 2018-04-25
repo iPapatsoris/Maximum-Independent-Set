@@ -127,7 +127,7 @@ void Reductions::removeUnconfinedNodes2() {
         bool isUnconfined = false;
         vector<uint32_t> extendedGrandchildren;
         while (graphTraversal.curEdgeOffset != NONE) {
-            uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
+            uint32_t neighbor = (*graph.edgeBuffer)[graphTraversal.curEdgeOffset];
             uint32_t outerNeighbor;
             bool exactlyOne;
             graph.getOuterNeighbor(graphTraversal.curNode, neighbor, nodesWithoutSortedNeighbors, outerNeighbor, exactlyOne);
@@ -235,7 +235,7 @@ void Reductions::findMisInComponent(const vector<uint32_t> &cc) {
             mis.getMis().push_back(node);
             Graph::GraphTraversal graphTraversal(graph, node);
             while (graphTraversal.curEdgeOffset != NONE) {
-                removedNodes.insert(graph.edgeBuffer[graphTraversal.curEdgeOffset]);
+                removedNodes.insert((*graph.edgeBuffer)[graphTraversal.curEdgeOffset]);
                 graph.getNextEdge(graphTraversal);
             }
         }
@@ -254,7 +254,7 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
         //cout << clique[i].curNode << endl;
         //}
         //}
-        uint32_t neighbor = graph.edgeBuffer[graphTraversal.curEdgeOffset];
+        uint32_t neighbor = (*graph.edgeBuffer)[graphTraversal.curEdgeOffset];
         bool existsInPreviousClique = (previousClique == NULL ? false : find(neighbor, *previousClique));
         //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
         if (!existsInPreviousClique && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
@@ -287,7 +287,7 @@ void Reductions::buildCC() {
                 frontier.pop();
                 Graph::GraphTraversal neighbors(graph, node);
                 while (neighbors.curEdgeOffset != NONE) {
-                    node = graph.edgeBuffer[neighbors.curEdgeOffset];
+                    node = (*graph.edgeBuffer)[neighbors.curEdgeOffset];
                     if (exploredSet.insert(node).second) {
                         frontier.push(node);
                         nodeToCC.insert({node, component});
