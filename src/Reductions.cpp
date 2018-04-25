@@ -30,7 +30,7 @@ void Reductions::reduce() {
     delete oldCandidateNodes;
     delete newCandidateNodes;
     removeLineGraphs();
-    graph.rebuild(nodesWithoutSortedNeighbors, reduceInfo);
+    graph.rebuild(reduceInfo);
 }
 
 bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
@@ -97,8 +97,8 @@ void Reductions::foldCompleteKIndependentSets2(const bool &checkAllNodes, unorde
                 }
                 if (k == 1 || k == 2 && nodes.size() == 2) {
                     vector<uint32_t> &mis = this->mis.getMis();
-                    if (graph.isIndependentSet(neighbors, nodesWithoutSortedNeighbors)) {
-                        uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, nodesWithoutSortedNeighbors, reduceInfo);
+                    if (graph.isIndependentSet(neighbors)) {
+                        uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, reduceInfo);
                         this->mis.markHypernode(newNode, nodes, neighbors);
                     } else {
                         mis.insert(mis.end(), nodes.begin(), nodes.end());
@@ -130,7 +130,7 @@ void Reductions::removeUnconfinedNodes2() {
             uint32_t neighbor = (*graph.edgeBuffer)[graphTraversal.curEdgeOffset];
             uint32_t outerNeighbor;
             bool exactlyOne;
-            graph.getOuterNeighbor(graphTraversal.curNode, neighbor, nodesWithoutSortedNeighbors, outerNeighbor, exactlyOne);
+            graph.getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
             if (outerNeighbor == NONE) {
                 //cout << "none\n";
                 isUnconfined = true;
@@ -141,7 +141,7 @@ void Reductions::removeUnconfinedNodes2() {
             }
             graph.getNextEdge(graphTraversal);
         }
-        if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren, nodesWithoutSortedNeighbors)) {
+        if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
             //cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }

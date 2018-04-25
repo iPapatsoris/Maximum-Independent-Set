@@ -59,7 +59,7 @@ void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
 }
 
 /* Rebuild structures, completely removing nodes that are marked as removed */
-void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo) {
+void Graph::rebuild(const ReduceInfo &reduceInfo) {
     if (!reduceInfo.nodesRemoved) {
         return;
     }
@@ -97,9 +97,6 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
             }
         }
         assert(edges > 0);
-        if (nodesWithoutSortedNeighbors.find(node) != nodesWithoutSortedNeighbors.end()) {
-            sort(this->edgeBuffer->begin() + this->nodeIndex[pos].offset, this->edgeBuffer->begin() + nextNodeOffset);
-        }
         idToPos->insert({node, nodeIndex.size()});
         posToId->push_back(node);
         nodeIndex.push_back(Graph::NodeInfo(offset, edges));
@@ -123,13 +120,14 @@ void Graph::rebuild(const unordered_set<uint32_t> &nodesWithoutSortedNeighbors, 
 
 /* Contract 'nodes' and 'neighbors' to a single node.
  * It is taken for granted that the only neighbors of 'nodes' are 'neighbors' */
-uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector<uint32_t> &neighbors, unordered_set<uint32_t> &nodesWithoutSortedNeighbors, ReduceInfo &reduceInfo) {
+uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector<uint32_t> &neighbors, ReduceInfo &reduceInfo) {
     /*cout << "Contracting node " << nodes[0];
     if (nodes.size() == 2) {
         cout << " and " << nodes[1];
     }
     cout <<" with their neighbors" << endl;*/
-    uint32_t newNode = nodeIndex.size();
+    uint32_t newNode = nextUnusedId;
+    assert(++nextUnusedId != 0);
     assert(!mapping || mapping && idToPos->find(newNode) == idToPos->end());
     set<uint32_t> newNeighbors;
     for (auto it = neighbors.begin() ; it != neighbors.end() ; it++) {
@@ -139,9 +137,7 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
             //cout << "\nneighbor " << neighbor << endl;
             if (find(nodes.begin(), nodes.end(), neighbor) == nodes.end() && find(neighbors.begin(), neighbors.end(), neighbor) == neighbors.end()) {
                 if (newNeighbors.insert(neighbor).second) {
-                    replaceNeighbor(neighbor, *it, newNode, nodesWithoutSortedNeighbors);
-                    nodesWithoutSortedNeighbors.insert(neighbor);
-                    //cout << nodesWithoutSortedNeighbors.size() << "\n";
+                    replaceNeighbor(neighbor, *it, newNode);
                     uint32_t pos = (!mapping ? neighbor : idToPos->at(neighbor));
                     nodeIndex[pos].edges++;
                     reduceInfo.edgesRemoved--;
@@ -163,17 +159,20 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
     return newNode;
 }
 
-void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const unordered_set<uint32_t> &nodesWithoutSortedNeighbors) {
-    bool binarySearch = (nodesWithoutSortedNeighbors.find(node) == nodesWithoutSortedNeighbors.end());
-    /*cout << "nodes without sorted neighbors: \n";
-    for (auto it = nodesWithoutSortedNeighbors.begin() ; it != nodesWithoutSortedNeighbors.end() ; it++) {
-        cout << *it << endl;
-    }*/
+void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor) {
     uint32_t offset;
-    offset = findEdgeOffset(node, oldNeighbor, binarySearch);
+    offset = findEdgeOffset(node, oldNeighbor);
     //print(true);
+    //if (offset == NONE) {
+    //    cout << "replacing node " << node << " old neighbor " << oldNeighbor << " with " << newNeighbor << endl;
+    //    this->print(true);
+    //}
     assert(offset != NONE);
-    (*edgeBuffer)[offset] = newNeighbor;
+    uint32_t pos = (!mapping ? node : idToPos->at(node));
+    uint32_t endOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+    auto it = edgeBuffer->begin();
+    move(it + offset + 1, it + endOffset, it + offset);
+    (*edgeBuffer)[endOffset-1] = newNeighbor;
 }
 
 /* Gather node's neighbors in a vector. Useful when there are removed neighbors
@@ -369,6 +368,7 @@ Graph::Graph(const string &inputFile, const bool &checkIndependentSet) : mapping
         offset += previousEdges;
         edgeBuffer->insert(edgeBuffer->end(), reverseEdges[missingNode].begin(), reverseEdges[missingNode].end());
     }
+    nextUnusedId = nodeIndex.size();
     fclose(f);
 }
 

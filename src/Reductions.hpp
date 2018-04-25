@@ -89,7 +89,6 @@ private:
     ReduceInfo reduceInfo;
     std::unordered_map<uint32_t, uint32_t> nodeToCC;
     std::unordered_map<uint32_t, std::vector<uint32_t>* > ccToNodes;
-    std::unordered_set<uint32_t> nodesWithoutSortedNeighbors;
 };
 
 #endif

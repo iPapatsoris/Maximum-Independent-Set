@@ -61,24 +61,24 @@ public:
 
     void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
-    void rebuild(const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, const ReduceInfo &reduceInfo);
+    void rebuild(const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
-    uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, ReduceInfo &reduceInfo);
+    uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
     void gatherNeighbors(const uint32_t &node, std::vector<uint32_t> &neighbors) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
-    void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors);
+    void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
 
-    bool edgeExists(const uint32_t &node, const uint32_t &neighbor, const bool &binarySearch = true) const {
-        return (findEdgeOffset(node, neighbor, binarySearch) != NONE);
+    bool edgeExists(const uint32_t &node, const uint32_t &neighbor) const {
+        return (findEdgeOffset(node, neighbor) != NONE);
     }
 
     /* Check whether a particular edge exists with binary search,
      * return neighbor's offset in edge buffer */
-    uint32_t findEdgeOffset(const uint32_t &node, const uint32_t &neighbor, const bool &binarySearch = true) const {
-        //std::cout << "testing edge " << node << " " << neighbor << ", binary search: " << binarySearch << std::endl;
+    uint32_t findEdgeOffset(const uint32_t &node, const uint32_t &neighbor) const {
+        //std::cout << "testing edge " << node << " " << neighbor << std::endl;
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
         assert(!nodeIndex[pos].removed && !nodeIndex[nPos].removed);
@@ -88,10 +88,6 @@ public:
             return NONE;
         }
         //std::cout <<"hey" << std::endl;
-        if (!binarySearch) {
-            auto it = find(edgeBuffer->begin()+offset, edgeBuffer->begin()+endOffset+1, neighbor);
-            return (it != edgeBuffer->begin()+endOffset+1 ? it - edgeBuffer->begin() : NONE);
-        }
         uint32_t startIndex = 0;
         uint32_t endIndex = endOffset - offset;
         uint32_t index = (endIndex - startIndex) / 2;
@@ -114,15 +110,14 @@ public:
     }
 
     /* Return the first "outer neighbor of 'neighbor' at 'node'", and a flag of whether its the only one */
-    void getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, uint32_t &outerNeighbor, bool &exactlyOne) const {
+    void getOuterNeighbor(const uint32_t &node, const uint32_t &neighbor, uint32_t &outerNeighbor, bool &exactlyOne) const {
         outerNeighbor = NONE;
         exactlyOne = false;
         bool found = false;
         GraphTraversal graphTraversal(*this, neighbor);
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t extendedGrandchild = (*edgeBuffer)[graphTraversal.curEdgeOffset];
-            bool binarySearch = (nodesWithoutSortedNeighbors.find(extendedGrandchild) == nodesWithoutSortedNeighbors.end());
-            if (extendedGrandchild != node && !edgeExists(extendedGrandchild, node, binarySearch)) {
+            if (extendedGrandchild != node && !edgeExists(extendedGrandchild, node)) {
                 //std::cout << "edge " << node << " " << extendedGrandchild << " does not exist\n";
                 if (!found) {
                     found = true;
@@ -138,11 +133,10 @@ public:
         }
     }
 
-    bool isIndependentSet(const std::vector<uint32_t> &set, const std::unordered_set<uint32_t> &nodesWithoutSortedNeighbors, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
+    bool isIndependentSet(const std::vector<uint32_t> &set, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
         for (uint32_t i = 0 ; i < set.size() ; i++) {
             for (uint32_t j = i+1 ; j < set.size() ; j++) {
-                bool binarySearch = (nodesWithoutSortedNeighbors.find(set[i]) == nodesWithoutSortedNeighbors.end());
-                if (edgeExists(set[i], set[j], binarySearch)) {
+                if (edgeExists(set[i], set[j])) {
                     if (node1 != NULL && node2 != NULL) {
                         *node1 = set[i];
                         *node2 = set[j];
@@ -262,6 +256,7 @@ private:
     std::vector<NodeInfo> nodeIndex;
     std::vector<uint32_t> *edgeBuffer;
     std::vector<uint32_t> zeroDegreeNodes;
+    uint32_t nextUnusedId;
 
     /* Optional mappers, when ids are not equal to the equivalent vector index position */
     bool mapping;
