@@ -40,7 +40,11 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, c
                 for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
                     uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
                     if (!nodeIndex[nPos].removed) {
-                        nodeIndex[nPos].edges--;
+                        if(--nodeIndex[nPos].edges == 0) {
+                            zeroDegreeNodes.push_back((*edgeBuffer)[offset]);
+                            nodeIndex[nPos].removed = true;
+                            reduceInfo.nodesRemoved++;
+                        }
                         reduceInfo.edgesRemoved++;
                         if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
                             candidateNodes->insert((*edgeBuffer)[offset]);
@@ -79,6 +83,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
         }
         uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
         if (!this->nodeIndex[pos].edges) {
+            assert(false);
             //cout << "Found node " << node << " with no edges at rebuilding\n";
             zeroDegreeNodes.push_back(node);
             continue;
