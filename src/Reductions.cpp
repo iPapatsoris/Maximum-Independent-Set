@@ -208,6 +208,7 @@ void Reductions::removeLineGraphs() {
                     cout << "Removing component " << it->first << "\n";
                     findMisInComponent(*cc);
                     graph.remove(*cc, reduceInfo, true);
+                    reduceInfo.edgesRemoved += ((nodes * degree) / 2);
                     for (auto node : *cc) {
                         nodeToCC.erase(node);
                     }

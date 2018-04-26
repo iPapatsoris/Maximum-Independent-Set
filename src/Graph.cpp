@@ -33,21 +33,23 @@ void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, c
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
-            if (sameComponent) {
-                reduceInfo.edgesRemoved += nodeIndex[pos].edges;
-            } else {
+            if (!sameComponent) {
                 uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
                 for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                    uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+                    uint32_t neighbor = (*edgeBuffer)[offset];
+                    uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
                     if (!nodeIndex[nPos].removed) {
-                        if(--nodeIndex[nPos].edges == 0) {
-                            zeroDegreeNodes.push_back((*edgeBuffer)[offset]);
-                            nodeIndex[nPos].removed = true;
-                            reduceInfo.nodesRemoved++;
-                        }
+                        nodeIndex[nPos].edges--;
                         reduceInfo.edgesRemoved++;
-                        if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
-                            candidateNodes->insert((*edgeBuffer)[offset]);
+                        if (find(it+1, nodes.end(), neighbor) == nodes.end()) {
+                            if(nodeIndex[nPos].edges == 0) {
+                                zeroDegreeNodes.push_back(neighbor);
+                                nodeIndex[nPos].removed = true;
+                                reduceInfo.nodesRemoved++;
+                            }
+                            if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
+                                candidateNodes->insert(neighbor);
+                            }
                         }
                     }
                 }

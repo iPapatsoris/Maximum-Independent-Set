@@ -78,9 +78,11 @@ public:
     /* Check whether a particular edge exists with binary search,
      * return neighbor's offset in edge buffer */
     uint32_t findEdgeOffset(const uint32_t &node, const uint32_t &neighbor) const {
-        //std::cout << "testing edge " << node << " " << neighbor << std::endl;
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
+        /*if (nodeIndex[pos].removed || nodeIndex[nPos].removed) {
+            std::cout << "testing edge " << node << " " << neighbor << std::endl;
+        }*/
         assert(!nodeIndex[pos].removed && !nodeIndex[nPos].removed);
         uint32_t offset = nodeIndex[pos].offset;
         uint32_t endOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() - 1 : nodeIndex[pos+1].offset - 1);
