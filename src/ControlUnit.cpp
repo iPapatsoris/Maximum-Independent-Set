@@ -8,8 +8,7 @@ void ControlUnit::run() {
     //graph.print(true); return;
     //graph.printEdgeCounts(); return;
     //graph.printWithGraphTraversal(false); return;
-    reductions.run();
-    mis.print(graph.zeroDegreeNodes);
+    alg.run();
     //Graph g = graph;
     //g.nodeIndex.push_back(NodeInfo(1337, 1337);
     //g.print
@@ -37,7 +36,7 @@ void ControlUnit::checkIndependentSet(const string &misInputFile) const {
         mis.push_back(node);
     }
     uint32_t node1, node2;
-    bool independentSet = graph.isIndependentSet(mis, &node1, &node2);
+    bool independentSet = alg.getSearchTree()[0]->getGraph().isIndependentSet(mis, &node1, &node2);
     if (independentSet) {
         cout << "Valid independent set\n";
     } else {

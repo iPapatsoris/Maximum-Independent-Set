@@ -9,14 +9,11 @@
 
 class ControlUnit {
 public:
-    ControlUnit(const std::string &inputFile, const bool &checkIndependentSet) : graph(inputFile, checkIndependentSet), mis(inputFile + ".mis"), reductions(graph, mis), alg(graph, mis) {}
+    ControlUnit(const std::string &inputFile, const bool &checkIndependentSet) : alg(inputFile, checkIndependentSet) {}
     void run();
     void checkIndependentSet(const std::string &misInputFile) const;
 
 private:
-    Graph graph;
-    Mis mis;
-    Reductions reductions;
     Alg alg;
 };
 

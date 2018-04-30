@@ -24,6 +24,9 @@ public:
     struct GraphTraversal;
     Graph(const std::string &inputFile, const bool &checkIndependentSet);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
+    Graph(const Graph &graph) {
+        *edgeBuffer = *(graph.edgeBuffer);
+    }
 
     uint32_t getNodeCount() const {
         return nodeIndex.size();
@@ -193,20 +196,10 @@ public:
 
     /* Return next edge in a graph traversal, ignoring removed nodes */
     void getNextEdge(GraphTraversal &graphTraversal) const {
-        if (graphTraversal.curNode == NONE) {
-            graphTraversal.curEdgeOffset = NONE;
-            return;
-        }
+        assert(graphTraversal.curNode != NONE && graphTraversal.curEdgeOffset != NONE);
         uint32_t pos = (!mapping ? graphTraversal.curNode : idToPos->at(graphTraversal.curNode));
         uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
-        if (graphTraversal.curEdgeOffset == NONE) {
-            graphTraversal.curEdgeOffset = (nodeIndex[pos].edges ? nodeIndex[pos].offset : NONE);
-        } else {
-            graphTraversal.curEdgeOffset = (graphTraversal.curEdgeOffset + 1 < nextNodeOffset ? graphTraversal.curEdgeOffset + 1 : NONE);
-        }
-        if (graphTraversal.curEdgeOffset == NONE) {
-            return;
-        }
+        graphTraversal.curEdgeOffset++;
         bool validNeighbor = false;
         for ( ; graphTraversal.curEdgeOffset  < nextNodeOffset ; graphTraversal.curEdgeOffset++) {
             uint32_t nPos = (!mapping ? (*edgeBuffer)[graphTraversal.curEdgeOffset] : idToPos->at((*edgeBuffer)[graphTraversal.curEdgeOffset]));

@@ -1,4 +1,4 @@
-OBJS =  Graph.o Launcher.o ControlUnit.o Reductions.o Alg.o
+OBJS =  Graph.o Launcher.o ControlUnit.o Reductions.o Alg.o Mis.o
 HEADER = src/Graph.hpp src/ControlUnit.hpp src/Reductions.hpp src/Alg.hpp
 all: mis
 
@@ -22,6 +22,9 @@ Reductions.o: src/Reductions.cpp
 
 Alg.o: src/Alg.cpp
 	$(CC) $(FLAGS) src/Alg.cpp
+
+Mis.o: src/Mis.cpp
+	$(CC) $(FLAGS) src/Mis.cpp
 
 clean:
 	rm -f mis $(OBJS)
