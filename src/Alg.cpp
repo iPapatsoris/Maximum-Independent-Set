@@ -21,7 +21,7 @@ Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parent
     parent = parentNode;
     leftChild = NONE;
     rightChild = NONE;
-    value = NONE;
+    finalMis = NULL;
 }
 
 Alg::SearchNode::~SearchNode() {
@@ -41,17 +41,38 @@ void Alg::print() const {
 void Alg::SearchNode::print() const {
     cout << "Nodes: " << graph.getNodeCount() <<
     "\nParent: " << (parent == NONE ? "NONE" : to_string(parent)) << "\nLeft: " << (leftChild == NONE ? "NONE" : to_string(leftChild)) <<
-    "\nRight: " << (rightChild == NONE ? "NONE" : to_string(rightChild)) <<
-    "\nValue: " << (value == NONE ? "NONE" : to_string(value)) << "\n";
+    "\nRight: " << (rightChild == NONE ? "NONE" : to_string(rightChild));
+    if (finalMis != NULL) {
+        cout << "\nMis: " << finalMis->size();
+    }
+    cout << "\n";
 }
 
 void Alg::run() {
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
-    bool up = false;
+    bool down = true;
+    Graph::GraphTraversal graphTraversal(searchTree[0]->graph);
     uint32_t i = 0;
-    while(1) {
-        searchTree[i]->reductions->run();
+    while(true) {
+        if (down) {
+            searchTree[i]->reductions->run();
+            graphTraversal = Graph::GraphTraversal(searchTree[i]->graph);
+        } else if (searchTree[i]->rightChild == NONE) {
+            down = true;
+            graphTraversal = Graph::GraphTraversal(searchTree[i]->graph);
+            assert(graphTraversal.curNode != NONE);
+        }
+        if (down && graphTraversal.curNode == NONE) {
+            searchTree[i]->finalMis = new vector<uint32_t>();
+            searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
+            i = searchTree[i]->parent;
+            down = false;
+            continue;
+        }
         print();
+        if (down) {
+            cout << "node " << graphTraversal.curNode << "\n";
+        }
         uint32_t *nextChild;
         if (searchTree[i]->leftChild == NONE) {
             nextChild = &searchTree[i]->leftChild;
@@ -59,16 +80,28 @@ void Alg::run() {
             nextChild = &searchTree[i]->rightChild;
         } else {
             cout << "no next child" << endl;
+            SearchNode *parent = searchTree[i];
+            SearchNode *leftChild = searchTree[parent->leftChild];
+            SearchNode *rightChild = searchTree[parent->rightChild];
+            assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
+            parent->finalMis = leftChild->finalMis;
+            vector<uint32_t> *min = rightChild->finalMis;
+            if (rightChild->finalMis->size() > parent->finalMis->size()) {
+                parent->finalMis = rightChild->finalMis;
+                min = leftChild->finalMis;
+            }
+            delete min;
+            i = parent->parent;
+            searchTree.pop_back();
+            searchTree.pop_back();
+            if (searchTree.size() == 1) {
+                break;
+            }
+            continue;
         }
         SearchNode *searchNode = new SearchNode(*searchTree[i], i);
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
-
-        Graph::GraphTraversal graphTraversal(searchNode->graph);
-        if (graphTraversal.curNode == NONE) {
-
-        }
-        cout << "node " << graphTraversal.curNode << "\n";
         if (nextChild == &searchTree[i]->leftChild) {
             //cout << "left\n";
             searchNode->mis.getMis().push_back(graphTraversal.curNode);
@@ -88,4 +121,6 @@ void Alg::run() {
 
     }
     print();
+    Mis::print(*searchTree[0]->finalMis);
+    delete searchTree[0]->finalMis;
 }

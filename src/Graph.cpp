@@ -8,14 +8,31 @@
 
 using namespace std;
 
-Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
-    curNode = NONE;
-    curEdgeOffset = NONE;
-    graph.getNextNode(*this);
+Graph::Graph(const Graph &graph) {
+    nodeIndex = graph.nodeIndex;
+    zeroDegreeNodes = graph.zeroDegreeNodes;
+    nextUnusedId = graph.nextUnusedId;
+    mapping = graph.mapping;
+    edgeBuffer = new vector<uint32_t>(*(graph.edgeBuffer));
+    if (graph.mapping) {
+        idToPos = new unordered_map<uint32_t, uint32_t>(*(graph.idToPos));
+        posToId = new vector<uint32_t>(*(graph.posToId));
+    }
 }
 
-Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) {
-    graph.goToNode(node, *this);
+Graph& Graph::operator=(const Graph &graph) {
+    if (this != &graph) {
+        nodeIndex = graph.nodeIndex;
+        zeroDegreeNodes = graph.zeroDegreeNodes;
+        nextUnusedId = graph.nextUnusedId;
+        mapping = graph.mapping;
+        edgeBuffer = new vector<uint32_t>(*(graph.edgeBuffer));
+        if (graph.mapping) {
+            idToPos = new unordered_map<uint32_t, uint32_t>(*(graph.idToPos));
+            posToId = new vector<uint32_t>(*(graph.posToId));
+        }
+    }
+    return *this;
 }
 
 Graph::~Graph() {
@@ -26,6 +43,16 @@ Graph::~Graph() {
     }
 }
 
+
+Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
+    curNode = NONE;
+    curEdgeOffset = NONE;
+    graph.getNextNode(*this);
+}
+
+Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) {
+    graph.goToNode(node, *this);
+}
 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
 void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent, unordered_set<uint32_t> *candidateNodes) {
@@ -86,8 +113,8 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
         }
         uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
         if (!this->nodeIndex[pos].edges) {
+            cout << "Found node " << node << " with no edges at rebuilding\n";
             assert(false);
-            //cout << "Found node " << node << " with no edges at rebuilding\n";
             zeroDegreeNodes.push_back(node);
             continue;
         }
@@ -154,16 +181,21 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
             getNextEdge(graphTraversal);
         }
     }
-    uint32_t offset = edgeBuffer->size();
-    edgeBuffer->reserve(edgeBuffer->size() + newNeighbors.size());
-    copy(newNeighbors.begin(), newNeighbors.end(), back_inserter(*edgeBuffer));
-    nodeIndex.push_back(NodeInfo(offset, newNeighbors.size()));
-    if (mapping) {
-        idToPos->insert({newNode, nodeIndex.size() - 1});
-        posToId->push_back(newNode);
-    }
     reduceInfo.nodesRemoved--;
+    if (!newNeighbors.size()) {
+        zeroDegreeNodes.push_back(newNode);
+    } else {
+        uint32_t offset = edgeBuffer->size();
+        edgeBuffer->reserve(edgeBuffer->size() + newNeighbors.size());
+        copy(newNeighbors.begin(), newNeighbors.end(), back_inserter(*edgeBuffer));
+        nodeIndex.push_back(NodeInfo(offset, newNeighbors.size()));
+        if (mapping) {
+            idToPos->insert({newNode, nodeIndex.size() - 1});
+            posToId->push_back(newNode);
+        }
+    }
     //print(true);
+    cout << "hypernode " << newNode << endl;
     return newNode;
 }
 

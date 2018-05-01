@@ -24,13 +24,8 @@ public:
     struct GraphTraversal;
     Graph(const std::string &inputFile, const bool &checkIndependentSet);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
-    Graph(const Graph &graph) {
-        *edgeBuffer = *(graph.edgeBuffer);
-        if (graph.mapping) {
-            *idToPos = *(graph.idToPos);
-            *posToId = *(graph.posToId);
-        }
-    }
+    Graph(const Graph &graph);
+    Graph& operator=(const Graph &graph);
 
     uint32_t getNodeCount() const;
 
@@ -251,7 +246,7 @@ private:
     }
 
     std::vector<NodeInfo> nodeIndex;
-    std::vector<uint32_t> *edgeBuffer;
+    std::vector<uint32_t> *edgeBuffer; // Pointer to avoid copying at Graph::rebuild
     std::vector<uint32_t> zeroDegreeNodes;
     uint32_t nextUnusedId;
 

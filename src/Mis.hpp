@@ -24,7 +24,8 @@ public:
         Mis::misOutputFile = misOutputFile;
     }
     void markHypernode(const uint32_t &hypernode, const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors);
-    void print(std::vector<uint32_t> &zeroDegreeNodes);
+    void unfoldHypernodes(std::vector<uint32_t> &zeroDegreeNodes, std::vector<uint32_t> &finalMis);
+    void static print(std::vector<uint32_t> &finalMis);
 
 private:
     void expandIncludedNodes(std::vector<uint32_t> &set, std::vector<uint32_t> &finalMis) {

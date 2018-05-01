@@ -11,6 +11,7 @@ using namespace std;
 void Reductions::run() {
     cout << " \nReductions\n";
     //printCC();
+    graph.print(true);
     reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
