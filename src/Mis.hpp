@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <assert.h>
+#include <iostream>
 
 struct Innernode {
 public:
@@ -54,6 +55,9 @@ private:
                 for (auto node : res->second.nodes) {
                     auto innerHypernode = hypernodeToInnernode.find(node);
                     if (innerHypernode != hypernodeToInnernode.end()) {
+                        if (innerHypernode->second.outerLevel) {
+                            std::cout << "inner hypernode " << node << " of hypernode " <<  res->first << " is marked as outer\n";
+                        }
                         assert(!innerHypernode->second.outerLevel);
                         innerHypernode->second.outerLevel = true;
                     }

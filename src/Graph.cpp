@@ -57,7 +57,7 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
 void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent, unordered_set<uint32_t> *candidateNodes) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
-        cout << "removing " << *it << endl;
+        //cout << "removing " << *it << endl;
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
@@ -97,7 +97,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     if (!reduceInfo.nodesRemoved) {
         return;
     }
-    cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     vector<NodeInfo> nodeIndex;
     nodeIndex.reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
     vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
@@ -195,7 +195,7 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         }
     }
     //print(true);
-    cout << "hypernode " << newNode << endl;
+    //cout << "hypernode " << newNode << endl;
     return newNode;
 }
 

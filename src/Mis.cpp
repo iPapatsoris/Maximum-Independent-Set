@@ -20,6 +20,7 @@ void Mis::markHypernode(const uint32_t &hypernode, const vector<uint32_t> &nodes
 }
 
 void Mis::unfoldHypernodes(vector<uint32_t> &zeroDegreeNodes, vector<uint32_t> &finalMis) {
+    //printAll(zeroDegreeNodes);
     finalMis.reserve(zeroDegreeNodes.size() + mis.size());
     expandIncludedNodes(mis, finalMis);
     expandIncludedNodes(zeroDegreeNodes, finalMis);

@@ -30,7 +30,9 @@ Alg::SearchNode::~SearchNode() {
 
 void Alg::print() const {
     //searchTree[searchTree.size()-1]->graph.print(true);
+    cout << searchTree.size();
     cout << "\n";
+    return;
     for (uint32_t i = 0 ; i < searchTree.size() ; i++) {
         cout << "Search Node " << i << "\n---\n";
         searchTree[i]->print();
@@ -66,12 +68,15 @@ void Alg::run() {
             searchTree[i]->finalMis = new vector<uint32_t>();
             searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
             i = searchTree[i]->parent;
+            if (i == NONE) {
+                break;
+            }
             down = false;
             continue;
         }
         print();
         if (down) {
-            cout << "node " << graphTraversal.curNode << "\n";
+            //cout << "node " << graphTraversal.curNode << "\n";
         }
         uint32_t *nextChild;
         if (searchTree[i]->leftChild == NONE) {

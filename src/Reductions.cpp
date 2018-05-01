@@ -9,9 +9,9 @@
 using namespace std;
 
 void Reductions::run() {
-    cout << " \nReductions\n";
+    //cout << " \nReductions\n";
     //printCC();
-    graph.print(true);
+    //graph.print(true);
     reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
@@ -35,7 +35,7 @@ void Reductions::reduce() {
 }
 
 bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
-    cout << "\n**Performing K-Independent set folding reduction**" << endl;
+    //cout << "\n**Performing K-Independent set folding reduction**" << endl;
     ReduceInfo old = reduceInfo;
     foldCompleteKIndependentSets2(firstTime, **oldCandidateNodes, **newCandidateNodes);
     swap(oldCandidateNodes, newCandidateNodes);
@@ -43,11 +43,11 @@ bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uin
         firstTime = false;
     }
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
-        cout << "No nodes removed." << endl;
+        //cout << "No nodes removed." << endl;
         return false;
     }
     do {
-        reduceInfo.print(&old);
+        //reduceInfo.print(&old);
         old = reduceInfo;
         foldCompleteKIndependentSets2(firstTime, **oldCandidateNodes, **newCandidateNodes);
         swap(oldCandidateNodes, newCandidateNodes);
@@ -57,15 +57,15 @@ bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uin
 
 
 bool Reductions::removeUnconfinedNodes() {
-    cout << "\n**Performing unconfined nodes reduction**" << endl;
+    //cout << "\n**Performing unconfined nodes reduction**" << endl;
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
-        cout << "No nodes removed." << endl;
+        //cout << "No nodes removed." << endl;
         return false;
     }
     do {
-        reduceInfo.print(&old);
+        //reduceInfo.print(&old);
         old = reduceInfo;
         removeUnconfinedNodes2();
         //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
@@ -83,13 +83,13 @@ void Reductions::foldCompleteKIndependentSets2(const bool &checkAllNodes, unorde
         for (uint32_t k = 1 ; k <= 2 ; k++) {
             if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) && graph.getNodeDegree(node) == k+1) {
                 if (node >= bound) {
-                    cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
+                    //cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
                     bound += 5000;
                 }
                 vector<uint32_t> nodes;
                 vector<uint32_t> neighbors;
                 nodes.push_back(node);
-                graph.gatherNeighbors(graphTraversal.curNode, neighbors);
+                graph.gatherNeighbors(node, neighbors);
                 if (k == 2) {
                     uint32_t secondNode = graph.getNextNodeWithIdenticalNeighbors(node, neighbors);
                     if (secondNode != NONE) {
@@ -124,7 +124,7 @@ void Reductions::foldCompleteKIndependentSets2(const bool &checkAllNodes, unorde
 void Reductions::removeUnconfinedNodes2() {
     Graph::GraphTraversal graphTraversal(graph);
     while (graphTraversal.curNode != NONE) {
-        //cout << "node " << graphTraversal.curNode << "\n";
+        ////cout << "node " << graphTraversal.curNode << "\n";
         bool isUnconfined = false;
         vector<uint32_t> extendedGrandchildren;
         while (graphTraversal.curEdgeOffset != NONE) {
@@ -133,17 +133,17 @@ void Reductions::removeUnconfinedNodes2() {
             bool exactlyOne;
             graph.getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
             if (outerNeighbor == NONE) {
-                //cout << "none\n";
+                ////cout << "none\n";
                 isUnconfined = true;
                 break;
             } else if (exactlyOne) {
-                //cout << "exactly one\n";
+                ////cout << "exactly one\n";
                 extendedGrandchildren.push_back(outerNeighbor);
             }
             graph.getNextEdge(graphTraversal);
         }
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
-            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
+            ////cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
@@ -151,7 +151,7 @@ void Reductions::removeUnconfinedNodes2() {
 }
 
 void Reductions::removeLineGraphs() {
-    cout << "\n**Performing line graph reduction**" << endl;
+    //cout << "\n**Performing line graph reduction**" << endl;
     buildCC();
     printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
@@ -191,22 +191,22 @@ void Reductions::removeLineGraphs() {
                         foundCliques = false;
                         break;
                     }
-                    cout << "Clique1: " << endl;
+                    //cout << "Clique1: " << endl;
                     for (uint32_t i = 0 ; i < clique1.size() ; i++) {
-                        cout << clique1[i].curNode << endl;
+                        //cout << clique1[i].curNode << endl;
                     }
                     clique2.push_back(Graph::GraphTraversal(graph, node));
                     if (!findClique(clique2, &clique1, clique2Size)) {
                         foundCliques = false;
                         break;
                     }
-                    cout << "Clique2: " << endl;
+                    //cout << "Clique2: " << endl;
                     for (uint32_t i = 0 ; i < clique2.size() ; i++) {
-                        cout << clique2[i].curNode << endl;
+                        //cout << clique2[i].curNode << endl;
                     }
                 }
                 if (foundCliques) {
-                    cout << "Removing component " << it->first << "\n";
+                    //cout << "Removing component " << it->first << "\n";
                     findMisInComponent(*cc);
                     graph.remove(*cc, reduceInfo, true);
                     reduceInfo.edgesRemoved += ((nodes * degree) / 2);
@@ -222,7 +222,7 @@ void Reductions::removeLineGraphs() {
         }
     }
     if (removedCCs.empty()) {
-        cout << "No nodes removed" << endl;
+        //cout << "No nodes removed" << endl;
     } else {
         for (auto cc : removedCCs) {
             ccToNodes.erase(cc);
@@ -251,17 +251,17 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
     }
     while (clique.size() < cliqueSize) {
         //if (clique[0].curNode == 11) {
-        //cout << "Cur clique: \n";
+        ////cout << "Cur clique: \n";
         //for (uint32_t i = 0 ; i < clique.size() ; i++) {
-        //cout << clique[i].curNode << endl;
+        ////cout << clique[i].curNode << endl;
         //}
         //}
         uint32_t neighbor = (*graph.edgeBuffer)[graphTraversal.curEdgeOffset];
         bool existsInPreviousClique = (previousClique == NULL ? false : find(neighbor, *previousClique));
-        //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
+        ////cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
         if (!existsInPreviousClique && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
-            //cout << "going to " << neighbor << endl;
-            //cout << "commonNode is " << commonNode << endl;
+            ////cout << "going to " << neighbor << endl;
+            ////cout << "commonNode is " << commonNode << endl;
             graph.goToNode(neighbor, graphTraversal);
             clique.push_back(graphTraversal);
         } else {
@@ -313,16 +313,16 @@ Reductions::~Reductions() {
 
 void Reductions::printCC() const {
     for (auto &cc : ccToNodes) {
-        cout << "\nCC " << cc.first << ":\n";
+        //cout << "\nCC " << cc.first << ":\n";
         for (auto node : *(cc.second)) {
-            cout << node << ", belongs to cc " << nodeToCC.at(node) << "\n";
+            //cout << node << ", belongs to cc " << nodeToCC.at(node) << "\n";
         }
     }
 }
 
 void Reductions::printCCSizes() const {
     for (auto &cc : ccToNodes) {
-        cout << "CC " << cc.first << " size: " << (cc.second)->size() << "\n";
+        //cout << "CC " << cc.first << " size: " << (cc.second)->size() << "\n";
     }
 }
 
