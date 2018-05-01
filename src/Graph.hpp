@@ -26,11 +26,13 @@ public:
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
     Graph(const Graph &graph) {
         *edgeBuffer = *(graph.edgeBuffer);
+        if (graph.mapping) {
+            *idToPos = *(graph.idToPos);
+            *posToId = *(graph.posToId);
+        }
     }
 
-    uint32_t getNodeCount() const {
-        return nodeIndex.size();
-    }
+    uint32_t getNodeCount() const;
 
     uint32_t getPos(const uint32_t &node) const {
         return (!mapping ? node : idToPos->at(node));

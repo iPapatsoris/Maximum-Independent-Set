@@ -80,7 +80,7 @@ void Reductions::foldCompleteKIndependentSets2(const bool &checkAllNodes, unorde
     uint32_t bound = 5000;
     while (node != NONE) {
         for (uint32_t k = 1 ; k <= 2 ; k++) {
-            if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[*it].removed)) && graph.getNodeDegree(node) == k+1) {
+            if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) && graph.getNodeDegree(node) == k+1) {
                 if (node >= bound) {
                     cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
                     bound += 5000;

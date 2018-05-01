@@ -19,17 +19,18 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) 
 }
 
 Graph::~Graph() {
+    delete edgeBuffer;
     if (mapping) {
         delete idToPos;
         delete posToId;
     }
-    delete edgeBuffer;
 }
 
 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
 void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent, unordered_set<uint32_t> *candidateNodes) {
     for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
+        cout << "removing " << *it << endl;
         uint32_t pos = (!mapping ? *it : idToPos->at(*it));
         if (!nodeIndex[pos].removed) {
             reduceInfo.nodesRemoved++;
@@ -158,7 +159,7 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
     copy(newNeighbors.begin(), newNeighbors.end(), back_inserter(*edgeBuffer));
     nodeIndex.push_back(NodeInfo(offset, newNeighbors.size()));
     if (mapping) {
-        idToPos->insert({newNode, newNode});
+        idToPos->insert({newNode, nodeIndex.size() - 1});
         posToId->push_back(newNode);
     }
     reduceInfo.nodesRemoved--;
@@ -215,6 +216,18 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
         }
     }
     return NONE;
+}
+
+/* Only for debugging. If needed in actual algorithm,
+ * make it a class field */
+uint32_t Graph::getNodeCount() const {
+    uint32_t count = 0;
+    for (auto &node: nodeIndex) {
+        if (!node.removed) {
+            count++;
+        }
+    }
+    return count;
 }
 
 void Graph::print(bool direction) const {

@@ -9,6 +9,9 @@ public:
     Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
     ~Reductions();
     void run();
+    ReduceInfo &getReduceInfo() {
+        return reduceInfo;
+    }
 
 private:
     /* Check whether subset is a subset of node's neighbors */
