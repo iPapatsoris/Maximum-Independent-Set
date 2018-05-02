@@ -30,6 +30,8 @@ Alg::SearchNode::~SearchNode() {
 
 void Alg::run() {
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
+    uint32_t searchNodes = 1;
+    uint32_t minCompletedSearchNode = NONE;
     bool down = true;
     BranchingRule branchingRule;
     uint32_t node = NONE;
@@ -63,6 +65,10 @@ void Alg::run() {
         } else if (searchTree[i]->rightChild == NONE) {
             nextChild = &searchTree[i]->rightChild;
         } else {
+            if (i < minCompletedSearchNode) {
+                minCompletedSearchNode = i;
+                cout << i << endl;
+            }
             SearchNode *parent = searchTree[i];
             chooseMaxMis(parent, searchTree);
             i = parent->parent;
@@ -73,6 +79,7 @@ void Alg::run() {
         }
         //cout << "Copying graph" << endl;
         SearchNode *searchNode = new SearchNode(*searchTree[i], i);
+        searchNodes++;
         //cout << "Done" << endl;
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
@@ -87,6 +94,7 @@ void Alg::run() {
         }
         i = *nextChild;
     }
+    cout << searchNodes << " search nodes\n";
     //print();
     Mis::print(*searchTree[0]->finalMis);
     delete searchTree[0]->finalMis;

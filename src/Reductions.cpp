@@ -3,6 +3,7 @@
 #include <stack>
 #include <unordered_map>
 #include <algorithm>
+#include <set>
 #include <iomanip>
 #include "Reductions.hpp"
 
@@ -128,22 +129,8 @@ void Reductions::removeUnconfinedNodes2() {
     while (graphTraversal.curNode != NONE) {
         ////cout << "node " << graphTraversal.curNode << "\n";
         bool isUnconfined = false;
-        vector<uint32_t> extendedGrandchildren;
-        while (graphTraversal.curEdgeOffset != NONE) {
-            uint32_t neighbor = (*graph.edgeBuffer)[graphTraversal.curEdgeOffset];
-            uint32_t outerNeighbor;
-            bool exactlyOne;
-            graph.getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
-            if (outerNeighbor == NONE) {
-                ////cout << "none\n";
-                isUnconfined = true;
-                break;
-            } else if (exactlyOne) {
-                ////cout << "exactly one\n";
-                extendedGrandchildren.push_back(outerNeighbor);
-            }
-            graph.getNextEdge(graphTraversal);
-        }
+        set<uint32_t> extendedGrandchildren;
+        graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren, &isUnconfined);
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
             /*if (isUnconfined) {
                 boolCount++;

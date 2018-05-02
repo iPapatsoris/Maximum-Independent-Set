@@ -57,26 +57,20 @@ private:
     }
 
     enum class BranchingRule {
-        MAX_DEGREE, ANY
+        MAX_DEGREE
     };
 
     void chooseBranchingRule(Graph &graph, BranchingRule &branchingRule, uint32_t &node) {
-        branchingRule = BranchingRule::ANY;
-        node = Graph::GraphTraversal(graph).curNode;
+        branchingRule = BranchingRule::MAX_DEGREE;
+        uint32_t maxDegree;
+        graph.getMaxNodeDegree(node, maxDegree);
     }
 
     void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode, const uint32_t &node) {
         //std::cout << "left\n";
         switch (branchingRule) {
             case BranchingRule::MAX_DEGREE: {
-                break;
-            }
-            case BranchingRule::ANY: {
-                searchNode->mis.getMis().push_back(node);
-                std::vector<uint32_t> neighbors;
-                neighbors.push_back(node);
-                searchNode->graph.gatherNeighbors(node, neighbors);
-                searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                searchNode->graph.remove(node, searchNode->reductions->getReduceInfo());
                 break;
             }
             default:
@@ -88,10 +82,16 @@ private:
         //std::cout << "right\n";
         switch (branchingRule) {
             case BranchingRule::MAX_DEGREE: {
-                break;
-            }
-            case BranchingRule::ANY: {
-                searchNode->graph.remove(node, searchNode->reductions->getReduceInfo());
+                std::set<uint32_t> extendedGrandchildren;
+                Graph::GraphTraversal graphTraversal(searchNode->graph, node);
+                searchNode->graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren);
+                extendedGrandchildren.insert(node);
+                std::vector<uint32_t> &mis = searchNode->mis.getMis();
+                mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
+                std::set<uint32_t> neighbors;
+                searchNode->graph.gatherNeighbors(extendedGrandchildren, neighbors);
+                neighbors.insert(extendedGrandchildren.begin(), extendedGrandchildren.end());
+                searchNode->graph.remove(std::vector<uint32_t>(neighbors.begin(), neighbors.end()), searchNode->reductions->getReduceInfo()); // Todo: generic remove function
                 break;
             }
             default:

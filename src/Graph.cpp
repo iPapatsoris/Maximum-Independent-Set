@@ -43,7 +43,6 @@ Graph::~Graph() {
     }
 }
 
-
 Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
     curNode = NONE;
     curEdgeOffset = NONE;
@@ -52,6 +51,21 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph) {
 
 Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) {
     graph.goToNode(node, *this);
+}
+
+/* Could be potentially replaced by structures that are updated on the fly as degrees change,
+ * but is pretty fast and memory efficient nonetheless, even on huge graphs */
+void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
+    //cout << "Finding max node degree" << endl;
+    node = NONE;
+    maxDegree = 0;
+    for (uint32_t i = 0 ; i < nodeIndex.size() ; i++) {
+        if (!nodeIndex[i].removed && nodeIndex[i].edges > maxDegree) {
+            node = (!mapping ? i : posToId->at(i));
+            maxDegree = nodeIndex[i].edges;
+        }
+    }
+    //cout << "node " << node << " with max degree " << maxDegree << endl;
 }
 
 /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
@@ -230,6 +244,22 @@ void Graph::gatherNeighbors(const uint32_t &node, vector<uint32_t> &neighbors) c
     }
 }
 
+/* Todo: merge with above function in a generic one */
+void Graph::gatherNeighbors(const set<uint32_t> &nodes, set<uint32_t> &neighbors) const {
+    for (auto &node: nodes) {
+        uint32_t pos = (!mapping ? node : idToPos->at(node));
+        uint32_t neighborCount = nodeIndex[pos].edges;
+        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+        for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
+            uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+            if (!nodeIndex[nPos].removed) {
+                neighbors.insert((*edgeBuffer)[offset]);
+                neighborCount--;
+            }
+        }
+    }
+}
+
 uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const vector<uint32_t> &neighbors) const {
     uint32_t pos = (!mapping ? previousNode : idToPos->at(previousNode));
     for (pos = pos+1 ; pos < nodeIndex.size() ; pos++) {
@@ -248,6 +278,24 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
         }
     }
     return NONE;
+}
+
+void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, set<uint32_t> &extendedGrandchildren, bool *isUnconfined) const {
+    while (graphTraversal.curEdgeOffset != NONE) {
+        uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
+        uint32_t outerNeighbor;
+        bool exactlyOne;
+        getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
+        if (isUnconfined != NULL && outerNeighbor == NONE) {
+            ////cout << "none\n";
+            *isUnconfined = true;
+            break;
+        } else if (exactlyOne) {
+            ////cout << "exactly one\n";
+            extendedGrandchildren.insert(outerNeighbor);
+        }
+        getNextEdge(graphTraversal);
+    }
 }
 
 /* Only for debugging. If needed in actual algorithm,
