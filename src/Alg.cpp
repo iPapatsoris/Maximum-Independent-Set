@@ -28,6 +28,70 @@ Alg::SearchNode::~SearchNode() {
     delete reductions;
 }
 
+void Alg::run() {
+    //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
+    bool down = true;
+    BranchingRule branchingRule;
+    uint32_t node = NONE;
+    uint32_t i = 0;
+    while(true) {
+        if (down) {
+            searchTree[i]->reductions->run();
+            chooseBranchingRule(searchTree[i]->graph, branchingRule, node);
+        } else if (searchTree[i]->rightChild == NONE) {
+            down = true;
+            chooseBranchingRule(searchTree[i]->graph, branchingRule, node);
+            assert(node != NONE);
+        }
+        if (down && node == NONE) {
+            searchTree[i]->finalMis = new vector<uint32_t>();
+            searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
+            i = searchTree[i]->parent;
+            if (i == NONE) {
+                break;
+            }
+            down = false;
+            continue;
+        }
+        //print();
+        if (down) {
+            //cout << "node " << node << "\n";
+        }
+        uint32_t *nextChild;
+        if (searchTree[i]->leftChild == NONE) {
+            nextChild = &searchTree[i]->leftChild;
+        } else if (searchTree[i]->rightChild == NONE) {
+            nextChild = &searchTree[i]->rightChild;
+        } else {
+            SearchNode *parent = searchTree[i];
+            chooseMaxMis(parent, searchTree);
+            i = parent->parent;
+            if (searchTree.size() == 1) {
+                break;
+            }
+            continue;
+        }
+        //cout << "Copying graph" << endl;
+        SearchNode *searchNode = new SearchNode(*searchTree[i], i);
+        //cout << "Done" << endl;
+        searchTree.push_back(searchNode);
+        *nextChild = searchTree.size() - 1;
+        if (nextChild == &searchTree[i]->leftChild) {
+            branchLeft(branchingRule, searchNode, node);
+        }
+        else if (nextChild == &searchTree[i]->rightChild) {
+            branchRight(branchingRule, searchNode, node);
+        }
+        else {
+            assert(false);
+        }
+        i = *nextChild;
+    }
+    //print();
+    Mis::print(*searchTree[0]->finalMis);
+    delete searchTree[0]->finalMis;
+}
+
 void Alg::print() const {
     //searchTree[searchTree.size()-1]->graph.print(true);
     cout << searchTree.size();
@@ -48,88 +112,4 @@ void Alg::SearchNode::print() const {
         cout << "\nMis: " << finalMis->size();
     }
     cout << "\n";
-}
-
-void Alg::run() {
-    //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
-    bool down = true;
-    Graph::GraphTraversal graphTraversal(searchTree[0]->graph);
-    uint32_t i = 0;
-    while(true) {
-        if (down) {
-            searchTree[i]->reductions->run();
-            graphTraversal = Graph::GraphTraversal(searchTree[i]->graph);
-        } else if (searchTree[i]->rightChild == NONE) {
-            down = true;
-            graphTraversal = Graph::GraphTraversal(searchTree[i]->graph);
-            assert(graphTraversal.curNode != NONE);
-        }
-        if (down && graphTraversal.curNode == NONE) {
-            searchTree[i]->finalMis = new vector<uint32_t>();
-            searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
-            i = searchTree[i]->parent;
-            if (i == NONE) {
-                break;
-            }
-            down = false;
-            continue;
-        }
-        print();
-        if (down) {
-            //cout << "node " << graphTraversal.curNode << "\n";
-        }
-        uint32_t *nextChild;
-        if (searchTree[i]->leftChild == NONE) {
-            nextChild = &searchTree[i]->leftChild;
-        } else if (searchTree[i]->rightChild == NONE) {
-            nextChild = &searchTree[i]->rightChild;
-        } else {
-            cout << "no next child" << endl;
-            SearchNode *parent = searchTree[i];
-            SearchNode *leftChild = searchTree[parent->leftChild];
-            SearchNode *rightChild = searchTree[parent->rightChild];
-            assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
-            parent->finalMis = leftChild->finalMis;
-            vector<uint32_t> *min = rightChild->finalMis;
-            if (rightChild->finalMis->size() > parent->finalMis->size()) {
-                parent->finalMis = rightChild->finalMis;
-                min = leftChild->finalMis;
-            }
-            delete min;
-            i = parent->parent;
-            delete searchTree.back();
-            searchTree.pop_back();
-            delete searchTree.back();
-            searchTree.pop_back();
-            if (searchTree.size() == 1) {
-                break;
-            }
-            continue;
-        }
-        cout << "Copying graph" << endl;
-        SearchNode *searchNode = new SearchNode(*searchTree[i], i);
-        cout << "Done" << endl;
-        searchTree.push_back(searchNode);
-        *nextChild = searchTree.size() - 1;
-        if (nextChild == &searchTree[i]->leftChild) {
-            //cout << "left\n";
-            searchNode->mis.getMis().push_back(graphTraversal.curNode);
-            vector<uint32_t> neighbors;
-            neighbors.push_back(graphTraversal.curNode);
-            searchNode->graph.gatherNeighbors(graphTraversal.curNode, neighbors);
-            searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
-        }
-        else if (nextChild == &searchTree[i]->rightChild) {
-            //cout << "right\n";
-            searchNode->graph.remove(graphTraversal.curNode, searchNode->reductions->getReduceInfo());
-        }
-        else {
-            assert(false);
-        }
-        i = *nextChild;
-
-    }
-    print();
-    Mis::print(*searchTree[0]->finalMis);
-    delete searchTree[0]->finalMis;
 }

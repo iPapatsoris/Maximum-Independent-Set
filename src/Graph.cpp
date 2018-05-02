@@ -97,7 +97,7 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     if (!reduceInfo.nodesRemoved) {
         return;
     }
-    cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     vector<NodeInfo> nodeIndex;
     nodeIndex.reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
     vector<uint32_t> *edgeBuffer = new vector<uint32_t>();

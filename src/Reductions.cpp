@@ -35,7 +35,7 @@ void Reductions::reduce() {
 }
 
 bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
-    cout << "\n**Performing K-Independent set folding reduction**" << endl;
+    //cout << "\n**Performing K-Independent set folding reduction**" << endl;
     ReduceInfo old = reduceInfo;
     foldCompleteKIndependentSets2(firstTime, **oldCandidateNodes, **newCandidateNodes);
     swap(oldCandidateNodes, newCandidateNodes);
@@ -57,7 +57,7 @@ bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uin
 
 
 bool Reductions::removeUnconfinedNodes() {
-    cout << "\n**Performing unconfined nodes reduction**" << endl;
+    //cout << "\n**Performing unconfined nodes reduction**" << endl;
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
@@ -123,6 +123,8 @@ void Reductions::foldCompleteKIndependentSets2(const bool &checkAllNodes, unorde
 
 void Reductions::removeUnconfinedNodes2() {
     Graph::GraphTraversal graphTraversal(graph);
+    //uint32_t boolCount = 0;
+    //uint32_t independentCount = 0;
     while (graphTraversal.curNode != NONE) {
         ////cout << "node " << graphTraversal.curNode << "\n";
         bool isUnconfined = false;
@@ -143,15 +145,21 @@ void Reductions::removeUnconfinedNodes2() {
             graph.getNextEdge(graphTraversal);
         }
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
-            ////cout << "Unconfined node " << graphTraversal.curNode << "\n";
+            /*if (isUnconfined) {
+                boolCount++;
+            } else {
+                independentCount++;
+            }*/
+            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
     }
+    //cout << "bool " << boolCount << ", independent " << independentCount << endl;
 }
 
 void Reductions::removeLineGraphs() {
-    cout << "\n**Performing line graph reduction**" << endl;
+    //cout << "\n**Performing line graph reduction**" << endl;
     buildCC();
     printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
