@@ -97,14 +97,18 @@ void Alg::run() {
             }
             delete min;
             i = parent->parent;
+            delete searchTree.back();
             searchTree.pop_back();
+            delete searchTree.back();
             searchTree.pop_back();
             if (searchTree.size() == 1) {
                 break;
             }
             continue;
         }
+        cout << "Copying graph" << endl;
         SearchNode *searchNode = new SearchNode(*searchTree[i], i);
+        cout << "Done" << endl;
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
         if (nextChild == &searchTree[i]->leftChild) {

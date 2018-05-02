@@ -8,7 +8,6 @@ using namespace std;
 
 int main(int argc, char **argv) {
     string graphInputFile;
-    string misInputFile;
     bool checkIndependentSet = false;
     for (int i=1 ; i < argc ; i++) {
         if (!strcmp(argv[i], "-f")) {
@@ -17,23 +16,16 @@ int main(int argc, char **argv) {
             }
         } else if (!strcmp(argv[i], "-check")) {
             checkIndependentSet = true;
-            if (++i < argc) {
-                misInputFile = argv[i];
-            }
         }
    }
    if (!graphInputFile.compare("")) {
        cerr << "Error: No graph input file specified" << endl;
        exit(EXIT_FAILURE);
    }
-   if (checkIndependentSet && !misInputFile.compare("")) {
-       cerr << "Error: No MIS input file specified" << endl;
-       exit(EXIT_FAILURE);
-   }
    ControlUnit controlUnit(graphInputFile, checkIndependentSet);
    if (!checkIndependentSet) {
        controlUnit.run();
    } else {
-       controlUnit.checkIndependentSet(misInputFile);
+       controlUnit.checkIndependentSet(graphInputFile + ".mis");
    }
 }

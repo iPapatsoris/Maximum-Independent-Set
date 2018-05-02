@@ -35,7 +35,7 @@ void Reductions::reduce() {
 }
 
 bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
-    //cout << "\n**Performing K-Independent set folding reduction**" << endl;
+    cout << "\n**Performing K-Independent set folding reduction**" << endl;
     ReduceInfo old = reduceInfo;
     foldCompleteKIndependentSets2(firstTime, **oldCandidateNodes, **newCandidateNodes);
     swap(oldCandidateNodes, newCandidateNodes);
@@ -57,7 +57,7 @@ bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uin
 
 
 bool Reductions::removeUnconfinedNodes() {
-    //cout << "\n**Performing unconfined nodes reduction**" << endl;
+    cout << "\n**Performing unconfined nodes reduction**" << endl;
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
@@ -151,7 +151,7 @@ void Reductions::removeUnconfinedNodes2() {
 }
 
 void Reductions::removeLineGraphs() {
-    //cout << "\n**Performing line graph reduction**" << endl;
+    cout << "\n**Performing line graph reduction**" << endl;
     buildCC();
     printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
@@ -210,9 +210,6 @@ void Reductions::removeLineGraphs() {
                     findMisInComponent(*cc);
                     graph.remove(*cc, reduceInfo, true);
                     reduceInfo.edgesRemoved += ((nodes * degree) / 2);
-                    for (auto node : *cc) {
-                        nodeToCC.erase(node);
-                    }
                     removedCCs.push_back(it);
                     break;
                 } else {
@@ -225,6 +222,7 @@ void Reductions::removeLineGraphs() {
         //cout << "No nodes removed" << endl;
     } else {
         for (auto cc : removedCCs) {
+            delete cc->second;
             ccToNodes.erase(cc);
         }
     }
@@ -282,8 +280,8 @@ void Reductions::buildCC() {
         if (exploredSet.insert(graphTraversal.curNode).second) {
             vector<uint32_t> *componentNodes = new vector<uint32_t>();
             componentNodes->push_back(graphTraversal.curNode);
-            nodeToCC.insert({graphTraversal.curNode, component});
             frontier.push(graphTraversal.curNode);
+            bool big = false;
             while (!frontier.empty()) {
                 uint32_t node = frontier.top();
                 frontier.pop();
@@ -292,14 +290,22 @@ void Reductions::buildCC() {
                     node = (*graph.edgeBuffer)[neighbors.curEdgeOffset];
                     if (exploredSet.insert(node).second) {
                         frontier.push(node);
-                        nodeToCC.insert({node, component});
-                        componentNodes->push_back(node);
+                        if (!big) {
+                            componentNodes->push_back(node);
+                        }
+                        else if (componentNodes->size() > 20) {
+                            big = true;
+                        }
                     }
                     graph.getNextEdge(neighbors);
                 }
             }
-            ccToNodes.insert({component, componentNodes});
-            component++;
+            if (!big) {
+                ccToNodes.insert({component, componentNodes});
+                component++;
+            } else {
+                delete componentNodes;
+            }
         }
         graph.getNextNode(graphTraversal);
     }
@@ -314,9 +320,6 @@ Reductions::~Reductions() {
 void Reductions::printCC() const {
     for (auto &cc : ccToNodes) {
         //cout << "\nCC " << cc.first << ":\n";
-        for (auto node : *(cc.second)) {
-            //cout << node << ", belongs to cc " << nodeToCC.at(node) << "\n";
-        }
     }
 }
 

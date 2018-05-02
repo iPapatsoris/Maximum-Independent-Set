@@ -65,15 +65,6 @@ private:
         return true;
     }
 
-    std::unordered_map<uint32_t, std::vector<uint32_t>* >::iterator removeNodeFromComponent(const uint32_t &node) {
-        auto it = nodeToCC.find(node);
-        uint32_t cc = it->second;
-        nodeToCC.erase(it);
-        auto itCC = ccToNodes.find(cc);
-        itCC->second->erase(std::find(itCC->second->begin(), itCC->second->end(), node));
-        return itCC;
-    }
-
     void reduce();
     bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
@@ -90,7 +81,6 @@ private:
     Graph &graph;
     Mis &mis;
     ReduceInfo reduceInfo;
-    std::unordered_map<uint32_t, uint32_t> nodeToCC;
     std::unordered_map<uint32_t, std::vector<uint32_t>* > ccToNodes;
 };
 
