@@ -19,7 +19,7 @@ public:
     void print() const;
 
 private:
-    class SearchNode {
+    struct SearchNode {
     public:
         SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
         SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {}
@@ -38,7 +38,19 @@ private:
         std::vector<uint32_t> *finalMis; // Final mis of children, no hypernodes
     };
 
-    void chooseMaxMis(SearchNode *parent, std::vector<SearchNode *> &searchTree) {
+    struct BranchingRule {
+    public:
+        enum class Type {
+            MAX_DEGREE, DONE
+        };
+        BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
+
+        Type type;
+        uint32_t node1;
+        uint32_t node2;
+    };
+
+    void chooseMaxMis(SearchNode *parent) {
         //std::cout << "no next child" << std::endl;
         SearchNode *leftChild = searchTree[parent->leftChild];
         SearchNode *rightChild = searchTree[parent->rightChild];
@@ -56,21 +68,23 @@ private:
         searchTree.pop_back();
     }
 
-    enum class BranchingRule {
-        MAX_DEGREE
-    };
-
-    void chooseBranchingRule(Graph &graph, BranchingRule &branchingRule, uint32_t &node) {
-        branchingRule = BranchingRule::MAX_DEGREE;
+    void chooseBranchingRule(Graph &graph, uint32_t &theta, BranchingRule &branchingRule) {
+        branchingRule.type = BranchingRule::Type::MAX_DEGREE;
         uint32_t maxDegree;
-        graph.getMaxNodeDegree(node, maxDegree);
+        graph.getMaxNodeDegree(branchingRule.node1, maxDegree);
+        if (maxDegree < theta) {
+            theta = maxDegree;
+        }
+        if (branchingRule.node1 == NONE) {
+            branchingRule.type = BranchingRule::Type::DONE;
+        }
     }
 
-    void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode, const uint32_t &node) {
+    void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) {
         //std::cout << "left\n";
-        switch (branchingRule) {
-            case BranchingRule::MAX_DEGREE: {
-                searchNode->graph.remove(node, searchNode->reductions->getReduceInfo());
+        switch (branchingRule.type) {
+            case BranchingRule::Type::MAX_DEGREE: {
+                searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
             default:
@@ -78,14 +92,14 @@ private:
         }
     }
 
-    void branchRight(const BranchingRule &branchingRule, SearchNode *searchNode, const uint32_t &node) {
+    void branchRight(const BranchingRule &branchingRule, SearchNode *searchNode) {
         //std::cout << "right\n";
-        switch (branchingRule) {
-            case BranchingRule::MAX_DEGREE: {
+        switch (branchingRule.type) {
+            case BranchingRule::Type::MAX_DEGREE: {
                 std::set<uint32_t> extendedGrandchildren;
-                Graph::GraphTraversal graphTraversal(searchNode->graph, node);
+                Graph::GraphTraversal graphTraversal(searchNode->graph, branchingRule.node1);
                 searchNode->graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren);
-                extendedGrandchildren.insert(node);
+                extendedGrandchildren.insert(branchingRule.node1);
                 std::vector<uint32_t> &mis = searchNode->mis.getMis();
                 mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
                 std::set<uint32_t> neighbors;

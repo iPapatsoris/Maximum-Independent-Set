@@ -34,18 +34,18 @@ void Alg::run() {
     uint32_t minCompletedSearchNode = NONE;
     bool down = true;
     BranchingRule branchingRule;
-    uint32_t node = NONE;
     uint32_t i = 0;
+    uint32_t theta = 9;
     while(true) {
         if (down) {
             searchTree[i]->reductions->run();
-            chooseBranchingRule(searchTree[i]->graph, branchingRule, node);
+            chooseBranchingRule(searchTree[i]->graph, theta, branchingRule);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;
-            chooseBranchingRule(searchTree[i]->graph, branchingRule, node);
-            assert(node != NONE);
+            chooseBranchingRule(searchTree[i]->graph, theta, branchingRule);
+            assert(branchingRule.type != BranchingRule::Type::DONE);
         }
-        if (down && node == NONE) {
+        if (down && branchingRule.type == BranchingRule::Type::DONE) {
             searchTree[i]->finalMis = new vector<uint32_t>();
             searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
             i = searchTree[i]->parent;
@@ -57,7 +57,7 @@ void Alg::run() {
         }
         //print();
         if (down) {
-            //cout << "node " << node << "\n";
+            //cout << "node " << branchingRule.node1 << "\n";
         }
         uint32_t *nextChild;
         if (searchTree[i]->leftChild == NONE) {
@@ -70,7 +70,7 @@ void Alg::run() {
                 cout << i << endl;
             }
             SearchNode *parent = searchTree[i];
-            chooseMaxMis(parent, searchTree);
+            chooseMaxMis(parent);
             i = parent->parent;
             if (searchTree.size() == 1) {
                 break;
@@ -84,10 +84,10 @@ void Alg::run() {
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
         if (nextChild == &searchTree[i]->leftChild) {
-            branchLeft(branchingRule, searchNode, node);
+            branchLeft(branchingRule, searchNode);
         }
         else if (nextChild == &searchTree[i]->rightChild) {
-            branchRight(branchingRule, searchNode, node);
+            branchRight(branchingRule, searchNode);
         }
         else {
             assert(false);
