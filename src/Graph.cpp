@@ -233,6 +233,47 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
+void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, unordered_set<uint32_t> &finalSet) const {
+    finalNode1 = NONE;
+    finalNode2 = NONE;
+    unordered_set<uint32_t> commonNeighbors;
+    bool done = false;
+    for (uint32_t pos = 0 ; pos < nodeIndex.size() && !done ; pos++) {
+        if (nodeIndex[pos].removed) {
+            continue;
+        }
+        if (nodeIndex[pos].edges == degree) {
+            uint32_t neighborCount = degree;
+            uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+            for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset && neighborCount; offset++) {
+                uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+                if (nodeIndex[nPos].removed) {
+                    continue;
+                }
+                neighborCount--;
+                if (nodeIndex[nPos].edges == degree || (degree == 6 && nodeIndex[nPos].edges == 5)) {
+                    uint32_t node1 = (!mapping ? pos : posToId->at(pos));
+                    uint32_t node2 = (!mapping ? nPos : posToId->at(nPos));
+                    if (node1 < node2) {
+                        //getCommonNeighbors(node1, node2, commonNeighbors);
+                        if (commonNeighbors.size() > finalSet.size()) {
+                            finalSet = commonNeighbors;
+                            finalNode1 = node1;
+                            finalNode2 = node2;
+                            if (finalSet.size() == degree - 1) {
+                                done = true;
+                                break;
+                            }
+                        }
+                        commonNeighbors.clear();
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 /* Only for debugging. If needed in actual algorithm,
  * make it a class field */
 uint32_t Graph::getNodeCount() const {

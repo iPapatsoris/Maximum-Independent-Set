@@ -58,6 +58,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    void getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, std::unordered_set<uint32_t> &finalSet) const;
     void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL) const;
     void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);

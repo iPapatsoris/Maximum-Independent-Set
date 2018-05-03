@@ -101,15 +101,6 @@ void Alg::run() {
     delete searchTree[0]->finalMis;
 }
 
-void Alg::BranchingRule::findOptimalShortEdge(const Graph &graph) {
-    uint32_t node1 = NONE;
-    uint32_t node2 = NONE;
-    //unor
-    Graph::GraphTraversal graphTraversal(graph);
-
-
-}
-
 void Alg::print() const {
     //searchTree[searchTree.size()-1]->graph.print(true);
     cout << searchTree.size();

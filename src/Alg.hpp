@@ -47,9 +47,10 @@ private:
         Type type;
         uint32_t node1;
         uint32_t node2;
+        std::unordered_set<uint32_t> set;
+
 
         BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
-        void findOptimalShortEdge(const Graph &graph);
 
         void choose(const Graph &graph, uint32_t &theta) {
             uint32_t maxDegree;
@@ -61,6 +62,10 @@ private:
                     case 8:
                     case 7:
                     case 6:
+                        if (maxDegree == theta) {
+                            graph.getOptimalShortEdge(maxDegree, node1, node2, set);
+
+                        }
                     case 5:
                     case 4:
                     case 3:
