@@ -39,10 +39,10 @@ void Alg::run() {
     while(true) {
         if (down) {
             searchTree[i]->reductions->run();
-            chooseBranchingRule(searchTree[i]->graph, theta, branchingRule);
+            branchingRule.choose(searchTree[i]->graph, theta);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;
-            chooseBranchingRule(searchTree[i]->graph, theta, branchingRule);
+            branchingRule.choose(searchTree[i]->graph, theta);
             assert(branchingRule.type != BranchingRule::Type::DONE);
         }
         if (down && branchingRule.type == BranchingRule::Type::DONE) {

@@ -35,7 +35,7 @@ private:
         uint32_t parent;
         uint32_t leftChild;
         uint32_t rightChild;
-        std::vector<uint32_t> *finalMis; // Final mis of children, no hypernodes
+        std::vector<uint32_t> *finalMis; // Final mis of children search nodes, no hypernodes
     };
 
     struct BranchingRule {
@@ -43,11 +43,38 @@ private:
         enum class Type {
             MAX_DEGREE, DONE
         };
-        BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
 
         Type type;
         uint32_t node1;
         uint32_t node2;
+
+        BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
+        void choose(Graph &graph, uint32_t &theta) {
+            type = Type::MAX_DEGREE;
+            uint32_t maxDegree;
+            graph.getMaxNodeDegree(node1, maxDegree);
+            if (maxDegree < theta) {
+                theta = maxDegree;
+            }
+            switch (theta) {
+                case 9:
+                case 8:
+                case 7:
+                case 6:
+                case 5:
+                case 4:
+                case 3:
+                case 2:
+                case 1:
+                case 0:
+                    if (node1 == NONE) {
+                        type = Type::DONE;
+                    }
+                    break;
+                default:
+                    assert(false);
+            }
+        }
     };
 
     void chooseMaxMis(SearchNode *parent) {
@@ -66,18 +93,6 @@ private:
         searchTree.pop_back();
         delete searchTree.back();
         searchTree.pop_back();
-    }
-
-    void chooseBranchingRule(Graph &graph, uint32_t &theta, BranchingRule &branchingRule) {
-        branchingRule.type = BranchingRule::Type::MAX_DEGREE;
-        uint32_t maxDegree;
-        graph.getMaxNodeDegree(branchingRule.node1, maxDegree);
-        if (maxDegree < theta) {
-            theta = maxDegree;
-        }
-        if (branchingRule.node1 == NONE) {
-            branchingRule.type = BranchingRule::Type::DONE;
-        }
     }
 
     void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) {
