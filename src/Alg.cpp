@@ -1,4 +1,5 @@
 #include "Alg.hpp"
+#include "unordered_set"
 
 using namespace std;
 
@@ -101,7 +102,12 @@ void Alg::run() {
 }
 
 void Alg::BranchingRule::findOptimalShortEdge(const Graph &graph) {
+    uint32_t node1 = NONE;
+    uint32_t node2 = NONE;
+    //unor
     Graph::GraphTraversal graphTraversal(graph);
+
+
 }
 
 void Alg::print() const {

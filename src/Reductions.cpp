@@ -3,7 +3,7 @@
 #include <stack>
 #include <unordered_map>
 #include <algorithm>
-#include <set>
+#include <unordered_set>
 #include <iomanip>
 #include "Reductions.hpp"
 
@@ -129,7 +129,7 @@ void Reductions::removeUnconfinedNodes2() {
     while (graphTraversal.curNode != NONE) {
         ////cout << "node " << graphTraversal.curNode << "\n";
         bool isUnconfined = false;
-        set<uint32_t> extendedGrandchildren;
+        unordered_set<uint32_t> extendedGrandchildren;
         graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren, &isUnconfined);
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
             /*if (isUnconfined) {

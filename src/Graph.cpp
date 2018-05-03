@@ -195,13 +195,6 @@ void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, c
     (*edgeBuffer)[endOffset-1] = newNeighbor;
 }
 
-/* Todo: merge with above function in a generic one */
-void Graph::gatherNeighbors(const set<uint32_t> &nodes, set<uint32_t> &neighbors) const {
-    for (auto &node: nodes) {
-        gatherNeighbors(node, neighbors);
-    }
-}
-
 uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const vector<uint32_t> &neighbors) const {
     uint32_t pos = (!mapping ? previousNode : idToPos->at(previousNode));
     for (pos = pos+1 ; pos < nodeIndex.size() ; pos++) {
@@ -222,7 +215,7 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
     return NONE;
 }
 
-void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, set<uint32_t> &extendedGrandchildren, bool *isUnconfined) const {
+void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined) const {
     while (graphTraversal.curEdgeOffset != NONE) {
         uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
         uint32_t outerNeighbor;

@@ -6,7 +6,6 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include <set>
 #include <algorithm>
 #include <assert.h>
 #include "Util.hpp"
@@ -59,13 +58,12 @@ public:
         return nodeIndex[pos].edges;
     }
 
-    void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL) const;
+    void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL) const;
     void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
-    void gatherNeighbors(const std::set<uint32_t> &nodes, std::set<uint32_t> &neighbors) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
     void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor);
     void print(bool direction) const;
@@ -118,6 +116,13 @@ public:
                 neighbors.insert(neighbors.end(), (*edgeBuffer)[offset]);
                 neighborCount--;
             }
+        }
+    }
+
+    template <typename Container>
+    void gatherNeighbors(Container &nodes, Container &neighbors) const {
+        for (auto &node: nodes) {
+            gatherNeighbors(node, neighbors);
         }
     }
 

@@ -117,24 +117,24 @@ private:
         //std::cout << "right\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE: {
-                std::set<uint32_t> extendedGrandchildren;
+                std::unordered_set<uint32_t> extendedGrandchildren;
                 Graph::GraphTraversal graphTraversal(searchNode->graph, branchingRule.node1);
                 searchNode->graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren);
                 extendedGrandchildren.insert(branchingRule.node1);
                 std::vector<uint32_t> &mis = searchNode->mis.getMis();
                 mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
-                std::set<uint32_t> neighbors;
+                std::unordered_set<uint32_t> neighbors;
                 searchNode->graph.gatherNeighbors(extendedGrandchildren, neighbors);
 
-                std::set<uint32_t> *smaller = &neighbors;
-                std::set<uint32_t> *bigger = &extendedGrandchildren;
+                std::unordered_set<uint32_t> *smaller = &neighbors;
+                std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;
                 if (smaller->size() > bigger->size()) {
-                    std::set<uint32_t> *tmp = smaller;
+                    std::unordered_set<uint32_t> *tmp = smaller;
                     smaller = bigger;
                     bigger = tmp;
                 }
                 smaller->insert(bigger->begin(), bigger->end());
-                searchNode->graph.remove(*smaller, searchNode->reductions->getReduceInfo());
+                searchNode->graph.remove(std::vector<uint32_t>(smaller->begin(), smaller->end()), searchNode->reductions->getReduceInfo());
                 break;
             }
             default:
