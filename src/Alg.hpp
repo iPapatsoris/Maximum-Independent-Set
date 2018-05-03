@@ -49,30 +49,36 @@ private:
         uint32_t node2;
 
         BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
-        void choose(Graph &graph, uint32_t &theta) {
-            type = Type::MAX_DEGREE;
+        void findOptimalShortEdge(const Graph &graph);
+
+        void choose(const Graph &graph, uint32_t &theta) {
             uint32_t maxDegree;
             graph.getMaxNodeDegree(node1, maxDegree);
-            if (maxDegree < theta) {
-                theta = maxDegree;
-            }
-            switch (theta) {
-                case 9:
-                case 8:
-                case 7:
-                case 6:
-                case 5:
-                case 4:
-                case 3:
-                case 2:
-                case 1:
-                case 0:
-                    if (node1 == NONE) {
-                        type = Type::DONE;
-                    }
-                    break;
-                default:
-                    assert(false);
+            bool run = true;
+            while (run) {
+                run = false;
+                switch (theta) {
+                    case 8:
+                    case 7:
+                    case 6:
+                    case 5:
+                    case 4:
+                    case 3:
+                    case 2:
+                    case 1:
+                        if (node1 == NONE) {
+                            type = Type::DONE;
+                        }
+                        else if (maxDegree >= theta) {
+                            type = Type::MAX_DEGREE;
+                        } else if (maxDegree < theta) {
+                            theta--;
+                            run = true;
+                        }
+                        break;
+                    default:
+                        assert(false);
+                }
             }
         }
     };

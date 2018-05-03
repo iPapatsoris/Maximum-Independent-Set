@@ -35,7 +35,7 @@ void Alg::run() {
     bool down = true;
     BranchingRule branchingRule;
     uint32_t i = 0;
-    uint32_t theta = 9;
+    uint32_t theta = 8;
     while(true) {
         if (down) {
             searchTree[i]->reductions->run();
@@ -98,6 +98,10 @@ void Alg::run() {
     //print();
     Mis::print(*searchTree[0]->finalMis);
     delete searchTree[0]->finalMis;
+}
+
+void Alg::BranchingRule::findOptimalShortEdge(const Graph &graph) {
+    Graph::GraphTraversal graphTraversal(graph);
 }
 
 void Alg::print() const {
