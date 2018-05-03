@@ -90,8 +90,16 @@ private:
                 mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
                 std::set<uint32_t> neighbors;
                 searchNode->graph.gatherNeighbors(extendedGrandchildren, neighbors);
-                neighbors.insert(extendedGrandchildren.begin(), extendedGrandchildren.end());
-                searchNode->graph.remove(std::vector<uint32_t>(neighbors.begin(), neighbors.end()), searchNode->reductions->getReduceInfo()); // Todo: generic remove function
+
+                std::set<uint32_t> *smaller = &neighbors;
+                std::set<uint32_t> *bigger = &extendedGrandchildren;
+                if (smaller->size() > bigger->size()) {
+                    std::set<uint32_t> *tmp = smaller;
+                    smaller = bigger;
+                    bigger = tmp;
+                }
+                smaller->insert(bigger->begin(), bigger->end());
+                searchNode->graph.remove(*smaller, searchNode->reductions->getReduceInfo());
                 break;
             }
             default:

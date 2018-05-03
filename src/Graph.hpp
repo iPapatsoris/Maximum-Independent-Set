@@ -61,18 +61,65 @@ public:
 
     void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL) const;
     void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
-    void remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL);
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
-    void gatherNeighbors(const uint32_t &node, std::vector<uint32_t> &neighbors) const;
     void gatherNeighbors(const std::set<uint32_t> &nodes, std::set<uint32_t> &neighbors) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
     void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor);
     void print(bool direction) const;
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
+
+    /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
+    template <typename Container>
+    void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL) {
+        for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
+            //std::cout << "removing " << *it << endl;
+            uint32_t pos = (!mapping ? *it : idToPos->at(*it));
+            if (!nodeIndex[pos].removed) {
+                reduceInfo.nodesRemoved++;
+                if (!sameComponent) {
+                    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+                    for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+                        uint32_t neighbor = (*edgeBuffer)[offset];
+                        uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
+                        if (!nodeIndex[nPos].removed) {
+                            nodeIndex[nPos].edges--;
+                            reduceInfo.edgesRemoved++;
+                            if (find(std::next(it, 1), nodes.end(), neighbor) == nodes.end()) {
+                                if(nodeIndex[nPos].edges == 0) {
+                                    zeroDegreeNodes.push_back(neighbor);
+                                    nodeIndex[nPos].removed = true;
+                                    reduceInfo.nodesRemoved++;
+                                }
+                                if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
+                                    candidateNodes->insert(neighbor);
+                                }
+                            }
+                        }
+                    }
+                }
+                nodeIndex[pos].edges = 0;
+                nodeIndex[pos].removed = true;
+            }
+        }
+    }
+
+    template <typename Container>
+    void gatherNeighbors(const uint32_t &node, Container &neighbors) const {
+        uint32_t pos = (!mapping ? node : idToPos->at(node));
+        uint32_t neighborCount = nodeIndex[pos].edges;
+        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+        for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
+            uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+            if (!nodeIndex[nPos].removed) {
+                neighbors.insert(neighbors.end(), (*edgeBuffer)[offset]);
+                neighborCount--;
+            }
+        }
+    }
 
     bool edgeExists(const uint32_t &node, const uint32_t &neighbor) const {
         return (findEdgeOffset(node, neighbor) != NONE);
@@ -138,23 +185,8 @@ public:
         }
     }
 
-    bool isIndependentSet(const std::vector<uint32_t> &set, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
-        for (uint32_t i = 0 ; i < set.size() ; i++) {
-            for (uint32_t j = i+1 ; j < set.size() ; j++) {
-                if (edgeExists(set[i], set[j])) {
-                    if (node1 != NULL && node2 != NULL) {
-                        *node1 = set[i];
-                        *node2 = set[j];
-                    }
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /* Todo: merge with above function in a generic one */
-    bool isIndependentSet(const std::set<uint32_t> &set, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
+    template <typename Container>
+    bool isIndependentSet(const Container &set, uint32_t *node1 = NULL, uint32_t *node2 = NULL) const {
         for (auto i = set.begin() ; i != set.end() ; i++) {
             for (auto j = std::next(i, 1) ; j != set.end() ; j++) {
                 if (edgeExists(*i, *j)) {

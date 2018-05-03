@@ -68,40 +68,6 @@ void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
     //cout << "node " << node << " with max degree " << maxDegree << endl;
 }
 
-/* Mark selected nodes as removed and reduce their neighbors' neighbor count */
-void Graph::remove(const std::vector<uint32_t> &nodes, ReduceInfo &reduceInfo, const bool &sameComponent, unordered_set<uint32_t> *candidateNodes) {
-    for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
-        //cout << "removing " << *it << endl;
-        uint32_t pos = (!mapping ? *it : idToPos->at(*it));
-        if (!nodeIndex[pos].removed) {
-            reduceInfo.nodesRemoved++;
-            if (!sameComponent) {
-                uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
-                for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
-                    uint32_t neighbor = (*edgeBuffer)[offset];
-                    uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
-                    if (!nodeIndex[nPos].removed) {
-                        nodeIndex[nPos].edges--;
-                        reduceInfo.edgesRemoved++;
-                        if (find(it+1, nodes.end(), neighbor) == nodes.end()) {
-                            if(nodeIndex[nPos].edges == 0) {
-                                zeroDegreeNodes.push_back(neighbor);
-                                nodeIndex[nPos].removed = true;
-                                reduceInfo.nodesRemoved++;
-                            }
-                            if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
-                                candidateNodes->insert(neighbor);
-                            }
-                        }
-                    }
-                }
-            }
-            nodeIndex[pos].edges = 0;
-            nodeIndex[pos].removed = true;
-        }
-    }
-}
-
 void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
     remove(std::vector<uint32_t>(1, node), reduceInfo);
 }
@@ -229,34 +195,10 @@ void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, c
     (*edgeBuffer)[endOffset-1] = newNeighbor;
 }
 
-/* Gather node's neighbors in a vector. Useful when there are removed neighbors
- * in between non-removed ones, and access is frequent */
-void Graph::gatherNeighbors(const uint32_t &node, vector<uint32_t> &neighbors) const {
-    uint32_t pos = (!mapping ? node : idToPos->at(node));
-    uint32_t neighborCount = nodeIndex[pos].edges;
-    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
-    for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
-        uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
-        if (!nodeIndex[nPos].removed) {
-            neighbors.push_back((*edgeBuffer)[offset]);
-            neighborCount--;
-        }
-    }
-}
-
 /* Todo: merge with above function in a generic one */
 void Graph::gatherNeighbors(const set<uint32_t> &nodes, set<uint32_t> &neighbors) const {
     for (auto &node: nodes) {
-        uint32_t pos = (!mapping ? node : idToPos->at(node));
-        uint32_t neighborCount = nodeIndex[pos].edges;
-        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
-        for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
-            uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
-            if (!nodeIndex[nPos].removed) {
-                neighbors.insert((*edgeBuffer)[offset]);
-                neighborCount--;
-            }
-        }
+        gatherNeighbors(node, neighbors);
     }
 }
 
