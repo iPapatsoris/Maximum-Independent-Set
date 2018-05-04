@@ -233,10 +233,10 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
-void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, unordered_set<uint32_t> &finalSet) const {
+void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, vector<uint32_t> &finalContainer) const {
     finalNode1 = NONE;
     finalNode2 = NONE;
-    unordered_set<uint32_t> commonNeighbors;
+    vector<uint32_t> commonNeighbors;
     bool done = false;
     for (uint32_t pos = 0 ; pos < nodeIndex.size() && !done ; pos++) {
         if (nodeIndex[pos].removed) {
@@ -251,16 +251,21 @@ void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, ui
                     continue;
                 }
                 neighborCount--;
+                uint32_t node1 = (!mapping ? pos : posToId->at(pos));
+                uint32_t node2 = (!mapping ? nPos : posToId->at(nPos));
+                cout << node1 << " " << node2 << "\n";
                 if (nodeIndex[nPos].edges == degree || (degree == 6 && nodeIndex[nPos].edges == 5)) {
                     uint32_t node1 = (!mapping ? pos : posToId->at(pos));
                     uint32_t node2 = (!mapping ? nPos : posToId->at(nPos));
                     if (node1 < node2) {
-                        //getCommonNeighbors(node1, node2, commonNeighbors);
-                        if (commonNeighbors.size() > finalSet.size()) {
-                            finalSet = commonNeighbors;
+                        getCommonNeighbors(node1, node2, commonNeighbors);
+                        if (commonNeighbors.size() > finalContainer.size()) {
+                            cout << node1 << " " << node2 << " common neighbors: " << commonNeighbors.size() << "\n";
+                            finalContainer.clear();
+                            finalContainer.insert(finalContainer.end(), commonNeighbors.begin(), commonNeighbors.end());
                             finalNode1 = node1;
                             finalNode2 = node2;
-                            if (finalSet.size() == degree - 1) {
+                            if (finalContainer.size() == degree - 1) {
                                 done = true;
                                 break;
                             }
@@ -269,6 +274,19 @@ void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, ui
                     }
                 }
             }
+        }
+    }
+}
+
+void Graph::getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, vector<uint32_t> &commonNeighbors) const {
+    uint32_t pos1 = (!mapping ? node1 : idToPos->at(node1));
+    uint32_t pos2 = (!mapping ? node2 : idToPos->at(node2));
+    assert(!nodeIndex[pos1].removed && !nodeIndex[pos2].removed);
+    vector<uint32_t> neighbors1;
+    gatherNeighbors(node1, neighbors1);
+    for (auto &neighbor: neighbors1) {
+        if (edgeExists(neighbor, node2)) {
+            commonNeighbors.push_back(neighbor);
         }
     }
 }

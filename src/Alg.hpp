@@ -41,13 +41,13 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, DONE
+            MAX_DEGREE, SHORT_EDGE, DONE
         };
 
         Type type;
         uint32_t node1;
         uint32_t node2;
-        std::unordered_set<uint32_t> set;
+        std::vector<uint32_t> container;
 
 
         BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
@@ -62,10 +62,22 @@ private:
                     case 8:
                     case 7:
                     case 6:
-                        if (maxDegree == theta) {
-                            graph.getOptimalShortEdge(maxDegree, node1, node2, set);
-
+                        if (1 || maxDegree == theta) {
+                            graph.getOptimalShortEdge(theta, node1, node2, container);
+                            if (node1 == NONE) {
+                                type = Type::MAX_DEGREE;
+                                std::cout << "no\n";
+                                exit(0);
+                            } else {
+                                type = Type::SHORT_EDGE;
+                                std::cout << "optimal short edge " << node1 << " " << node2 << " with size " << container.size() << "\n";
+                                exit(0);
+                            }
+                        } else if (maxDegree < theta) {
+                            theta--;
+                            run = true;
                         }
+                        break;
                     case 5:
                     case 4:
                     case 3:

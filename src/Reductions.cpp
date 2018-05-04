@@ -13,7 +13,7 @@ void Reductions::run() {
     //cout << " \nReductions\n";
     //printCC();
     //graph.print(true);
-    reduce();
+    //reduce();
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
     //graph.print(true);
