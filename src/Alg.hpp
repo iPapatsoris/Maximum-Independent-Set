@@ -51,12 +51,18 @@ private:
 
 
         BranchingRule() : type(Type::MAX_DEGREE), node1(NONE), node2(NONE) {}
+        void clear() {
+            node1 = NONE;
+            node2 = NONE;
+            container.clear();
+        }
 
         void choose(const Graph &graph, uint32_t &theta) {
             uint32_t maxDegree;
             graph.getMaxNodeDegree(node1, maxDegree);
             bool run = true;
             while (run) {
+                clear();
                 run = false;
                 switch (theta) {
                     case 8:
@@ -71,7 +77,6 @@ private:
                             } else {
                                 type = Type::SHORT_EDGE;
                                 std::cout << "optimal short edge " << node1 << " " << node2 << " with size " << container.size() << "\n";
-                                exit(0);
                             }
                         } else if (maxDegree < theta) {
                             theta--;
@@ -125,12 +130,19 @@ private:
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
+            case BranchingRule::Type::SHORT_EDGE: {
+                std::vector<uint32_t> shortEdge;
+                shortEdge.push_back(branchingRule.node1);
+                shortEdge.push_back(branchingRule.node2);
+                searchNode->graph.remove(shortEdge, searchNode->reductions->getReduceInfo());
+                break;
+            }
             default:
                 assert(false);
         }
     }
 
-    void branchRight(const BranchingRule &branchingRule, SearchNode *searchNode) {
+    void branchRight(BranchingRule &branchingRule, SearchNode *searchNode) {
         //std::cout << "right\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE: {
@@ -152,6 +164,22 @@ private:
                 }
                 smaller->insert(bigger->begin(), bigger->end());
                 searchNode->graph.remove(std::vector<uint32_t>(smaller->begin(), smaller->end()), searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::SHORT_EDGE: {
+                branchingRule.container.push_back(branchingRule.node1);
+                branchingRule.container.push_back(branchingRule.node2);
+                searchNode->graph.remove(branchingRule.container, searchNode->reductions->getReduceInfo());
+                std::vector<uint32_t> neighbors1, neighbors2;
+                searchNode->graph.gatherNeighbors(branchingRule.node1, neighbors1);
+                searchNode->graph.gatherNeighbors(branchingRule.node2, neighbors2);
+                for (auto neighbor1: neighbors1) {
+                    searchNode->graph.addEdges(neighbor1, neighbors2);
+                }
+                for (auto neighbor2: neighbors2) {
+                    searchNode->graph.addEdges(neighbor2, neighbors1);
+                }
+                searchNode->graph.print(true);
                 break;
             }
             default:

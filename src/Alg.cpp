@@ -84,10 +84,10 @@ void Alg::run() {
         //cout << "Done" << endl;
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
-        if (nextChild == &searchTree[i]->leftChild) {
+        if (false && nextChild == &searchTree[i]->leftChild) {
             branchLeft(branchingRule, searchNode);
         }
-        else if (nextChild == &searchTree[i]->rightChild) {
+        else if (true || nextChild == &searchTree[i]->rightChild) {
             branchRight(branchingRule, searchNode);
         }
         else {

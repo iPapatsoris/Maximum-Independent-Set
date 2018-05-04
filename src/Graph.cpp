@@ -251,9 +251,6 @@ void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, ui
                     continue;
                 }
                 neighborCount--;
-                uint32_t node1 = (!mapping ? pos : posToId->at(pos));
-                uint32_t node2 = (!mapping ? nPos : posToId->at(nPos));
-                cout << node1 << " " << node2 << "\n";
                 if (nodeIndex[nPos].edges == degree || (degree == 6 && nodeIndex[nPos].edges == 5)) {
                     uint32_t node1 = (!mapping ? pos : posToId->at(pos));
                     uint32_t node2 = (!mapping ? nPos : posToId->at(nPos));
@@ -291,6 +288,40 @@ void Graph::getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, vec
     }
 }
 
+/* Connect 'node' with 'nodes'. Since moving elements and a vector reallocation is possible,
+ * the mirror edges are not added. It is more performant to add them manually with another call
+ * to this function, along with any other edges. (Optimization for branching on edges) */
+void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
+    uint32_t pos = (!mapping ? node : idToPos->at(node));
+    set<uint32_t> neighbors;
+    vector<uint32_t> removedNeighbors;
+    gatherNeighbors(node, neighbors, &removedNeighbors);
+    uint32_t space = neighbors.size() + removedNeighbors.size();
+    neighbors.insert(nodes.begin(), nodes.end());
+    uint32_t finalNeighborCount = neighbors.size();
+    if (neighbors.size() <= space) {
+        while (neighbors.size() < space) {
+            uint32_t removed = removedNeighbors.back();
+            removedNeighbors.pop_back();
+            neighbors.insert(removed);
+        }
+        copy(neighbors.begin(), neighbors.end(), edgeBuffer->begin() + nodeIndex[pos].offset);
+    } else {
+        auto it = neighbors.begin();
+        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+        for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
+            (*edgeBuffer)[offset] = *it;
+            it++;
+        }
+        uint32_t addition = neighbors.size() - space;
+        edgeBuffer->reserve(edgeBuffer->size() + addition);
+        edgeBuffer->insert(edgeBuffer->begin() + nextNodeOffset, it, neighbors.end());
+        for (uint32_t i = pos + 1 ; i < nodeIndex.size() ; i++) {
+            nodeIndex[i].offset += addition;
+        }
+    }
+    nodeIndex[pos].edges = finalNeighborCount;
+}
 
 /* Only for debugging. If needed in actual algorithm,
  * make it a class field */

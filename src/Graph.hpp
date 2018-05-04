@@ -58,6 +58,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
     void getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, std::vector<uint32_t> &container) const;
     void getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, std::vector<uint32_t> &finalSet) const;
     void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL) const;
@@ -72,7 +73,11 @@ public:
     void printWithGraphTraversal(bool direction) const;
     void printEdgeCounts() const;
 
-    /* Mark selected nodes as removed and reduce their neighbors' neighbor count */
+    /* Mark selected nodes as removed and reduce their neighbors' neighbor count.
+     * If a removed node's neighbor loses all its edges, it is moved to zeroDegreeNodes, unless it
+     * is also included in the container for removal. Thus, when removing multiple nodes
+     * at once is desired, they should all be placed in the container, and this function
+     * should be called just once, instead of once for each node */
     template <typename Container>
     void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL) {
         for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
@@ -107,8 +112,8 @@ public:
         }
     }
 
-    template <typename Container>
-    void gatherNeighbors(const uint32_t &node, Container &neighbors) const {
+    template <typename Container, typename ContainerRemoved = std::vector<uint32_t> >
+    void gatherNeighbors(const uint32_t &node, Container &neighbors, ContainerRemoved *removedNeighbors = NULL) const {
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t neighborCount = nodeIndex[pos].edges;
         uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
@@ -117,6 +122,8 @@ public:
             if (!nodeIndex[nPos].removed) {
                 neighbors.insert(neighbors.end(), (*edgeBuffer)[offset]);
                 neighborCount--;
+            } else if (removedNeighbors != NULL) {
+                removedNeighbors->insert(removedNeighbors->end(), (*edgeBuffer)[offset]);
             }
         }
     }
