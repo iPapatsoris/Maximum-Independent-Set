@@ -97,6 +97,7 @@ void Alg::run() {
     }
     cout << searchNodes << " search nodes\n";
     //print();
+    searchTree[0]->graph.collectZeroDegreeNodes();
     Mis::print(*searchTree[0]->finalMis);
     delete searchTree[0]->finalMis;
 }

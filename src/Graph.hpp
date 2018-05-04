@@ -58,6 +58,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    void collectZeroDegreeNodes();
     void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
     void getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, std::vector<uint32_t> &container) const;
     void getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, std::vector<uint32_t> &finalSet) const;
@@ -74,18 +75,16 @@ public:
     void printEdgeCounts() const;
 
     /* Mark selected nodes as removed and reduce their neighbors' neighbor count.
-     * If a removed node's neighbor loses all its edges, it is moved to zeroDegreeNodes, unless it
-     * is also included in the container for removal. Thus, when removing multiple nodes
-     * at once is desired, they should all be placed in the container, and this function
-     * should be called just once, instead of once for each node */
+     * fullComponent should be set to true when the nodes to be removed belong in the same component, and
+     * that component has no other nodes (e.g. when removing line graphs). */
     template <typename Container>
-    void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &sameComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL) {
+    void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &fullComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL) {
         for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
-            //std::cout << "removing " << *it << endl;
+            std::cout << "removing " << *it << std::endl;
             uint32_t pos = (!mapping ? *it : idToPos->at(*it));
             if (!nodeIndex[pos].removed) {
                 reduceInfo.nodesRemoved++;
-                if (!sameComponent) {
+                if (!fullComponent) {
                     uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
                     for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
                         uint32_t neighbor = (*edgeBuffer)[offset];
@@ -93,20 +92,14 @@ public:
                         if (!nodeIndex[nPos].removed) {
                             nodeIndex[nPos].edges--;
                             reduceInfo.edgesRemoved++;
-                            if (find(std::next(it, 1), nodes.end(), neighbor) == nodes.end()) {
-                                if(nodeIndex[nPos].edges == 0) {
-                                    zeroDegreeNodes.push_back(neighbor);
-                                    nodeIndex[nPos].removed = true;
-                                    reduceInfo.nodesRemoved++;
-                                }
-                                if (candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
-                                    candidateNodes->insert(neighbor);
-                                }
+                            if (find(std::next(it, 1), nodes.end(), neighbor) == nodes.end() &&
+                            candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
+                                candidateNodes->insert(neighbor);
                             }
                         }
                     }
                 }
-                nodeIndex[pos].edges = 0;
+                //nodeIndex[pos].edges = 0;
                 nodeIndex[pos].removed = true;
             }
         }
