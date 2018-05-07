@@ -80,7 +80,7 @@ public:
     template <typename Container>
     void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &fullComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL) {
         for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
-            std::cout << "removing " << *it << std::endl;
+            //std::cout << "removing " << *it << std::endl;
             uint32_t pos = (!mapping ? *it : idToPos->at(*it));
             if (!nodeIndex[pos].removed) {
                 reduceInfo.nodesRemoved++;

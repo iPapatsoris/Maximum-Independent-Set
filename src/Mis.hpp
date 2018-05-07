@@ -26,11 +26,19 @@ public:
     }
     void markHypernode(const uint32_t &hypernode, const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors);
     void unfoldHypernodes(std::vector<uint32_t> &zeroDegreeNodes, std::vector<uint32_t> &finalMis);
+    std::unordered_map<uint32_t, uint32_t> &getSubsequentNodes() {
+        return subsequentNodes;
+    }
     void static print(std::vector<uint32_t> &finalMis);
 
 private:
     void expandIncludedNodes(std::vector<uint32_t> &set, std::vector<uint32_t> &finalMis) {
         for (uint32_t i = 0 ; i < set.size() ; i++) {
+            auto subsequent = subsequentNodes.find(set[i]);
+            if (subsequent != subsequentNodes.end()) {
+                set.push_back(subsequent->second); /* No need to check if it already exists in mis.
+                                                      Only removed nodes are values of keys */
+            }
             auto res = hypernodeToInnernode.find(set[i]);
             if (res == hypernodeToInnernode.end()) {
                 //std::cout << "Adding regular node " << set[i] << "\n";
@@ -41,23 +49,16 @@ private:
                 assert(res->second.outerLevel);
                 for (auto node : res->second.neighbors) {
                     auto innerHypernode = hypernodeToInnernode.find(node);
-                    if (innerHypernode == hypernodeToInnernode.end()) {
-                        //std::cout << " adding regular node " << node << "\n";
-                        //fprintf(f, "%ld\n", node);
-                        finalMis.push_back(node);
-                    } else {
+                    if (innerHypernode != hypernodeToInnernode.end()) {
                         //std::cout << "queing " << node << " for later examination\n";
                         assert(!innerHypernode->second.outerLevel);
                         innerHypernode->second.outerLevel = true;
-                        set.push_back(node);
                     }
+                    set.push_back(node);
                 }
                 for (auto node : res->second.nodes) {
                     auto innerHypernode = hypernodeToInnernode.find(node);
                     if (innerHypernode != hypernodeToInnernode.end()) {
-                        if (innerHypernode->second.outerLevel) {
-                            std::cout << "inner hypernode " << node << " of hypernode " <<  res->first << " is marked as outer\n";
-                        }
                         assert(!innerHypernode->second.outerLevel);
                         innerHypernode->second.outerLevel = true;
                     }
@@ -73,6 +74,10 @@ private:
 
     std::vector<uint32_t> mis;
     std::unordered_map<uint32_t, Innernode> hypernodeToInnernode;
+
+    /* Including one key node in the mis, results in including the mapped node as well,
+     * These could be hypernodes, regular nodes, or mixed */
+    std::unordered_map<uint32_t, uint32_t> subsequentNodes;
     static std::string misOutputFile;
 };
 #endif

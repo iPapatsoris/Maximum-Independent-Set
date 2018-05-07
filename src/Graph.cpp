@@ -256,8 +256,9 @@ void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, ui
                     uint32_t node2 = (!mapping ? nPos : posToId->at(nPos));
                     if (node1 < node2) {
                         getCommonNeighbors(node1, node2, commonNeighbors);
-                        if (commonNeighbors.size() > finalContainer.size()) {
-                            cout << node1 << " " << node2 << " common neighbors: " << commonNeighbors.size() << "\n";
+                        if ((degree == 6 && commonNeighbors.size() >= 3 || (degree == 7 || degree == 8) && commonNeighbors.size() >= 4) &&
+                        commonNeighbors.size() > finalContainer.size()) {
+                            //cout << node1 << " " << node2 << " common neighbors: " << commonNeighbors.size() << "\n";
                             finalContainer.clear();
                             finalContainer.insert(finalContainer.end(), commonNeighbors.begin(), commonNeighbors.end());
                             finalNode1 = node1;
@@ -292,11 +293,11 @@ void Graph::getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, vec
  * the mirror edges are not added. It is more performant to add them manually with another call
  * to this function, along with any other edges. (Optimization for branching on edges) */
 void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
-    cout << "connecting " << node << " with ";
+    /*cout << "connecting " << node << " with ";
     for (auto &node: nodes) {
         cout << node << " ";
     }
-    cout << "\n";
+    cout << "\n";*/
     uint32_t pos = (!mapping ? node : idToPos->at(node));
     set<uint32_t> neighbors;
     vector<uint32_t> removedNeighbors;
@@ -305,7 +306,7 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
     neighbors.insert(nodes.begin(), nodes.end());
     uint32_t finalNeighborCount = neighbors.size();
     if (neighbors.size() <= space) {
-        cout << "case 1\n";
+        //cout << "case 1\n";
         while (neighbors.size() < space) {
             uint32_t removed = removedNeighbors.back();
             removedNeighbors.pop_back();
@@ -313,14 +314,16 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
         }
         copy(neighbors.begin(), neighbors.end(), edgeBuffer->begin() + nodeIndex[pos].offset);
     } else {
-        cout << "case 2\n";
+        //cout << "case 2\n";
         auto it = neighbors.begin();
+        uint32_t insertedElements = 0;
         uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
         for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
             (*edgeBuffer)[offset] = *it;
             it++;
+            insertedElements++;
         }
-        uint32_t addition = neighbors.size() - space;
+        uint32_t addition = (neighbors.size() - insertedElements);
         edgeBuffer->reserve(edgeBuffer->size() + addition);
         edgeBuffer->insert(edgeBuffer->begin() + nextNodeOffset, it, neighbors.end());
         for (uint32_t i = pos + 1 ; i < nodeIndex.size() ; i++) {
@@ -328,7 +331,7 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
         }
     }
     nodeIndex[pos].edges = finalNeighborCount;
-    print(true);
+    //print(true);
 }
 
 void Graph::collectZeroDegreeNodes() {

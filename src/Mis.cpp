@@ -55,15 +55,11 @@ void Mis::expandExcludedNodes(vector<uint32_t> &finalMis) {
         //cout << "Leftover outer hypernode " << hypernode->first << ", examining inner nodes\n";
         for (auto node : hypernode->second.nodes) {
             auto nestedHypernode = hypernodeToInnernode.find(node);
-            if (nestedHypernode == hypernodeToInnernode.end()) {
-                //cout << " adding regular node " << node << "\n";
-                //fprintf(f, "%ld\n", node);
-                finalMis.push_back(node);
-            } else {
+            if (nestedHypernode != hypernodeToInnernode.end()) {
                 assert(!nestedHypernode->second.outerLevel);
                 nestedHypernode->second.outerLevel = true;
-                mis.push_back(nestedHypernode->first);
             }
+            mis.push_back(node);
         }
         for (auto node : hypernode->second.neighbors) {
             auto innerHypernode = hypernodeToInnernode.find(node);

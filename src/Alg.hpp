@@ -58,27 +58,27 @@ private:
         }
 
         void choose(const Graph &graph, uint32_t &theta) {
-            uint32_t maxDegree;
-            graph.getMaxNodeDegree(node1, maxDegree);
+            uint32_t maxDegree = 0;
+            uint32_t maxDegreeNode = NONE;
+            graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
             bool run = true;
             while (run) {
-                clear();
                 run = false;
                 switch (theta) {
                     case 8:
                     case 7:
                     case 6:
-                        if (1 || maxDegree == theta) {
+                        if (maxDegree > theta) {
+                            type = Type::MAX_DEGREE;
+                        } else if (maxDegree == theta) {
                             graph.getOptimalShortEdge(theta, node1, node2, container);
                             if (node1 == NONE) {
                                 type = Type::MAX_DEGREE;
-                                std::cout << "no\n";
-                                exit(0);
                             } else {
                                 type = Type::SHORT_EDGE;
                                 std::cout << "optimal short edge " << node1 << " " << node2 << " with size " << container.size() << "\n";
                             }
-                        } else if (maxDegree < theta) {
+                        } else {
                             theta--;
                             run = true;
                         }
@@ -88,7 +88,7 @@ private:
                     case 3:
                     case 2:
                     case 1:
-                        if (node1 == NONE) {
+                        if (!maxDegree) {
                             type = Type::DONE;
                         }
                         else if (maxDegree >= theta) {
@@ -101,6 +101,9 @@ private:
                     default:
                         assert(false);
                 }
+            }
+            if (type == Type::MAX_DEGREE) {
+                node1 = maxDegreeNode;
             }
         }
     };
@@ -173,13 +176,16 @@ private:
                 std::vector<uint32_t> neighbors1, neighbors2;
                 searchNode->graph.gatherNeighbors(branchingRule.node1, neighbors1);
                 searchNode->graph.gatherNeighbors(branchingRule.node2, neighbors2);
+                std::unordered_map<uint32_t, uint32_t> &subsequentNodes = searchNode->mis.getSubsequentNodes();
                 for (auto neighbor1: neighbors1) {
+                    subsequentNodes.insert({neighbor1, branchingRule.node2});
                     searchNode->graph.addEdges(neighbor1, neighbors2);
                 }
                 for (auto neighbor2: neighbors2) {
+                    subsequentNodes.insert({neighbor2, branchingRule.node1});
                     searchNode->graph.addEdges(neighbor2, neighbors1);
                 }
-                searchNode->graph.print(true);
+                //searchNode->graph.print(true);
                 break;
             }
             default:
