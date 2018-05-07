@@ -41,7 +41,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, DONE
         };
 
         Type type;
@@ -72,11 +72,12 @@ private:
                             type = Type::MAX_DEGREE;
                         } else if (maxDegree == theta) {
                             graph.getOptimalShortEdge(theta, node1, node2, container);
-                            if (node1 == NONE) {
-                                type = Type::MAX_DEGREE;
-                            } else {
+                            if (node1 != NONE) {
                                 type = Type::SHORT_EDGE;
                                 std::cout << "optimal short edge " << node1 << " " << node2 << " with size " << container.size() << "\n";
+                            } else {
+                                type = Type::OPTNODE;
+                                getOptimalNode(graph, theta);
                             }
                         } else {
                             theta--;
@@ -106,6 +107,96 @@ private:
                 node1 = maxDegreeNode;
             }
         }
+
+        void getOptimalNode(const Graph &graph, const uint32_t &theta) {
+            bool found = false;
+            Graph::GraphTraversal graphTraversal(graph);
+            while (graphTraversal.curNode != NONE) {
+                uint32_t node = graphTraversal.curNode;
+                switch (theta) {
+                    case 8: {
+                        uint32_t degree8Neighbors = graph.getNumberOfDegreeNeighbors(node, 8);
+                        if (degree8Neighbors <= 7) {
+                            found = true;
+                        } else if (degree8Neighbors == 8) {
+                            if (getMeasure(graph, node) >= 36) {
+                                found = true;
+                            }
+                        }
+                        break;
+                    }
+                    case 7: {
+                        std::unordered_set<uint32_t> extendedGrandchildren;
+                        graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren, NULL, true);
+                        if (extendedGrandchildren.size()) {
+                            found = true;
+                        } else {
+                            uint32_t degree7Neighbors = graph.getNumberOfDegreeNeighbors(node, 7);
+                            if (degree7Neighbors <= 5) {
+                                found = true;
+                            } else {
+                                uint32_t measure = getMeasure(graph, node);
+                                if (degree7Neighbors == 6 && measure >= 22 - 2 * graph.getNumberOfDegreeNeighbors(node, 3) - graph.getNumberOfDegreeNeighbors(node, 4) ||
+                                degree7Neighbors == 7 && measure >= 26) {
+                                    found = true;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 6: {
+                        if (graph.getNumberOfDegreeNeighbors(node, 3) >= 1) {
+                            found = true;
+                        } else {
+                            uint32_t degree6Neighbors = graph.getNumberOfDegreeNeighbors(node, 6);
+                            if (degree6Neighbors <= 3) {
+                                found = true;
+                            } else {
+                                uint32_t degree5Neighbors = graph.getNumberOfDegreeNeighbors(node, 5);
+                                if (degree6Neighbors == 4 && degree5Neighbors <= 1) {
+                                    found = true;
+                                } else {
+                                    std::unordered_set<uint32_t> neighborsAtDistance2;
+                                    uint32_t count = 0;
+                                    graph.getNeighborsAtDistance2(node, neighborsAtDistance2, theta, &count);
+                                    uint32_t measure = getMeasure(graph, node, &neighborsAtDistance2);
+                                    measure += count;
+                                    if (degree6Neighbors == 4 && degree5Neighbors == 2 && measure >= 17 ||
+                                    degree6Neighbors == 5 && graph.getNumberOfDegreeNeighbors(node, 4) == 1 && measure >= 18 ||
+                                    degree6Neighbors == 5 && degree5Neighbors == 1 && measure >= 19 ||
+                                    degree6Neighbors == 6 && measure >= 22) {
+                                        found = true;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        assert(false);
+                }
+                if (found) {
+                    break;
+                }
+                graph.getNextNode(graphTraversal);
+            }
+            assert(found);
+            node1 = graphTraversal.curNode;
+        }
+
+        static uint32_t getMeasure(const Graph &graph, const uint32_t &node, std::unordered_set<uint32_t> *neighborsAtDistance2Ptr = NULL) {
+            std::vector<uint32_t> neighbors;
+            graph.gatherNeighbors(node, neighbors);
+            neighbors.push_back(node);
+            std::unordered_set<uint32_t> neighborsAtDistance2;
+            if (neighborsAtDistance2Ptr == NULL) {
+                graph.getNeighborsAtDistance2(node, neighborsAtDistance2);
+                neighborsAtDistance2Ptr = &neighborsAtDistance2;
+            }
+            uint32_t f = graph.getNumberOfEdgesBetweenSets(neighbors, *neighborsAtDistance2Ptr);
+            return 2 * f - neighborsAtDistance2Ptr->size();
+        }
+
     };
 
     void chooseMaxMis(SearchNode *parent) {
@@ -129,7 +220,8 @@ private:
     void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) {
         //std::cout << "left\n";
         switch (branchingRule.type) {
-            case BranchingRule::Type::MAX_DEGREE: {
+            case BranchingRule::Type::MAX_DEGREE:
+            case BranchingRule::Type::OPTNODE: {
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
@@ -148,7 +240,8 @@ private:
     void branchRight(BranchingRule &branchingRule, SearchNode *searchNode) {
         //std::cout << "right\n";
         switch (branchingRule.type) {
-            case BranchingRule::Type::MAX_DEGREE: {
+            case BranchingRule::Type::MAX_DEGREE:
+            case BranchingRule::Type::OPTNODE: {
                 std::unordered_set<uint32_t> extendedGrandchildren;
                 Graph::GraphTraversal graphTraversal(searchNode->graph, branchingRule.node1);
                 searchNode->graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren);

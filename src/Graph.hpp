@@ -60,9 +60,11 @@ public:
 
     void collectZeroDegreeNodes();
     void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
+    void getNeighborsAtDistance2(const uint32_t &node, std::unordered_set<uint32_t> &neighbors, const uint32_t &degree = NONE, uint32_t *count = NULL) const;
+    uint32_t getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t &degree) const;
     void getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, std::vector<uint32_t> &container) const;
     void getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, std::vector<uint32_t> &finalSet) const;
-    void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL) const;
+    void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL, const bool &stopAtFirst = false) const;
     void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
     void rebuild(const ReduceInfo &reduceInfo);
@@ -126,6 +128,19 @@ public:
         for (auto &node: nodes) {
             gatherNeighbors(node, neighbors);
         }
+    }
+
+    template <typename Container1, typename Container2>
+    uint32_t getNumberOfEdgesBetweenSets(const Container1 &set1, const Container2 &set2) const {
+        uint32_t count = 0;
+        for (auto i: set1) {
+            for (auto j: set2) {
+                if (edgeExists(i, j)) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     bool edgeExists(const uint32_t &node, const uint32_t &neighbor) const {

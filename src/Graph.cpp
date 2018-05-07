@@ -68,6 +68,57 @@ void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
     //cout << "node " << node << " with max degree " << maxDegree << endl;
 }
 
+uint32_t Graph::getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t &degree) const {
+    uint32_t count = 0;
+    uint32_t pos = (!mapping ? node : idToPos->at(node));
+    uint32_t neighborCount = nodeIndex[pos].edges;
+    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+    for (uint32_t i = nodeIndex[pos].offset ; i < nextNodeOffset && neighborCount ; i++) {
+        uint32_t nPos = (!mapping ? (*edgeBuffer)[i] : idToPos->at((*edgeBuffer)[i]));
+        if (!nodeIndex[nPos].removed) {
+            neighborCount--;
+            if (nodeIndex[nPos].edges == degree) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+/* Does not include neighbors at distance 2 that can also be found at distance 1.
+ * If the last 2 optional arguments are given, it also counts the number of neighbors
+ * at distance 2 with degree less than 'degree' */
+void Graph::getNeighborsAtDistance2(const uint32_t &node, unordered_set<uint32_t> &neighbors, const uint32_t &degree, uint32_t *count) const {
+    if (degree != NONE && count != NULL) {
+        *count = 0;
+    }
+    uint32_t pos = (!mapping ? node : idToPos->at(node));
+    uint32_t neighborCount = nodeIndex[pos].edges;
+    uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+    for (uint32_t i = nodeIndex[pos].offset ; i < nextNodeOffset && neighborCount ; i++) {
+        uint32_t nPos = (!mapping ? (*edgeBuffer)[i] : idToPos->at((*edgeBuffer)[i]));
+        if (!nodeIndex[nPos].removed) {
+            neighborCount--;
+            uint32_t neighborCount2 = nodeIndex[nPos].edges;
+            uint32_t nextNodeOffset2 = (nPos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[nPos+1].offset);
+            for (uint32_t j = nodeIndex[nPos].offset ; j < nextNodeOffset2 && neighborCount2 ; j++) {
+                uint32_t id = (*edgeBuffer)[j];
+                uint32_t nPos2 = (!mapping ? id : idToPos->at(id));
+                if (!nodeIndex[nPos2].removed) {
+                    neighborCount2--;
+                    if (id != node && !edgeExists(id, node)) {
+                        neighbors.insert(id);
+                        if (degree != NONE && count != NULL && nodeIndex[nPos2].edges < degree) {
+                            (*count)++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
     remove(std::vector<uint32_t>(1, node), reduceInfo);
 }
@@ -215,7 +266,7 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
     return NONE;
 }
 
-void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined) const {
+void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined, const bool &stopAtFirst) const {
     while (graphTraversal.curEdgeOffset != NONE) {
         uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
         uint32_t outerNeighbor;
@@ -228,6 +279,9 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
         } else if (exactlyOne) {
             ////cout << "exactly one\n";
             extendedGrandchildren.insert(outerNeighbor);
+            if (stopAtFirst) {
+                return;
+            }
         }
         getNextEdge(graphTraversal);
     }
