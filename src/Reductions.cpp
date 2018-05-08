@@ -24,7 +24,7 @@ void Reductions::run(const uint32_t &theta) {
         case 3:
         case 2:
         case 1:
-            reduce6(theta);
+            reduce5(theta);
             break;
         default:
             assert(false);
@@ -52,7 +52,11 @@ void Reductions::reduce6(const uint32_t &theta) {
 }
 
 void Reductions::reduce5(const uint32_t &theta) {
+    while (removeUnconfinedNodes()) {
+        ;
+    }
     removeEasyInstances(theta);
+    graph.rebuild(reduceInfo);
 }
 
 void Reductions::removeEasyInstances(const uint32_t &theta) {
@@ -62,8 +66,8 @@ void Reductions::removeEasyInstances(const uint32_t &theta) {
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
             if (cc->size() == 28) {
-                cout << "Removing easy instance component " << it->first << "\n";
-                findMis(*cc);
+                //cout << "Removing easy instance component " << it->first << "\n";
+                //findMis(*cc);
                 graph.remove(*cc, reduceInfo, true);
                 removedCCs.push_back(it);
             }
