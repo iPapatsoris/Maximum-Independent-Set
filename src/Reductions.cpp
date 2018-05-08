@@ -40,7 +40,7 @@ void Reductions::reduce6(const uint32_t &theta) {
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
     while (removeUnconfinedNodes() || firstTime) {
-        if (!foldCompleteKIndependentSets(firstTime, &oldCandidateNodes, &newCandidateNodes)) {
+        if (!foldCompleteKIndependentSets(theta, firstTime, &oldCandidateNodes, &newCandidateNodes)) {
             break;
         }
     }
@@ -52,15 +52,23 @@ void Reductions::reduce6(const uint32_t &theta) {
 }
 
 void Reductions::reduce5(const uint32_t &theta) {
-    while (removeUnconfinedNodes()) {
-        ;
+    bool firstTime = true;
+    unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
+    unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
+    while (removeUnconfinedNodes() || firstTime) {
+        if (!foldCompleteKIndependentSets(theta, firstTime, &oldCandidateNodes, &newCandidateNodes)) {
+            break;
+        }
     }
+    delete oldCandidateNodes;
+    delete newCandidateNodes;
+    buildCC();
     removeEasyInstances(theta);
+    removeLineGraphs(theta);
     graph.rebuild(reduceInfo);
 }
 
 void Reductions::removeEasyInstances(const uint32_t &theta) {
-    buildCC();
     //printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
@@ -154,10 +162,10 @@ void Reductions::findMis(const vector<uint32_t> &cc) {
     }
 }
 
-bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
+bool Reductions::foldCompleteKIndependentSets(const uint32_t &theta, bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
     //cout << "\n**Performing K-Independent set folding reduction**" << endl;
     ReduceInfo old = reduceInfo;
-    foldCompleteKIndependentSets2(firstTime, **oldCandidateNodes, **newCandidateNodes);
+    foldCompleteKIndependentSets2(theta, firstTime, **oldCandidateNodes, **newCandidateNodes);
     swap(oldCandidateNodes, newCandidateNodes);
     if (firstTime) {
         firstTime = false;
@@ -169,7 +177,7 @@ bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uin
     do {
         //reduceInfo.print(&old);
         old = reduceInfo;
-        foldCompleteKIndependentSets2(firstTime, **oldCandidateNodes, **newCandidateNodes);
+        foldCompleteKIndependentSets2(theta, firstTime, **oldCandidateNodes, **newCandidateNodes);
         swap(oldCandidateNodes, newCandidateNodes);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
     return true;
@@ -193,14 +201,20 @@ bool Reductions::removeUnconfinedNodes() {
     return true;
 }
 
-void Reductions::foldCompleteKIndependentSets2(const bool &checkAllNodes, unordered_set<uint32_t> &oldCandidateNodes, unordered_set<uint32_t> &newCandidateNodes) {
+void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, unordered_set<uint32_t> &oldCandidateNodes, unordered_set<uint32_t> &newCandidateNodes) {
     newCandidateNodes.clear();
     Graph::GraphTraversal graphTraversal(graph);
     auto it = oldCandidateNodes.begin();
     uint32_t node = (checkAllNodes ? graphTraversal.curNode : (it == oldCandidateNodes.end() ? NONE : *it));
     uint32_t bound = 5000;
     while (node != NONE) {
-        for (uint32_t k = 1 ; k <= 2 ; k++) {
+        uint32_t k;
+        if (theta >= 6) {
+            k = 1;
+        } else {
+            k = 2;
+        }
+        for (; k <= 2 ; k++) {
             if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) && graph.getNodeDegree(node) == k+1) {
                 if (node >= bound) {
                     //cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
