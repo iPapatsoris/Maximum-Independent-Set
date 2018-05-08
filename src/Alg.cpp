@@ -39,7 +39,7 @@ void Alg::run() {
     uint32_t theta = 8;
     while(true) {
         if (down) {
-            searchTree[i]->reductions->run();
+            searchTree[i]->reductions->run(theta);
             branchingRule.choose(searchTree[i]->graph, theta);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;

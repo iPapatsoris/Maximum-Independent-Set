@@ -8,7 +8,7 @@ class Reductions {
 public:
     Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
     ~Reductions();
-    void run();
+    void run(const uint32_t &theta);
     ReduceInfo &getReduceInfo() {
         return reduceInfo;
     }
@@ -65,7 +65,10 @@ private:
         return true;
     }
 
-    void reduce();
+    void reduce6();
+    void reduce5();
+    void removeEasyInstances();
+    void findMis(const std::vector<uint32_t> &cc);
     bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
     bool foldCompleteKIndependentSets(bool &firstTime, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes);

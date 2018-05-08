@@ -110,18 +110,19 @@ private:
 
         void getOptimalNode(const Graph &graph, const uint32_t &theta) {
             bool found = false;
+            uint32_t count = 0;
             Graph::GraphTraversal graphTraversal(graph);
             while (graphTraversal.curNode != NONE) {
+                count++;
+                std::cout << "theta " << theta << " count " << count << "\n";
                 uint32_t node = graphTraversal.curNode;
                 switch (theta) {
                     case 8: {
                         uint32_t degree8Neighbors = graph.getNumberOfDegreeNeighbors(node, 8);
                         if (degree8Neighbors <= 7) {
                             found = true;
-                        } else if (degree8Neighbors == 8) {
-                            if (getMeasure(graph, node) >= 36) {
-                                found = true;
-                            }
+                        } else if (degree8Neighbors == 8 && getMeasure(graph, node) >= 36) {
+                            found = true;
                         }
                         break;
                     }

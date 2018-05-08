@@ -9,18 +9,33 @@
 
 using namespace std;
 
-void Reductions::run() {
+void Reductions::run(const uint32_t &theta) {
     //cout << " \nReductions\n";
     //printCC();
     //graph.print(true);
-    reduce();
+    switch(theta) {
+        case 8:
+        case 7:
+        case 6:
+            reduce6();
+            break;
+        case 5:
+        case 4:
+        case 3:
+        case 2:
+        case 1:
+            reduce5();
+            break;
+        default:
+            assert(false);
+    }
     //graph.printEdgeCounts();
     //graph.printWithGraphTraversal(true);
     //graph.print(true);
     //printCCSizes();
 }
 
-void Reductions::reduce() {
+void Reductions::reduce6() {
     bool firstTime = true;
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
@@ -31,8 +46,108 @@ void Reductions::reduce() {
     }
     delete oldCandidateNodes;
     delete newCandidateNodes;
+    buildCC();
     removeLineGraphs();
     graph.rebuild(reduceInfo);
+}
+
+void Reductions::reduce5() {
+    removeEasyInstances();
+}
+
+void Reductions::removeEasyInstances() {
+    buildCC();
+    //printCCSizes();
+    vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
+    for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
+        vector<uint32_t> *cc = it->second;
+            if (cc->size() == 28) {
+                cout << "Removing easy instance component " << it->first << "\n";
+                findMis(*cc);
+                graph.remove(*cc, reduceInfo, true);
+                removedCCs.push_back(it);
+            }
+        }
+    if (removedCCs.empty()) {
+        //cout << "No nodes removed" << endl;
+    } else {
+        for (auto cc : removedCCs) {
+            delete cc->second;
+            ccToNodes.erase(cc);
+        }
+    }
+}
+
+/* Find mis via brute force. For easy instances */
+void Reductions::findMis(const vector<uint32_t> &cc) {
+    vector<uint32_t> independentSet;
+    vector<uint32_t> maximumIndependentSet;
+    vector<uint32_t> frontier; // cc array indexes
+    vector<unordered_set<uint32_t> > removedNodes;
+    frontier.push_back(0);
+    removedNodes.push_back(unordered_set<uint32_t>());
+    while (frontier.size()) {
+        uint32_t node = cc[frontier.back()];
+        Graph::GraphTraversal graphTraversal(graph, node);
+        while (graphTraversal.curEdgeOffset != NONE) {
+            removedNodes.back().insert((*graph.edgeBuffer)[graphTraversal.curEdgeOffset]);
+            graph.getNextEdge(graphTraversal);
+        }
+        uint32_t newNode = NONE;
+        uint32_t newIndex;
+        bool found = false;
+        for (newIndex = frontier.back()+1 ; newIndex < cc.size() ; newIndex++) {
+            if (cc.size() - newIndex + frontier.size() <= maximumIndependentSet.size()) {
+                break;
+            }
+            newNode = cc[newIndex];
+            if (removedNodes.back().find(newNode) == removedNodes.back().end()) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            frontier.push_back(newIndex);
+            removedNodes.push_back(removedNodes.back());
+        } else {
+            /*for (auto &i: frontier) {
+                cout << i << " ";
+            }
+            cout << "\n";*/
+            if (frontier.size() > maximumIndependentSet.size()) {
+                maximumIndependentSet = frontier;
+            }
+            while (frontier.size()) {
+                newIndex = frontier.back() + 1;
+                frontier.pop_back();
+                removedNodes.pop_back();
+                found = false;
+                for (; newIndex < cc.size() ; newIndex++) {
+                    if (cc.size() - newIndex + frontier.size() <= maximumIndependentSet.size()) {
+                        break;
+                    }
+                    newNode = cc[newIndex];
+                    if (!removedNodes.size() || removedNodes.size() && removedNodes.back().find(newNode) == removedNodes.back().end()) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) {
+                    frontier.push_back(newIndex);
+                    removedNodes.push_back((removedNodes.size() ? removedNodes.back() : unordered_set<uint32_t>()));
+                    break;
+                }
+            }
+        }
+    }
+    /*for (auto &i: maximumIndependentSet) {
+        cout << i << " ";
+    }
+    cout << "\n";*/
+    vector<uint32_t> &mis = this->mis.getMis();
+    for (auto &i: maximumIndependentSet) {
+        mis.push_back(cc[i]);
+    }
 }
 
 bool Reductions::foldCompleteKIndependentSets(bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
@@ -147,8 +262,7 @@ void Reductions::removeUnconfinedNodes2() {
 
 void Reductions::removeLineGraphs() {
     //cout << "\n**Performing line graph reduction**" << endl;
-    buildCC();
-    printCCSizes();
+    //printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
@@ -320,7 +434,7 @@ void Reductions::printCC() const {
 
 void Reductions::printCCSizes() const {
     for (auto &cc : ccToNodes) {
-        //cout << "CC " << cc.first << " size: " << (cc.second)->size() << "\n";
+        cout << "CC " << cc.first << " size: " << (cc.second)->size() << "\n";
     }
 }
 
