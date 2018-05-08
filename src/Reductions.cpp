@@ -17,14 +17,14 @@ void Reductions::run(const uint32_t &theta) {
         case 8:
         case 7:
         case 6:
-            reduce6();
+            reduce6(theta);
             break;
         case 5:
         case 4:
         case 3:
         case 2:
         case 1:
-            reduce5();
+            reduce6(theta);
             break;
         default:
             assert(false);
@@ -35,7 +35,7 @@ void Reductions::run(const uint32_t &theta) {
     //printCCSizes();
 }
 
-void Reductions::reduce6() {
+void Reductions::reduce6(const uint32_t &theta) {
     bool firstTime = true;
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
@@ -47,15 +47,15 @@ void Reductions::reduce6() {
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
-    removeLineGraphs();
+    removeLineGraphs(theta);
     graph.rebuild(reduceInfo);
 }
 
-void Reductions::reduce5() {
-    removeEasyInstances();
+void Reductions::reduce5(const uint32_t &theta) {
+    removeEasyInstances(theta);
 }
 
-void Reductions::removeEasyInstances() {
+void Reductions::removeEasyInstances(const uint32_t &theta) {
     buildCC();
     //printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
@@ -260,7 +260,7 @@ void Reductions::removeUnconfinedNodes2() {
     //cout << "bool " << boolCount << ", independent " << independentCount << endl;
 }
 
-void Reductions::removeLineGraphs() {
+void Reductions::removeLineGraphs(const uint32_t &theta) {
     //cout << "\n**Performing line graph reduction**" << endl;
     //printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
@@ -270,25 +270,38 @@ void Reductions::removeLineGraphs() {
         vector<Graph::GraphTraversal> clique2;
         clique1.reserve(5);
         clique2.reserve(5);
-        for (uint32_t i = 0 ; i < 3 ; i++) {
+        uint32_t checks;
+        if (theta >= 6) {
+            checks = 3;
+        } else {
+            checks = 1;
+        }
+        for (uint32_t i = 0 ; i < checks ; i++) {
             uint32_t nodes, degree, clique1Size, clique2Size;
-            switch (i) {
-                case 0:
-                    nodes = 10;
-                    degree = 6;
-                    clique1Size = clique2Size = 4;
-                    break;
-                case 1:
-                    nodes = 15;
-                    degree = 8;
-                    clique1Size = clique2Size = 5;
-                    break;
-                case 2:
-                    nodes = 20;
-                    degree = 7;
-                    clique1Size = 5;
-                    clique2Size = 4;
-                    break;
+            if (theta >= 6) {
+                switch (i) {
+                    case 0:
+                        nodes = 10;
+                        degree = 6;
+                        clique1Size = clique2Size = 4;
+                        break;
+                    case 1:
+                        nodes = 15;
+                        degree = 8;
+                        clique1Size = clique2Size = 5;
+                        break;
+                    case 2:
+                        nodes = 20;
+                        degree = 7;
+                        clique1Size = 5;
+                        clique2Size = 4;
+                        break;
+                }
+            } else {
+                nodes = 12;
+                degree = 5;
+                clique1Size = 4;
+                clique2Size = 3;
             }
             if (cc->size() == nodes && nodeDegreesEqualTo(*cc, degree, graph)) {
                 bool foundCliques = true;
