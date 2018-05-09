@@ -68,6 +68,21 @@ void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
     //cout << "node " << node << " with max degree " << maxDegree << endl;
 }
 
+/* Optimized for short funnel detection to not necesssarily return the min degree,
+ * if it is less than 3 */
+void Graph::getMinDegree(uint32_t &node, uint32_t &minDegree) const {
+    //cout << "Finding min degree" << endl;
+    minDegree = NONE;
+    for (uint32_t i = 0 ; i < nodeIndex.size() ; i++) {
+        if (!nodeIndex[i].removed && nodeIndex[i].edges < minDegree) {
+            minDegree = nodeIndex[i].edges;
+            if (minDegree < 3) {
+                return;
+            }
+        }
+    }
+}
+
 uint32_t Graph::getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t &degree) const {
     uint32_t count = 0;
     uint32_t pos = (!mapping ? node : idToPos->at(node));

@@ -52,20 +52,125 @@ void Reductions::reduce6(const uint32_t &theta) {
 }
 
 void Reductions::reduce5(const uint32_t &theta) {
-    bool firstTime = true;
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
-    while (removeUnconfinedNodes() || firstTime) {
-        if (!foldCompleteKIndependentSets(theta, firstTime, &oldCandidateNodes, &newCandidateNodes)) {
-            break;
+    do {
+        bool firstTime = true;
+        while (removeUnconfinedNodes() || firstTime) {
+            if (!foldCompleteKIndependentSets(theta, firstTime, &oldCandidateNodes, &newCandidateNodes)) {
+                break;
+            }
         }
-    }
+    } while (removeShortFunnels())
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
     removeEasyInstances(theta);
     removeLineGraphs(theta);
     graph.rebuild(reduceInfo);
+}
+
+bool Reductions::removeShortFunnels() {
+    uint32_t minDegree = NONE;
+    graph.getMinDegree(minDegree);
+    if (minDegree < 3 || minDegree > 4) {
+        return false;
+    }
+    Graph::GraphTraversal graphTraversal(graph);
+    while (graphTraversal.curNode != NULL) {
+        uint32_t nodeV = graphTraversal.curNode;
+        if (graph.getNodeDegree(nodeV) == 3) {
+            vector<uint32_t> neighborsV;
+            graph.gatherNeighbors(nodeV, neighborsV);
+            for (uint32_t i = 0 ; i < 3 ; i++) {
+                uint32_t nodeA = neighborsV[i];
+                uint32_t nodeB, nodeC;
+                if (i == 0) {
+                    nodeB = neighborsV[1];
+                    nodeC = neighborsV[2];
+                } else if (i == 1) {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[2];
+                } else {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[1];
+                }
+                if (graph.getNodeDegree(nodeA) == minDegree && graph.edgeExists(nodeB, nodeC)) {
+                    bool shortFunnel = false;
+                    vector<uint32_t> neighborsA;
+                    graph.gatherNeighbors(nodeA, neighborsA);
+                    if (minDegree == 3) {
+                        for (auto &neighbor: neighborsA) {
+                            if (neighbor == nodeV) {
+                                continue;
+                            }
+                            if (graph.edgeExists(neighbor, nodeB) || graph.edgeExists(neighbor, nodeC) {
+                                shortFunnel = true;
+                                break;
+                            }
+                        }
+                    } else if (minDegree == 4) {
+                        uint32_t countB = 0;
+                        uint32_t countC = 0;
+                        uint32_t *count;
+                        uint32_t target;
+                        for (auto &neighbor: neighborsA) {
+                            count = &countB;
+                            target = nodeB;
+                            for (uint32_t i = 0 ; i < 2 ; i++) {
+                                if (graph.edgeExists(neighbor, target)) {
+                                    (*count)++;
+                                    if ((*count) == 2) {
+                                        shortFunnel = true;
+                                        break;
+                                    }
+                                }
+                                count = &countC;
+                                target = nodeC;
+                            }
+                            if (shortFunnel) {
+                                break;
+                            }
+                        }
+                    }
+                    if (shortFunnel) {
+                        cout << "short funnel " << nodeA << "-" << nodeV << "-{" << nodeB << "," << nodeC << "}\n";
+                        vector<uint32_t> container;
+                        container.push_back(nodeA);
+                        container.push_back(nodeV);
+                        graph.remove(container, reduceInfo);
+                        uint32_t target = nodeB;
+                        for (uint32_t i = 0 ; i < 2 ; i++) {
+                            container.clear();
+                            for (auto &neighbor: neighborsA) {
+                                if (neighbor == nodeV) {
+                                    continue;
+                                }
+                                if (!graph.edgeExists(neighbor, target)) {
+                                    container.push_back(neighbor);
+                                    graph.addEdges(neighbor, vector<uint32_t>(1, target));
+                                }
+                            }
+                            graph.addEdges(target, container);
+                            target = nodeC;
+                        }
+                        auto &subsequentNodes = mis.getSubsequentNodes();
+                        for (auto &neighbor: neighborsA) {
+                            if (neighbor == nodeV) {
+                                continue;
+                            }
+                            subsequentNodes.insert({neighbor, nodeV});
+                        }
+                        subsequentNodes.insert({nodeB, nodeA});
+                        subsequentNodes.insert({nodeC, nodeA});
+                        return true;
+                    }
+                }
+            }
+        }
+        graph.getNextNode(graphTraversal);
+    }
+    return false;
 }
 
 void Reductions::removeEasyInstances(const uint32_t &theta) {

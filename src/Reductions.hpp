@@ -67,6 +67,7 @@ private:
 
     void reduce6(const uint32_t &theta);
     void reduce5(const uint32_t &theta);
+    bool removeShortFunnels();
     void removeEasyInstances(const uint32_t &theta);
     void findMis(const std::vector<uint32_t> &cc);
     bool removeUnconfinedNodes();
