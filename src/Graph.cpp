@@ -70,17 +70,27 @@ void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
 
 /* Optimized for short funnel detection to not necesssarily return the min degree,
  * if it is less than 3 */
-void Graph::getMinDegree(uint32_t &node, uint32_t &minDegree) const {
+void Graph::getMinDegree(uint32_t &minDegree) const {
     //cout << "Finding min degree" << endl;
     minDegree = NONE;
     for (uint32_t i = 0 ; i < nodeIndex.size() ; i++) {
-        if (!nodeIndex[i].removed && nodeIndex[i].edges < minDegree) {
+        if (!nodeIndex[i].removed && nodeIndex[i].edges && nodeIndex[i].edges < minDegree) {
             minDegree = nodeIndex[i].edges;
             if (minDegree < 3) {
                 return;
             }
         }
     }
+}
+
+uint32_t Graph::getTotalEdges() const {
+    uint32_t count = 0;
+    for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
+        if (!nodeIndex[pos].removed) {
+            count += nodeIndex[pos].edges;
+        }
+    }
+    return count;
 }
 
 uint32_t Graph::getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t &degree) const {
@@ -140,18 +150,20 @@ void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
 
 /* Rebuild structures, completely removing nodes that are marked as removed
  * and collecting zero degree nodes */
-void Graph::rebuild(const ReduceInfo &reduceInfo) {
+void Graph::rebuild(ReduceInfo &reduceInfo) {
     if (!reduceInfo.nodesRemoved) {
         return;
     }
-    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     vector<NodeInfo> nodeIndex;
-    nodeIndex.reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
+    uint32_t newNodes = this->nodeIndex.size() - reduceInfo.nodesRemoved;
+    uint32_t newEdges = this->getTotalEdges();
+    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    nodeIndex.reserve(newNodes);
     vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
-    edgeBuffer->reserve(this->edgeBuffer->size() - reduceInfo.edgesRemoved);
+    edgeBuffer->reserve(newEdges);
     unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
     vector<uint32_t> *posToId = new vector<uint32_t>();
-    posToId->reserve(this->nodeIndex.size() - reduceInfo.nodesRemoved);
+    posToId->reserve(newNodes);
     uint32_t offset = 0;
 
     for (uint32_t pos = 0 ; pos < this->nodeIndex.size() ; pos++) {
@@ -197,6 +209,8 @@ void Graph::rebuild(const ReduceInfo &reduceInfo) {
     delete this->edgeBuffer;
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    reduceInfo.nodesRemoved = 0;
+    reduceInfo.edgesRemoved = 0;
 }
 
 /* Contract 'nodes' and 'neighbors' to a single node.

@@ -57,7 +57,7 @@ private:
             container.clear();
         }
 
-        void choose(const Graph &graph, uint32_t &theta) {
+        void choose(const Graph &graph, Reductions &reductions, uint32_t &theta) {
             uint32_t maxDegree = 0;
             uint32_t maxDegreeNode = NONE;
             graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
@@ -81,6 +81,9 @@ private:
                             }
                         } else {
                             theta--;
+                            if (theta == 5 && graph.nodeIndex.size()) {
+                                reductions.run(theta);
+                            }
                             run = true;
                         }
                         break;

@@ -30,6 +30,7 @@ Alg::SearchNode::~SearchNode() {
 }
 
 void Alg::run() {
+    //searchTree[0]->graph.print(true);
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
     uint32_t searchNodes = 1;
     uint32_t minCompletedSearchNode = NONE;
@@ -40,10 +41,10 @@ void Alg::run() {
     while(true) {
         if (down) {
             searchTree[i]->reductions->run(theta);
-            branchingRule.choose(searchTree[i]->graph, theta);
+            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), theta);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;
-            branchingRule.choose(searchTree[i]->graph, theta);
+            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), theta);
             assert(branchingRule.type != BranchingRule::Type::DONE);
         }
         if (down && branchingRule.type == BranchingRule::Type::DONE) {

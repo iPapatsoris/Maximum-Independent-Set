@@ -66,8 +66,10 @@ public:
     void getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, std::vector<uint32_t> &finalSet) const;
     void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL, const bool &stopAtFirst = false) const;
     void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
+    void getMinDegree(uint32_t &minDegree) const;
+    uint32_t getTotalEdges() const;
     void remove(const uint32_t &node, ReduceInfo &reduceInfo);
-    void rebuild(const ReduceInfo &reduceInfo);
+    void rebuild(ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;

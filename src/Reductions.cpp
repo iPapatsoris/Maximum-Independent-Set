@@ -61,7 +61,7 @@ void Reductions::reduce5(const uint32_t &theta) {
                 break;
             }
         }
-    } while (removeShortFunnels())
+    } while (removeShortFunnels());
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
@@ -73,13 +73,15 @@ void Reductions::reduce5(const uint32_t &theta) {
 bool Reductions::removeShortFunnels() {
     uint32_t minDegree = NONE;
     graph.getMinDegree(minDegree);
+    //cout << "min degree " << minDegree << endl;
     if (minDegree < 3 || minDegree > 4) {
         return false;
     }
     Graph::GraphTraversal graphTraversal(graph);
-    while (graphTraversal.curNode != NULL) {
+    while (graphTraversal.curNode != NONE) {
         uint32_t nodeV = graphTraversal.curNode;
         if (graph.getNodeDegree(nodeV) == 3) {
+            //cout << "nodeV " << nodeV << endl;
             vector<uint32_t> neighborsV;
             graph.gatherNeighbors(nodeV, neighborsV);
             for (uint32_t i = 0 ; i < 3 ; i++) {
@@ -100,16 +102,18 @@ bool Reductions::removeShortFunnels() {
                     vector<uint32_t> neighborsA;
                     graph.gatherNeighbors(nodeA, neighborsA);
                     if (minDegree == 3) {
+                        cout << "minDegree " << minDegree << endl;
                         for (auto &neighbor: neighborsA) {
                             if (neighbor == nodeV) {
                                 continue;
                             }
-                            if (graph.edgeExists(neighbor, nodeB) || graph.edgeExists(neighbor, nodeC) {
+                            if (graph.edgeExists(neighbor, nodeB) || graph.edgeExists(neighbor, nodeC)) {
                                 shortFunnel = true;
                                 break;
                             }
                         }
                     } else if (minDegree == 4) {
+                        cout << "minDegree " << minDegree << endl;
                         uint32_t countB = 0;
                         uint32_t countC = 0;
                         uint32_t *count;
@@ -134,7 +138,7 @@ bool Reductions::removeShortFunnels() {
                         }
                     }
                     if (shortFunnel) {
-                        cout << "short funnel " << nodeA << "-" << nodeV << "-{" << nodeB << "," << nodeC << "}\n";
+                        cout << "short funnel " << nodeA << "-" << nodeV << "-{" << nodeB << "," << nodeC << "}" << endl;
                         vector<uint32_t> container;
                         container.push_back(nodeA);
                         container.push_back(nodeV);
@@ -163,6 +167,7 @@ bool Reductions::removeShortFunnels() {
                         }
                         subsequentNodes.insert({nodeB, nodeA});
                         subsequentNodes.insert({nodeC, nodeA});
+                        //graph.print(true);
                         return true;
                     }
                 }
@@ -517,6 +522,10 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
 }
 
 void Reductions::buildCC() {
+    for (auto &cc: ccToNodes) {
+        delete cc.second;
+    }
+    ccToNodes.clear();
     uint32_t component = 0;
     unordered_set<uint32_t> exploredSet;
     stack<uint32_t> frontier;
