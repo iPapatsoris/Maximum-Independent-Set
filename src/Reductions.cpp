@@ -20,11 +20,13 @@ void Reductions::run(const uint32_t &theta) {
             reduce6(theta);
             break;
         case 5:
+            reduce5(theta);
+            break;
         case 4:
         case 3:
         case 2:
         case 1:
-            reduce5(theta);
+            reduce4(theta);
             break;
         default:
             assert(false);
@@ -39,11 +41,9 @@ void Reductions::reduce6(const uint32_t &theta) {
     bool firstTime = true;
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
-    while (removeUnconfinedNodes() || firstTime) {
-        if (!foldCompleteKIndependentSets(theta, firstTime, &oldCandidateNodes, &newCandidateNodes)) {
-            break;
-        }
-    }
+    do {
+        removeUnconfinedNodes()
+    } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes));
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
@@ -55,12 +55,9 @@ void Reductions::reduce5(const uint32_t &theta) {
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
     do {
-        bool firstTime = true;
-        while (removeUnconfinedNodes() || firstTime) {
-            if (!foldCompleteKIndependentSets(theta, firstTime, &oldCandidateNodes, &newCandidateNodes)) {
-                break;
-            }
-        }
+        do {
+            removeUnconfinedNodes()
+        } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes));
     } while (removeShortFunnels());
     delete oldCandidateNodes;
     delete newCandidateNodes;
@@ -70,7 +67,64 @@ void Reductions::reduce5(const uint32_t &theta) {
     graph.rebuild(reduceInfo);
 }
 
-bool Reductions::removeShortFunnels() {
+void Reductions::reduce4(const uint32_t &theta) {
+    unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
+    unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
+    bool check;
+    do {
+        do {
+            do {
+                do {
+                    foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes);
+                } while (removeDominatedNodes());
+            } while (removeUnconfinedNodes());
+        } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes), true);
+    } while (removeShortFunnels());
+    delete oldCandidateNodes;
+    delete newCandidateNodes;
+    buildCC();
+    removeEasyInstances(theta);
+    removeLineGraphs(theta);
+    graph.rebuild(reduceInfo);
+}
+
+bool Reductions::removeDominatedNodes() {
+    //cout << "\n**Performing dominated nodes reduction**" << endl;
+    ReduceInfo old = reduceInfo;
+    removeDominatedNodes2();
+    if (old.nodesRemoved == reduceInfo.nodesRemoved) {
+        //cout << "No nodes removed." << endl;
+        return false;
+    }
+    do {
+        //reduceInfo.print(&old);
+        old = reduceInfo;
+        removeDominatedNodes2();
+        //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
+    } while (old.nodesRemoved != reduceInfo.nodesRemoved);
+    return true;
+}
+
+bool Reductions::removeDominatedNodes2() {
+    for (uint32_t pos1 = 0 ; pos1 < graph.nodeIndex.size() ; pos1++) {
+        for (uint32_t pos2 = pos1+1 ; pos2 < graph.nodeIndex.size() ; pos2++) {
+            if (nodeIndex[pos1].edges > nodeIndex[pos2].edges) {
+                continue;
+            }
+            uint32_t node1 = getNode(pos1);
+            vector<uint32_t> neighbors1;
+            uint32_t nextNodeOffset = (pos2 == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos2+1].offset);
+            graph.gatherNeighbors(node1, neighbors1);
+            if (isSubsetOf(neighbors1, edgeBuffer.begin() + nodeIndex[pos2].offset, edgeBuffer.begin() + nextNodeOffset)) {
+                uint32_t node2 = getNode(pos2);
+                cout << "Dominated vertex " << node2 << "\n";
+                graph.remove(node2);
+            }
+        }
+    }
+}
+
+bool Reductions::removeShortFunnels(const uint32_t &theta) {
     uint32_t minDegree = NONE;
     graph.getMinDegree(minDegree);
     //cout << "min degree " << minDegree << endl;
@@ -97,19 +151,27 @@ bool Reductions::removeShortFunnels() {
                     nodeB = neighborsV[0];
                     nodeC = neighborsV[1];
                 }
-                if (graph.getNodeDegree(nodeA) == minDegree && graph.edgeExists(nodeB, nodeC)) {
+                if ((theta == 5 && graph.getNodeDegree(nodeA) == minDegree || theta == 4 && graph.getNodeDegree(nodeA) <= 4) && graph.edgeExists(nodeB, nodeC)) {
                     bool shortFunnel = false;
                     vector<uint32_t> neighborsA;
                     graph.gatherNeighbors(nodeA, neighborsA);
-                    if (minDegree == 3) {
+                    if (theta == 5 && minDegree == 3 || theta == 4) {
                         cout << "minDegree " << minDegree << endl;
+                        uint32_t edges;
+                        if (theta == 5) {
+                            edges = 1;
+                        } else if (theta == 4) {
+                            edges = graph.getNodeDegree(nodeA) - 2;
+                        }
                         for (auto &neighbor: neighborsA) {
                             if (neighbor == nodeV) {
                                 continue;
                             }
                             if (graph.edgeExists(neighbor, nodeB) || graph.edgeExists(neighbor, nodeC)) {
-                                shortFunnel = true;
-                                break;
+                                if (--edges) {
+                                    shortFunnel = true;
+                                    break;
+                                }
                             }
                         }
                     } else if (minDegree == 4) {
@@ -183,7 +245,7 @@ void Reductions::removeEasyInstances(const uint32_t &theta) {
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
-            if (cc->size() == 28) {
+            if (theta == 5 && cc->size() == 28 || theta == 4 && cc->size() == 23) {
                 //cout << "Removing easy instance component " << it->first << "\n";
                 //findMis(*cc);
                 graph.remove(*cc, reduceInfo, true);
@@ -272,14 +334,12 @@ void Reductions::findMis(const vector<uint32_t> &cc) {
     }
 }
 
-bool Reductions::foldCompleteKIndependentSets(const uint32_t &theta, bool &firstTime, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes) {
+bool Reductions::foldCompleteKIndependentSets(const uint32_t &theta, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes, const bool &theta4) {
     //cout << "\n**Performing K-Independent set folding reduction**" << endl;
+    (*oldCandidateNodes)->clear();
     ReduceInfo old = reduceInfo;
-    foldCompleteKIndependentSets2(theta, firstTime, **oldCandidateNodes, **newCandidateNodes);
+    foldCompleteKIndependentSets2(theta, true, **oldCandidateNodes, **newCandidateNodes, theta4);
     swap(oldCandidateNodes, newCandidateNodes);
-    if (firstTime) {
-        firstTime = false;
-    }
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
         //cout << "No nodes removed." << endl;
         return false;
@@ -287,7 +347,7 @@ bool Reductions::foldCompleteKIndependentSets(const uint32_t &theta, bool &first
     do {
         //reduceInfo.print(&old);
         old = reduceInfo;
-        foldCompleteKIndependentSets2(theta, firstTime, **oldCandidateNodes, **newCandidateNodes);
+        foldCompleteKIndependentSets2(theta, false, **oldCandidateNodes, **newCandidateNodes, theta4);
         swap(oldCandidateNodes, newCandidateNodes);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
     return true;
@@ -311,21 +371,31 @@ bool Reductions::removeUnconfinedNodes() {
     return true;
 }
 
-void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, unordered_set<uint32_t> &oldCandidateNodes, unordered_set<uint32_t> &newCandidateNodes) {
+void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, unordered_set<uint32_t> &oldCandidateNodes, unordered_set<uint32_t> &newCandidateNodes, const bool &theta4) {
     newCandidateNodes.clear();
     Graph::GraphTraversal graphTraversal(graph);
     auto it = oldCandidateNodes.begin();
     uint32_t node = (checkAllNodes ? graphTraversal.curNode : (it == oldCandidateNodes.end() ? NONE : *it));
     uint32_t bound = 5000;
     while (node != NONE) {
-        uint32_t k;
+        uint32_t k, end;
         if (theta >= 6) {
             k = 1;
-        } else {
-            k = 2;
+            end = 2;
         }
-        for (; k <= 2 ; k++) {
-            if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) && graph.getNodeDegree(node) == k+1) {
+        else if (theta == 5) {
+            k = 2;
+            end = 2;
+        } else if (theta == 4 && !theta4) {
+            k = 1;
+            end = 1;
+        } else if (theta == 4 && theta4) {
+            k = 2
+            end = 3;
+        }
+        for (; k <= end ; k++) {
+            if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) &&
+            ((uint32_t degree = graph.getNodeDegree(node)) == k+1 && k != 3 || k == 3 && (degree == 3 || degree == 4))) {
                 if (node >= bound) {
                     //cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
                     bound += 5000;
@@ -334,24 +404,43 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
                 vector<uint32_t> neighbors;
                 nodes.push_back(node);
                 graph.gatherNeighbors(node, neighbors);
-                if (k == 2) {
+                if (k == 2 || k == 3) {
                     uint32_t secondNode = graph.getNextNodeWithIdenticalNeighbors(node, neighbors);
                     if (secondNode != NONE) {
                         nodes.push_back(secondNode);
                     }
-                }
-                if (k == 1 || k == 2 && nodes.size() == 2) {
-                    vector<uint32_t> &mis = this->mis.getMis();
-                    if (graph.isIndependentSet(neighbors)) {
-                        uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, reduceInfo);
-                        this->mis.markHypernode(newNode, nodes, neighbors);
-                    } else {
-                        mis.insert(mis.end(), nodes.begin(), nodes.end());
+                    else {
+                        continue;
                     }
-                    neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
-                    graph.remove(neighbors, reduceInfo, false, &newCandidateNodes);
-                    //graph.print(true);
                 }
+                if (k == 3) {
+                    uint32_t thirdNode;
+                    uint32_t degree = graph.getNodeDegree(node);
+                    if (degree == 3) {
+                        uint32_t uncommonNeighbor;
+                        thirdNode = graph.getNodeWithOneUncommonNeighbor(neighbors, uncommonNeighbor);
+                        neighbors.push_back(uncommonNeighbor);
+                    } else if (degree == 4) {
+                        thirdNode = graph.getNextNodeWithIdenticalNeighbors(secondNode, neighbors);
+                    } else {
+                        assert(false);
+                    }
+                    if (thirdNode != NONE) {
+                        nodes.push_back(thirdNode);
+                    } else {
+                        continue;
+                    }
+                }
+                vector<uint32_t> &mis = this->mis.getMis();
+                if (graph.isIndependentSet(neighbors)) {
+                    uint32_t newNode = graph.contractToSingleNode(nodes, neighbors, reduceInfo);
+                    this->mis.markHypernode(newNode, nodes, neighbors);
+                } else if (theta != 4) {
+                    mis.insert(mis.end(), nodes.begin(), nodes.end());
+                }
+                neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
+                graph.remove(neighbors, reduceInfo, false, &newCandidateNodes);
+                //graph.print(true);
                 break;
             }
         }
@@ -425,11 +514,15 @@ void Reductions::removeLineGraphs(const uint32_t &theta) {
                         clique2Size = 4;
                         break;
                 }
-            } else {
+            } else if (theta == 5) {
                 nodes = 12;
                 degree = 5;
                 clique1Size = 4;
                 clique2Size = 3;
+            } else if (theta <= 4) {
+                nodes = 6;
+                degree = 4;
+                clique1Size = clique2Size = 3;
             }
             if (cc->size() == nodes && nodeDegreesEqualTo(*cc, degree, graph)) {
                 bool foundCliques = true;

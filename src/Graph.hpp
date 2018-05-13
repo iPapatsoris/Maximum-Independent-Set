@@ -32,6 +32,10 @@ public:
         return (!mapping ? node : idToPos->at(node));
     }
 
+    uint32_t getNode(const uint32_t &pos) const {
+        return (!mapping ? pos : posToId->at(pos));
+    }
+
     ~Graph();
 
     void setIdToPos(std::unordered_map<uint32_t, uint32_t> *idToPos) {

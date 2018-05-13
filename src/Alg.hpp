@@ -99,6 +99,9 @@ private:
                             type = Type::MAX_DEGREE;
                         } else if (maxDegree < theta) {
                             theta--;
+                            if (theta == 4 && graph.nodeIndex.size()) {
+                                reductions.run(theta);
+                            }
                             run = true;
                         }
                         break;

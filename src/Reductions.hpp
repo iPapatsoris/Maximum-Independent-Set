@@ -72,8 +72,8 @@ private:
     void findMis(const std::vector<uint32_t> &cc);
     bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
-    bool foldCompleteKIndependentSets(const uint32_t &theta, bool &firstTime, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes);
-    void foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, std::unordered_set<uint32_t> &oldCandidateNodes, std::unordered_set<uint32_t> &newCandidateNodes);
+    bool foldCompleteKIndependentSets(const uint32_t &theta, bool &firstTime, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes, const bool &theta4 = false);
+    void foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, std::unordered_set<uint32_t> &oldCandidateNodes, std::unordered_set<uint32_t> &newCandidateNodes, const bool &theta4 = false);
     void removeLineGraphs(const uint32_t &theta);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, std::vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize);
     void findMisInComponent(const std::vector<uint32_t> &cc);

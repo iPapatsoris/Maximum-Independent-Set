@@ -295,6 +295,21 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
     return NONE;
 }
 
+uint32_t Graph::getNodeWithOneUncommonNeighbor(const vector<uint32_t> &neighbors, uint32_t &uncommonNeighbor) const {
+    uncommonNeighbor = NONE;
+    for (pos = 0 ; pos < nodeIndex.size() ; pos++) {
+        if (nodeIndex[pos].edges == 3 || nodeIndex[pos].edges == 4) { // Optimization for 3-4 structures reduction
+            uint32_t node = (!mapping ? pos : posToId->at(pos));
+            vector<uint32_t> newNeighbors;
+            gatherNeighbors(node, newNeighbors);
+            if (setsHaveKUncommonElements(neighbors, newNeighbors, 1, uncommonNeighbor)) {
+                return node;
+            }
+        }
+    }
+    return NONE;
+}
+
 void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined, const bool &stopAtFirst) const {
     while (graphTraversal.curEdgeOffset != NONE) {
         uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
