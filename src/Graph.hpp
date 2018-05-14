@@ -76,6 +76,7 @@ public:
     void rebuild(ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
+    uint32_t getNodeWithOneUncommonNeighbor(const std::vector<uint32_t> &neighbors, uint32_t &uncommonNeighbor) const;
     uint32_t getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const std::vector<uint32_t> &neighbors) const;
     void replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor);
     void print(bool direction) const;
@@ -99,7 +100,6 @@ public:
                         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
                         if (!nodeIndex[nPos].removed) {
                             nodeIndex[nPos].edges--;
-                            reduceInfo.edgesRemoved++;
                             if (find(std::next(it, 1), nodes.end(), neighbor) == nodes.end() &&
                             candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
                                 candidateNodes->insert(neighbor);
@@ -118,7 +118,7 @@ public:
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t neighborCount = nodeIndex[pos].edges;
         uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
-        for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
+        for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset && removedNeighbors != NULL || removedNeighbors == NULL && neighborCount; offset++) {
             uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
             if (!nodeIndex[nPos].removed) {
                 neighbors.insert(neighbors.end(), (*edgeBuffer)[offset]);

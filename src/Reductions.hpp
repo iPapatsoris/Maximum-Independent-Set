@@ -67,12 +67,15 @@ private:
 
     void reduce6(const uint32_t &theta);
     void reduce5(const uint32_t &theta);
-    bool removeShortFunnels();
+    void reduce4(const uint32_t &theta);
+    bool removeDominatedNodes();
+    bool removeDominatedNodes2();
+    bool removeShortFunnels(const uint32_t &theta);
     void removeEasyInstances(const uint32_t &theta);
     void findMis(const std::vector<uint32_t> &cc);
     bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
-    bool foldCompleteKIndependentSets(const uint32_t &theta, bool &firstTime, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes, const bool &theta4 = false);
+    bool foldCompleteKIndependentSets(const uint32_t &theta, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes, const bool &theta4 = false);
     void foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, std::unordered_set<uint32_t> &oldCandidateNodes, std::unordered_set<uint32_t> &newCandidateNodes, const bool &theta4 = false);
     void removeLineGraphs(const uint32_t &theta);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, std::vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize);

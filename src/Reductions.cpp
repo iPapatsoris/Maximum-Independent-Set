@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <iomanip>
+#include <iterator>
 #include "Reductions.hpp"
 
 using namespace std;
@@ -42,7 +43,7 @@ void Reductions::reduce6(const uint32_t &theta) {
     unordered_set<uint32_t> *oldCandidateNodes = new unordered_set<uint32_t>();
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
     do {
-        removeUnconfinedNodes()
+        removeUnconfinedNodes();
     } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes));
     delete oldCandidateNodes;
     delete newCandidateNodes;
@@ -56,9 +57,9 @@ void Reductions::reduce5(const uint32_t &theta) {
     unordered_set<uint32_t> *newCandidateNodes = new unordered_set<uint32_t>();
     do {
         do {
-            removeUnconfinedNodes()
+            removeUnconfinedNodes();
         } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes));
-    } while (removeShortFunnels());
+    } while (removeShortFunnels(theta));
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
@@ -78,8 +79,8 @@ void Reductions::reduce4(const uint32_t &theta) {
                     foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes);
                 } while (removeDominatedNodes());
             } while (removeUnconfinedNodes());
-        } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes), true);
-    } while (removeShortFunnels());
+        } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes, true));
+    } while (removeShortFunnels(theta));
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
@@ -107,24 +108,32 @@ bool Reductions::removeDominatedNodes() {
 
 bool Reductions::removeDominatedNodes2() {
     for (uint32_t pos1 = 0 ; pos1 < graph.nodeIndex.size() ; pos1++) {
+        if (graph.nodeIndex[pos1].removed) {
+            continue;
+        }
         for (uint32_t pos2 = pos1+1 ; pos2 < graph.nodeIndex.size() ; pos2++) {
-            if (nodeIndex[pos1].edges > nodeIndex[pos2].edges) {
+            if (graph.nodeIndex[pos2].removed || graph.nodeIndex[pos1].edges > graph.nodeIndex[pos2].edges) {
                 continue;
             }
-            uint32_t node1 = getNode(pos1);
+            uint32_t node1 = graph.getNode(pos1);
             vector<uint32_t> neighbors1;
-            uint32_t nextNodeOffset = (pos2 == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos2+1].offset);
+            uint32_t nextNodeOffset = (pos2 == graph.nodeIndex.size()-1 ? graph.edgeBuffer->size() : graph.nodeIndex[pos2+1].offset);
             graph.gatherNeighbors(node1, neighbors1);
-            if (isSubsetOf(neighbors1, edgeBuffer.begin() + nodeIndex[pos2].offset, edgeBuffer.begin() + nextNodeOffset)) {
-                uint32_t node2 = getNode(pos2);
-                cout << "Dominated vertex " << node2 << "\n";
-                graph.remove(node2);
+            vector<uint32_t>::iterator begin = graph.edgeBuffer->begin();
+            vector<uint32_t>::iterator end = graph.edgeBuffer->begin();
+            std::advance(begin, graph.nodeIndex[pos2].offset);
+            std::advance(end, nextNodeOffset);
+            if (isSubsetOf(neighbors1, begin, end)) {
+                uint32_t node2 = graph.getNode(pos2);
+                //cout << "Dominated node " << node2 << "\n";
+                graph.remove(node2, reduceInfo);
             }
         }
     }
 }
 
 bool Reductions::removeShortFunnels(const uint32_t &theta) {
+    //cout << "\n**Performing short funnels reduction**" << endl;
     uint32_t minDegree = NONE;
     graph.getMinDegree(minDegree);
     //cout << "min degree " << minDegree << endl;
@@ -156,7 +165,7 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                     vector<uint32_t> neighborsA;
                     graph.gatherNeighbors(nodeA, neighborsA);
                     if (theta == 5 && minDegree == 3 || theta == 4) {
-                        cout << "minDegree " << minDegree << endl;
+                        //cout << "minDegree " << minDegree << endl;
                         uint32_t edges;
                         if (theta == 5) {
                             edges = 1;
@@ -175,7 +184,7 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                             }
                         }
                     } else if (minDegree == 4) {
-                        cout << "minDegree " << minDegree << endl;
+                        //cout << "minDegree " << minDegree << endl;
                         uint32_t countB = 0;
                         uint32_t countC = 0;
                         uint32_t *count;
@@ -390,12 +399,12 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
             k = 1;
             end = 1;
         } else if (theta == 4 && theta4) {
-            k = 2
+            k = 2;
             end = 3;
         }
         for (; k <= end ; k++) {
             if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) &&
-            ((uint32_t degree = graph.getNodeDegree(node)) == k+1 && k != 3 || k == 3 && (degree == 3 || degree == 4))) {
+            graph.getNodeDegree(node) == k+1 && k != 3 || k == 3 && (graph.getNodeDegree(node) == 3 || graph.getNodeDegree(node) == 4)) {
                 if (node >= bound) {
                     //cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
                     bound += 5000;
@@ -404,8 +413,9 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
                 vector<uint32_t> neighbors;
                 nodes.push_back(node);
                 graph.gatherNeighbors(node, neighbors);
+                uint32_t secondNode = NONE;
                 if (k == 2 || k == 3) {
-                    uint32_t secondNode = graph.getNextNodeWithIdenticalNeighbors(node, neighbors);
+                    secondNode = graph.getNextNodeWithIdenticalNeighbors(node, neighbors);
                     if (secondNode != NONE) {
                         nodes.push_back(secondNode);
                     }
@@ -549,10 +559,9 @@ void Reductions::removeLineGraphs(const uint32_t &theta) {
                     }
                 }
                 if (foundCliques) {
-                    //cout << "Removing component " << it->first << "\n";
+                    cout << "Removing component " << it->first << "\n";
                     findMisInComponent(*cc);
                     graph.remove(*cc, reduceInfo, true);
-                    reduceInfo.edgesRemoved += ((nodes * degree) / 2);
                     removedCCs.push_back(it);
                     break;
                 } else {

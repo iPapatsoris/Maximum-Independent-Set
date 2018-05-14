@@ -210,7 +210,6 @@ void Graph::rebuild(ReduceInfo &reduceInfo) {
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     reduceInfo.nodesRemoved = 0;
-    reduceInfo.edgesRemoved = 0;
 }
 
 /* Contract 'nodes' and 'neighbors' to a single node.
@@ -235,7 +234,6 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
                     replaceNeighbor(neighbor, *it, newNode);
                     uint32_t pos = (!mapping ? neighbor : idToPos->at(neighbor));
                     nodeIndex[pos].edges++;
-                    reduceInfo.edgesRemoved--;
                 }
             }
             getNextEdge(graphTraversal);
@@ -278,7 +276,7 @@ void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, c
 uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, const vector<uint32_t> &neighbors) const {
     uint32_t pos = (!mapping ? previousNode : idToPos->at(previousNode));
     for (pos = pos+1 ; pos < nodeIndex.size() ; pos++) {
-        if (nodeIndex[pos].edges == neighbors.size()) {
+        if (!nodeIndex[pos].removed && nodeIndex[pos].edges == neighbors.size()) {
             uint32_t neighborCount = neighbors.size();
             uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
             for (uint32_t offset = nodeIndex[pos].offset ; offset  < nextNodeOffset && neighborCount; offset++) {
@@ -297,8 +295,8 @@ uint32_t Graph::getNextNodeWithIdenticalNeighbors(const uint32_t &previousNode, 
 
 uint32_t Graph::getNodeWithOneUncommonNeighbor(const vector<uint32_t> &neighbors, uint32_t &uncommonNeighbor) const {
     uncommonNeighbor = NONE;
-    for (pos = 0 ; pos < nodeIndex.size() ; pos++) {
-        if (nodeIndex[pos].edges == 3 || nodeIndex[pos].edges == 4) { // Optimization for 3-4 structures reduction
+    for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
+        if (!nodeIndex[pos].removed && nodeIndex[pos].edges == 3 || nodeIndex[pos].edges == 4) { // Optimization for 3-4 structures reduction
             uint32_t node = (!mapping ? pos : posToId->at(pos));
             vector<uint32_t> newNeighbors;
             gatherNeighbors(node, newNeighbors);
@@ -403,6 +401,7 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
     uint32_t space = neighbors.size() + removedNeighbors.size();
     neighbors.insert(nodes.begin(), nodes.end());
     uint32_t finalNeighborCount = neighbors.size();
+    //cout << "space " << space << endl;
     if (neighbors.size() <= space) {
         //cout << "case 1\n";
         while (neighbors.size() < space) {
@@ -422,6 +421,7 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
             insertedElements++;
         }
         uint32_t addition = (neighbors.size() - insertedElements);
+        //cout << "neighbors " << neighbors.size() << ", insertedElements " << insertedElements << endl;
         edgeBuffer->reserve(edgeBuffer->size() + addition);
         edgeBuffer->insert(edgeBuffer->begin() + nextNodeOffset, it, neighbors.end());
         for (uint32_t i = pos + 1 ; i < nodeIndex.size() ; i++) {

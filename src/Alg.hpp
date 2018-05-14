@@ -83,6 +83,7 @@ private:
                             theta--;
                             if (theta == 5 && graph.nodeIndex.size()) {
                                 reductions.run(theta);
+                                graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                             }
                             run = true;
                         }
@@ -101,6 +102,7 @@ private:
                             theta--;
                             if (theta == 4 && graph.nodeIndex.size()) {
                                 reductions.run(theta);
+                                graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                             }
                             run = true;
                         }
