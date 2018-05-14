@@ -22,13 +22,14 @@ private:
     struct SearchNode {
     public:
         SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
-        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {}
+        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {}
         ~SearchNode();
         const Graph &getGraph() const {
             return graph;
         }
         void print() const;
 
+        uint32_t id;
         Graph graph;
         Mis mis; // Current mis and hypernodes
         Reductions *reductions;
@@ -213,9 +214,11 @@ private:
         SearchNode *leftChild = searchTree[parent->leftChild];
         SearchNode *rightChild = searchTree[parent->rightChild];
         assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
+        parent->id = leftChild->id;
         parent->finalMis = leftChild->finalMis;
         std::vector<uint32_t> *min = rightChild->finalMis;
         if (rightChild->finalMis->size() > parent->finalMis->size()) {
+            parent->id = rightChild->id;
             parent->finalMis = rightChild->finalMis;
             min = leftChild->finalMis;
         }

@@ -16,6 +16,7 @@ Alg::~Alg() {
 }
 
 Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parentNode) {
+    id = NONE;
     graph = searchNode.graph;
     mis = searchNode.mis;
     reductions = new Reductions(graph, mis);
@@ -28,6 +29,8 @@ Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parent
 Alg::SearchNode::~SearchNode() {
     delete reductions;
 }
+
+uint32_t searchNodeID = 0;
 
 void Alg::run() {
     //searchTree[0]->graph.print(true);
@@ -48,6 +51,8 @@ void Alg::run() {
             assert(branchingRule.type != BranchingRule::Type::DONE);
         }
         if (down && branchingRule.type == BranchingRule::Type::DONE) {
+            searchTree[i]->id = searchNodeID++;
+            cout << "Id " << searchTree[i]->id;
             searchTree[i]->finalMis = new vector<uint32_t>();
             searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
             i = searchTree[i]->parent;
@@ -99,6 +104,7 @@ void Alg::run() {
     cout << searchNodes << " search nodes\n";
     //print();
     searchTree[0]->graph.collectZeroDegreeNodes();
+    cout << "Final id " << searchTree[0]->id;
     Mis::print(*searchTree[0]->finalMis);
     delete searchTree[0]->finalMis;
 }

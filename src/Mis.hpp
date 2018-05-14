@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <assert.h>
 #include <iostream>
+#include <algorithm>
 
 struct Innernode {
 public:
@@ -36,14 +37,23 @@ private:
         for (uint32_t i = 0 ; i < set.size() ; i++) {
             auto subsequent = subsequentNodes.find(set[i]);
             if (subsequent != subsequentNodes.end()) {
-                set.push_back(subsequent->second); /* No need to check if it already exists in mis.
-                                                      Only removed nodes are values of keys */
+                if (std::find(set.begin(), set.end(), subsequent->second) != set.end() || std::find(finalMis.begin(), finalMis.end(), subsequent->second) != finalMis.end()) {
+                    subsequentNodes.erase(subsequent);
+                } else {
+                    set.push_back(subsequent->second);
+                    if (subsequent->second == 211) {
+                        std::cout << "pushing 211 to mis from included subsequent" << std::endl;
+                    }
+                }
             }
             auto res = hypernodeToInnernode.find(set[i]);
             if (res == hypernodeToInnernode.end()) {
                 //std::cout << "Adding regular node " << set[i] << "\n";
                 //fprintf(f, "%ld\n", set[i]);
                 finalMis.push_back(set[i]);
+                if (set[i] == 211) {
+                    std::cout << "pushing 211 to finalN=Mis from included" << std::endl;
+                }
             } else {
                 //std::cout << "Examining inner nodes of " << set[i] << "\n";
                 assert(res->second.outerLevel);
@@ -55,6 +65,9 @@ private:
                         innerHypernode->second.outerLevel = true;
                     }
                     set.push_back(node);
+                    if (node == 211) {
+                        std::cout << "pushing 211 to mis from included" << std::endl;
+                    }
                 }
                 for (auto node : res->second.nodes) {
                     auto innerHypernode = hypernodeToInnernode.find(node);

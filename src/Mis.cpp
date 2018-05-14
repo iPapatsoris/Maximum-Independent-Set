@@ -20,7 +20,7 @@ void Mis::markHypernode(const uint32_t &hypernode, const vector<uint32_t> &nodes
 }
 
 void Mis::unfoldHypernodes(vector<uint32_t> &zeroDegreeNodes, vector<uint32_t> &finalMis) {
-    //printAll(zeroDegreeNodes);
+    printAll(zeroDegreeNodes);
     finalMis.reserve(zeroDegreeNodes.size() + mis.size());
     expandIncludedNodes(mis, finalMis);
     expandIncludedNodes(zeroDegreeNodes, finalMis);
@@ -60,6 +60,9 @@ void Mis::expandExcludedNodes(vector<uint32_t> &finalMis) {
                 nestedHypernode->second.outerLevel = true;
             }
             mis.push_back(node);
+            if (node == 211) {
+                cout << "pushing 211 to mis from excluded" << endl;
+            }
         }
         for (auto node : hypernode->second.neighbors) {
             auto innerHypernode = hypernodeToInnernode.find(node);
@@ -82,6 +85,13 @@ void Mis::printAll(vector<uint32_t> &zeroDegreeNodes) const {
     for (auto node: zeroDegreeNodes) {
         cout << node << "\n";
     }
+
+    cout << "\nSubsequent nodes:\n";
+    for (auto &subsequent: subsequentNodes) {
+        cout << subsequent.first << " -> " << subsequent.second << "\n";
+    }
+
+
     cout << "\nHypernodes:\n";
     for (auto &hypernode: hypernodeToInnernode) {
         cout << hypernode.first << ", outer " << hypernode.second.outerLevel << "\n";

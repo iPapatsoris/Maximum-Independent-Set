@@ -36,6 +36,13 @@ void ControlUnit::checkIndependentSet(const string &misInputFile) const {
         mis.push_back(node);
     }
     uint32_t node1, node2;
+    unordered_set<uint32_t> set;
+    for (auto node: mis) {
+        if (!set.insert(node).second) {
+            cout << "NOT a set! Node " << node << " exists more than once" << endl;
+        }
+    }
+
     bool independentSet = alg.getSearchTree()[0]->getGraph().isIndependentSet(mis, &node1, &node2);
     if (independentSet) {
         cout << "Valid independent set\n";
