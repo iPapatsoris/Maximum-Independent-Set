@@ -17,6 +17,7 @@ Alg::~Alg() {
 
 Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parentNode) {
     id = NONE;
+    theta = searchNode.theta;
     graph = searchNode.graph;
     mis = searchNode.mis;
     reductions = new Reductions(graph, mis);
@@ -40,19 +41,18 @@ void Alg::run() {
     bool down = true;
     BranchingRule branchingRule;
     uint32_t i = 0;
-    uint32_t theta = 8;
     while(true) {
         if (down) {
-            searchTree[i]->reductions->run(theta);
-            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), theta);
+            searchTree[i]->reductions->run(searchTree[i]->theta);
+            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;
-            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), theta);
+            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
             assert(branchingRule.type != BranchingRule::Type::DONE);
         }
         if (down && branchingRule.type == BranchingRule::Type::DONE) {
             searchTree[i]->id = searchNodeID++;
-            cout << "Id " << searchTree[i]->id;
+            //cout << "Id " << searchTree[i]->id;
             searchTree[i]->finalMis = new vector<uint32_t>();
             searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
             i = searchTree[i]->parent;

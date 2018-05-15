@@ -42,7 +42,7 @@ private:
                 } else {
                     set.push_back(subsequent->second);
                     if (subsequent->second == 211) {
-                        std::cout << "pushing 211 to mis from included subsequent" << std::endl;
+                        //std::cout << "pushing 211 to mis from included subsequent" << std::endl;
                     }
                 }
             }
@@ -52,7 +52,7 @@ private:
                 //fprintf(f, "%ld\n", set[i]);
                 finalMis.push_back(set[i]);
                 if (set[i] == 211) {
-                    std::cout << "pushing 211 to finalN=Mis from included" << std::endl;
+                    //std::cout << "pushing 211 to finalN=Mis from included" << std::endl;
                 }
             } else {
                 //std::cout << "Examining inner nodes of " << set[i] << "\n";
@@ -66,7 +66,7 @@ private:
                     }
                     set.push_back(node);
                     if (node == 211) {
-                        std::cout << "pushing 211 to mis from included" << std::endl;
+                        //std::cout << "pushing 211 to mis from included" << std::endl;
                     }
                 }
                 for (auto node : res->second.nodes) {

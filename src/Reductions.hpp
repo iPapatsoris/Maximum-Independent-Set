@@ -12,6 +12,9 @@ public:
     ReduceInfo &getReduceInfo() {
         return reduceInfo;
     }
+    std::unordered_map<uint32_t, std::vector<uint32_t>* > &getCCToNodes() {
+        return ccToNodes;
+    }
 
 private:
     /* Check whether subset is a subset of node's neighbors */
@@ -34,26 +37,6 @@ private:
             }
         }
         return false;
-    }
-
-    /* Get current node's next valid neighbor */
-    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
-        bool validNeighbor = false;
-        while(!validNeighbor) {
-            graphTraversal = clique.back();
-            graph.getNextEdge(graphTraversal);
-            clique.back() = graphTraversal;
-            if (graphTraversal.curEdgeOffset != NONE) {
-                validNeighbor = true;
-            } else {
-                graphTraversal = clique.back();
-                clique.pop_back();
-                if (clique.empty()) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     static bool nodeDegreesEqualTo(std::vector<uint32_t> &nodes, const uint32_t &degree, const Graph &graph) {

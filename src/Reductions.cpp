@@ -209,7 +209,7 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                         }
                     }
                     if (shortFunnel) {
-                        cout << "short funnel " << nodeA << "-" << nodeV << "-{" << nodeB << "," << nodeC << "}" << endl;
+                        //cout << "short funnel " << nodeA << "-" << nodeV << "-{" << nodeB << "," << nodeC << "}" << endl;
                         vector<uint32_t> container;
                         container.push_back(nodeA);
                         container.push_back(nodeV);
@@ -615,7 +615,7 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
             graph.goToNode(neighbor, graphTraversal);
             clique.push_back(graphTraversal);
         } else {
-            if (!advance(clique, graphTraversal, graph)) {
+            if (!Graph::advance(clique, graphTraversal, graph)) {
                 return false;
             }
         }

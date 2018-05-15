@@ -329,6 +329,74 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
+uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNodes) const {
+    for (auto &cc: ccToNodes) {
+        vector<uint32_t> &nodes = *(cc.second);
+        if (nodes.size() < 9) {
+            continue;
+        }
+        for (uint32_t node: nodes) {
+            assert(!nodeIndex[getPos(node)].removed);
+            if (getNodeDegree(node) < 5) {
+                continue;
+            }
+            vector<GraphTraversal> frontier;
+            unordered_set<uint32_t> set;
+            frontier.push_back(GraphTraversal(*this, node));
+            set.insert(node);
+            for (uint32_t size = 26 ; size >= 6 ; size--) {
+                uint32_t goodNode = getGoodNode(frontier, set, nodes, size);
+                if (goodNode != NONE) {
+                    return goodNode;
+                }
+            }
+        }
+    }
+    return NONE;
+}
+
+uint32_t Graph::getGoodNode(vector<GraphTraversal> &frontier, unordered_set<uint32_t> &set, vector<uint32_t> &nodes, const uint32_t &size) const {
+    Graph::GraphTraversal graphTraversal = frontier[0];
+    if (graphTraversal.curNode == NONE) {
+        return NONE;
+    }
+    while (true) {
+        //if (clique[0].curNode == 11) {
+        ////cout << "Cur clique: \n";
+        //for (uint32_t i = 0 ; i < clique.size() ; i++) {
+        ////cout << clique[i].curNode << endl;
+        //}
+        //}
+        uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
+        ////cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
+        if (set.find(neighbor) == set.end()) {
+            ////cout << "going to " << neighbor << endl;
+            ////cout << "commonNode is " << commonNode << endl;
+            goToNode(neighbor, graphTraversal);
+            frontier.push_back(graphTraversal);
+            set.insert(neighbor);
+            if (set.size() == size) {
+                unordered_set<uint32_t> neighbors;
+                gatherAllNeighbors(set, neighbors, 3);
+                if (neighbors.size() == 3) {
+                    cout << "FOUND" << endl;
+                } else {
+                    frontier.pop_back();
+                    set.erase(neighbor);
+                    if (!advance(frontier, graphTraversal, *this)) {
+                        return NONE;
+                    }
+                }
+            }
+        } else {
+            if (!advance(frontier, graphTraversal, *this)) {
+                return NONE;
+            }
+        }
+    }
+    return true;
+}
+
 void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, vector<uint32_t> &finalContainer) const {
     finalNode1 = NONE;
     finalNode2 = NONE;
@@ -397,7 +465,7 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
     uint32_t pos = (!mapping ? node : idToPos->at(node));
     set<uint32_t> neighbors;
     vector<uint32_t> removedNeighbors;
-    gatherNeighbors(node, neighbors, &removedNeighbors);
+    gatherNeighborsWithRemoved(node, neighbors, removedNeighbors);
     uint32_t space = neighbors.size() + removedNeighbors.size();
     neighbors.insert(nodes.begin(), nodes.end());
     uint32_t finalNeighborCount = neighbors.size();
@@ -440,6 +508,8 @@ void Graph::collectZeroDegreeNodes() {
         }
     }
 }
+
+
 
 /* Only for debugging. If needed in actual algorithm,
  * make it a class field */

@@ -20,7 +20,7 @@ void Mis::markHypernode(const uint32_t &hypernode, const vector<uint32_t> &nodes
 }
 
 void Mis::unfoldHypernodes(vector<uint32_t> &zeroDegreeNodes, vector<uint32_t> &finalMis) {
-    printAll(zeroDegreeNodes);
+    //printAll(zeroDegreeNodes);
     finalMis.reserve(zeroDegreeNodes.size() + mis.size());
     expandIncludedNodes(mis, finalMis);
     expandIncludedNodes(zeroDegreeNodes, finalMis);
@@ -61,7 +61,7 @@ void Mis::expandExcludedNodes(vector<uint32_t> &finalMis) {
             }
             mis.push_back(node);
             if (node == 211) {
-                cout << "pushing 211 to mis from excluded" << endl;
+                //cout << "pushing 211 to mis from excluded" << endl;
             }
         }
         for (auto node : hypernode->second.neighbors) {

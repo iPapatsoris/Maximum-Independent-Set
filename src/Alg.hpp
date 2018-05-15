@@ -22,7 +22,7 @@ private:
     struct SearchNode {
     public:
         SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
-        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {}
+        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), theta(8), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {}
         ~SearchNode();
         const Graph &getGraph() const {
             return graph;
@@ -30,6 +30,7 @@ private:
         void print() const;
 
         uint32_t id;
+        uint32_t theta;
         Graph graph;
         Mis mis; // Current mis and hypernodes
         Reductions *reductions;
@@ -90,10 +91,6 @@ private:
                         }
                         break;
                     case 5:
-                    case 4:
-                    case 3:
-                    case 2:
-                    case 1:
                         if (!maxDegree) {
                             type = Type::DONE;
                         }
@@ -105,6 +102,35 @@ private:
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                             }
+                            run = true;
+                        }
+                        break;
+                    case 4: {
+                        type = Type::MAX_DEGREE;
+                        //uint32_t tmp = graph.getGoodNode(reductions.getCCToNodes());
+                        //if (tmp != NONE) {
+                    //        node1 = tmp;
+                    //    }
+                        if (maxDegree < theta) {
+                            theta--;
+                            if (theta == 3 && graph.nodeIndex.size()) {
+                                reductions.run(theta);
+                                graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
+                            }
+                            run = true;
+                        }
+                        break;
+                    }
+                    case 3:
+                    case 2:
+                    case 1:
+                        if (!maxDegree) {
+                            type = Type::DONE;
+                        }
+                        else if (maxDegree >= theta) {
+                            type = Type::MAX_DEGREE;
+                        } else if (maxDegree < theta) {
+                            theta--;
                             run = true;
                         }
                         break;
@@ -123,7 +149,7 @@ private:
             Graph::GraphTraversal graphTraversal(graph);
             while (graphTraversal.curNode != NONE) {
                 count++;
-                std::cout << "theta " << theta << " count " << count << "\n";
+                //std::cout << "theta " << theta << " count " << count << "\n";
                 uint32_t node = graphTraversal.curNode;
                 switch (theta) {
                     case 8: {
@@ -261,7 +287,7 @@ private:
                 std::vector<uint32_t> &mis = searchNode->mis.getMis();
                 mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
                 std::unordered_set<uint32_t> neighbors;
-                searchNode->graph.gatherNeighbors(extendedGrandchildren, neighbors);
+                searchNode->graph.gatherAllNeighbors(extendedGrandchildren, neighbors);
 
                 std::unordered_set<uint32_t> *smaller = &neighbors;
                 std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;

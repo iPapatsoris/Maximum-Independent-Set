@@ -62,6 +62,8 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    uint32_t getGoodNode(std::unordered_map<uint32_t, std::vector<uint32_t>* > &ccToNodes) const;
+    uint32_t getGoodNode(std::vector<GraphTraversal> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
     void collectZeroDegreeNodes();
     void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
     void getNeighborsAtDistance2(const uint32_t &node, std::unordered_set<uint32_t> &neighbors, const uint32_t &degree = NONE, uint32_t *count = NULL) const;
@@ -113,26 +115,44 @@ public:
         }
     }
 
-    template <typename Container, typename ContainerRemoved = std::vector<uint32_t> >
-    void gatherNeighbors(const uint32_t &node, Container &neighbors, ContainerRemoved *removedNeighbors = NULL) const {
+    template <typename Container, typename OriginalNodesContainer = std::unordered_set<uint32_t> >
+    bool gatherNeighbors(const uint32_t &node, Container &neighbors, const OriginalNodesContainer *nodes = NULL, const uint32_t &maxNeighbors = NONE) const {
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t neighborCount = nodeIndex[pos].edges;
         uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
-        for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset && removedNeighbors != NULL || removedNeighbors == NULL && neighborCount; offset++) {
+        for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset && neighborCount; offset++) {
+            uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
+            if (!nodeIndex[nPos].removed && (nodes == NULL || nodes->find((*edgeBuffer)[offset]) == nodes->end())) {
+                neighbors.insert(neighbors.end(), (*edgeBuffer)[offset]);
+                if (maxNeighbors != NONE && neighbors.size() > maxNeighbors) {
+                    return false;
+                }
+                neighborCount--;
+            }
+        }
+        return true;
+    }
+
+    template <typename Container, typename ContainerRemoved = std::vector<uint32_t> >
+    bool gatherNeighborsWithRemoved(const uint32_t &node, Container &neighbors, ContainerRemoved &removedNeighbors) const {
+        uint32_t pos = (!mapping ? node : idToPos->at(node));
+        uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
+        for (uint32_t offset = nodeIndex[pos].offset ; offset < nextNodeOffset ; offset++) {
             uint32_t nPos = (!mapping ? (*edgeBuffer)[offset] : idToPos->at((*edgeBuffer)[offset]));
             if (!nodeIndex[nPos].removed) {
                 neighbors.insert(neighbors.end(), (*edgeBuffer)[offset]);
-                neighborCount--;
-            } else if (removedNeighbors != NULL) {
-                removedNeighbors->insert(removedNeighbors->end(), (*edgeBuffer)[offset]);
+            } else {
+                removedNeighbors.insert(removedNeighbors.end(), (*edgeBuffer)[offset]);
             }
         }
     }
 
-    template <typename Container>
-    void gatherNeighbors(Container &nodes, Container &neighbors) const {
+    template <typename Container, typename OriginalNodesContainer>
+    void gatherAllNeighbors(OriginalNodesContainer &nodes, Container &neighbors, const uint32_t &maxNeighbors = NONE) const {
         for (auto &node: nodes) {
-            gatherNeighbors(node, neighbors);
+            if (!gatherNeighbors(node, neighbors, &nodes, maxNeighbors)) {
+                return;
+            }
         }
     }
 
@@ -295,6 +315,27 @@ public:
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         graphTraversal.curEdgeOffset = getFirstValidNeighborOffset(pos);
     }
+
+    /* Get current node's next valid neighbor, with backtracking in vector */
+    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
+        bool validNeighbor = false;
+        while(!validNeighbor) {
+            graphTraversal = clique.back();
+            graph.getNextEdge(graphTraversal);
+            clique.back() = graphTraversal;
+            if (graphTraversal.curEdgeOffset != NONE) {
+                validNeighbor = true;
+            } else {
+                graphTraversal = clique.back();
+                clique.pop_back();
+                if (clique.empty()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
