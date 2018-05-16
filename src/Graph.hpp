@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 #include <algorithm>
 #include <assert.h>
 #include "Util.hpp"
@@ -18,6 +19,7 @@ friend class ControlUnit;
 friend class Reductions;
 friend class Alg;
 class NodeInfo;
+struct Traversal;
 
 public:
     struct GraphTraversal;
@@ -63,7 +65,7 @@ public:
     }
 
     uint32_t getGoodNode(std::unordered_map<uint32_t, std::vector<uint32_t>* > &ccToNodes) const;
-    uint32_t getGoodNode(std::vector<GraphTraversal> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
+    uint32_t getGoodNode(std::vector<Traversal *> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
     void collectZeroDegreeNodes();
     void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
     void getNeighborsAtDistance2(const uint32_t &node, std::unordered_set<uint32_t> &neighbors, const uint32_t &degree = NONE, uint32_t *count = NULL) const;
@@ -317,18 +319,21 @@ public:
     }
 
     /* Get current node's next valid neighbor, with backtracking in vector */
-    static bool advance(std::vector<Graph::GraphTraversal> &clique, Graph::GraphTraversal &graphTraversal, const Graph &graph) {
+    static bool advance(std::vector<Graph::GraphTraversal> &frontier, Graph::GraphTraversal &graphTraversal, const Graph &graph, std::unordered_set<uint32_t> *set = NULL) {
         bool validNeighbor = false;
         while(!validNeighbor) {
-            graphTraversal = clique.back();
+            graphTraversal = frontier.back();
             graph.getNextEdge(graphTraversal);
-            clique.back() = graphTraversal;
+            frontier.back() = graphTraversal;
             if (graphTraversal.curEdgeOffset != NONE) {
                 validNeighbor = true;
             } else {
-                graphTraversal = clique.back();
-                clique.pop_back();
-                if (clique.empty()) {
+                graphTraversal = frontier.back();
+                if (set != NULL) {
+                    set->erase(graphTraversal.curNode);
+                }
+                frontier.pop_back();
+                if (frontier.empty()) {
                     return false;
                 }
             }
@@ -336,6 +341,24 @@ public:
         return true;
     }
 
+    /* Get current node's next valid neighbor, with backtracking in vector */
+    static bool advance(std::vector<Traversal *> &frontier, Traversal **traversal, const Graph &graph, std::unordered_set<uint32_t> &set) {
+        bool validNeighbor = false;
+        while(!validNeighbor) {
+            *traversal = frontier.back();
+            (*traversal)->next();
+            if ((*traversal)->index != NONE) {
+                validNeighbor = true;
+            } else {
+                set.erase((*traversal)->sourceNode);
+                frontier.pop_back();
+                if (frontier.empty()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
 private:
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
@@ -348,6 +371,32 @@ private:
         uint32_t offset; // Offset of neighbors in edgeBuffer
         uint32_t edges;
         bool removed;
+    };
+
+    struct Traversal {
+        Traversal(const uint32_t &node, const Graph &graph, Traversal *previous = NULL) {
+            sourceNode = node;
+            if (previous != NULL) {
+                set = previous->set;
+                set.erase(node);
+            }
+            graph.gatherNeighbors(node, set);
+            if (!set.size()) {
+                index = NONE;
+            } else {
+                index = 0;
+            }
+        }
+
+        void next() {
+            if (++index == set.size()) {
+                index = NONE;
+            }
+        }
+
+        std::set<uint32_t> set;
+        uint32_t index;
+        uint32_t sourceNode;
     };
 
     /* Rerturn edge buffer offset of first non-removed neighbor of node at pos */

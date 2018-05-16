@@ -107,10 +107,10 @@ private:
                         break;
                     case 4: {
                         type = Type::MAX_DEGREE;
-                        //uint32_t tmp = graph.getGoodNode(reductions.getCCToNodes());
-                        //if (tmp != NONE) {
-                    //        node1 = tmp;
-                    //    }
+                        uint32_t tmp = graph.getGoodNode(reductions.getCCToNodes());
+                        if (tmp != NONE) {
+                            maxDegreeNode = tmp;
+                        }
                         if (maxDegree < theta) {
                             theta--;
                             if (theta == 3 && graph.nodeIndex.size()) {

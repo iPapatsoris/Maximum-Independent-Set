@@ -335,18 +335,23 @@ uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNod
         if (nodes.size() < 9) {
             continue;
         }
+        uint32_t start = 26;
+        if (nodes.size() < 29) {
+            start = nodes.size() - 3;
+        }
         for (uint32_t node: nodes) {
             assert(!nodeIndex[getPos(node)].removed);
             if (getNodeDegree(node) < 5) {
                 continue;
             }
-            vector<GraphTraversal> frontier;
-            unordered_set<uint32_t> set;
-            frontier.push_back(GraphTraversal(*this, node));
-            set.insert(node);
-            for (uint32_t size = 26 ; size >= 6 ; size--) {
+            for (uint32_t size = start ; size >= 6 ; size--) {
+                vector<Traversal *> frontier;
+                unordered_set<uint32_t> set;
+                frontier.push_back(new Traversal(node, *this));
+                set.insert(node);
                 uint32_t goodNode = getGoodNode(frontier, set, nodes, size);
                 if (goodNode != NONE) {
+                    //cout << "Found good node for good set of size " << size << "\n";
                     return goodNode;
                 }
             }
@@ -355,9 +360,10 @@ uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNod
     return NONE;
 }
 
-uint32_t Graph::getGoodNode(vector<GraphTraversal> &frontier, unordered_set<uint32_t> &set, vector<uint32_t> &nodes, const uint32_t &size) const {
-    Graph::GraphTraversal graphTraversal = frontier[0];
-    if (graphTraversal.curNode == NONE) {
+uint32_t Graph::getGoodNode(vector<Traversal *> &frontier, unordered_set<uint32_t> &set, vector<uint32_t> &nodes, const uint32_t &size) const {
+    //cout << "Size " << size << endl;
+    Traversal *traversal = frontier[0];
+    if (traversal->index == NONE) {
         return NONE;
     }
     while (true) {
@@ -367,29 +373,35 @@ uint32_t Graph::getGoodNode(vector<GraphTraversal> &frontier, unordered_set<uint
         ////cout << clique[i].curNode << endl;
         //}
         //}
-        uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
-        ////cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
+        auto it = traversal->set.begin();
+        std::advance(it, traversal->index);
+        uint32_t neighbor = *it;
+        //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
         if (set.find(neighbor) == set.end()) {
-            ////cout << "going to " << neighbor << endl;
-            ////cout << "commonNode is " << commonNode << endl;
-            goToNode(neighbor, graphTraversal);
-            frontier.push_back(graphTraversal);
+            frontier.push_back(new Traversal(neighbor, *this, frontier[frontier.size()-1]));
             set.insert(neighbor);
+            traversal = frontier[frontier.size()-1];
+            //for (auto &n: set) {
+            //    cout << n << endl;
+            //}
+            //cout << "\n";
             if (set.size() == size) {
                 unordered_set<uint32_t> neighbors;
                 gatherAllNeighbors(set, neighbors, 3);
                 if (neighbors.size() == 3) {
-                    cout << "FOUND" << endl;
+                    //cout << "FOUND" << endl;
+                    return *(neighbors.begin());
                 } else {
+                    //cout << "NOT FOUND" << endl;
                     frontier.pop_back();
                     set.erase(neighbor);
-                    if (!advance(frontier, graphTraversal, *this)) {
+                    if (!advance(frontier, &traversal, *this, set)) {
                         return NONE;
                     }
                 }
             }
         } else {
-            if (!advance(frontier, graphTraversal, *this)) {
+            if (!advance(frontier, &traversal, *this, set)) {
                 return NONE;
             }
         }
