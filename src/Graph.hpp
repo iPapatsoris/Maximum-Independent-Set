@@ -64,8 +64,8 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    bool getGoodFunnel(uint32_t &node1, uint32_t &node2) const;
     uint32_t getGoodNode(std::unordered_map<uint32_t, std::vector<uint32_t>* > &ccToNodes) const;
-    uint32_t getGoodNode(std::vector<Traversal *> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
     void collectZeroDegreeNodes();
     void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
     void getNeighborsAtDistance2(const uint32_t &node, std::unordered_set<uint32_t> &neighbors, const uint32_t &degree = NONE, uint32_t *count = NULL) const;
@@ -351,6 +351,7 @@ public:
                 validNeighbor = true;
             } else {
                 set.erase((*traversal)->sourceNode);
+                delete *traversal;
                 frontier.pop_back();
                 if (frontier.empty()) {
                     return false;
@@ -361,9 +362,12 @@ public:
     }
 
 private:
+    struct Funnel;
+
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
     void fill(const uint32_t &size, const bool &checkIndependentSet);
-
+    bool getFunnels(std::vector<Funnel> &funnels) const;
+    uint32_t getGoodNode(std::vector<Traversal *> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
     struct NodeInfo {
     public:
         NodeInfo(const uint32_t &offset, const uint32_t &edges) : offset(offset), edges(edges), removed(false) {}
@@ -397,6 +401,23 @@ private:
         std::set<uint32_t> set;
         uint32_t index;
         uint32_t sourceNode;
+    };
+
+    struct Funnel {
+        Funnel(const uint32_t &a, const uint32_t &b, const uint32_t &c, const uint32_t &d, const uint32_t &v) : a(a), b(b), c(c), d(d), v(v) {}
+        void print() const {
+            std::cout << a << "-" << v << "-{" << b << "," << c;
+            if (d != NONE) {
+                std::cout << "," << d;
+            }
+            std::cout << "}\n";
+        }
+
+        uint32_t a;
+        uint32_t b;
+        uint32_t c;
+        uint32_t d;
+        uint32_t v;
     };
 
     /* Rerturn edge buffer offset of first non-removed neighbor of node at pos */

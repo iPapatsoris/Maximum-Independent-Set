@@ -43,7 +43,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, OPTNODE, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, DONE
         };
 
         Type type;
@@ -107,9 +107,13 @@ private:
                         break;
                     case 4: {
                         type = Type::MAX_DEGREE;
-                        uint32_t tmp = graph.getGoodNode(reductions.getCCToNodes());
-                        if (tmp != NONE) {
-                            maxDegreeNode = tmp;
+                        if (maxDegree >= 5) {
+                            uint32_t goodNode = graph.getGoodNode(reductions.getCCToNodes());
+                            if (goodNode != NONE) {
+                                maxDegreeNode = goodNode;
+                            }
+                        } else if (graph.getGoodFunnel(node1, node2)) {
+                            type = Type::GOOD_FUNNEL;
                         }
                         if (maxDegree < theta) {
                             theta--;
@@ -255,7 +259,7 @@ private:
         searchTree.pop_back();
     }
 
-    void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) {
+    void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) const {
         //std::cout << "left\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
@@ -270,34 +274,21 @@ private:
                 searchNode->graph.remove(shortEdge, searchNode->reductions->getReduceInfo());
                 break;
             }
+            case BranchingRule::Type::GOOD_FUNNEL: {
+                branchOnExtendedGranchildren(branchingRule, searchNode);
+                break;
+            }
             default:
                 assert(false);
         }
     }
 
-    void branchRight(BranchingRule &branchingRule, SearchNode *searchNode) {
+    void branchRight(BranchingRule &branchingRule, SearchNode *searchNode) const {
         //std::cout << "right\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
             case BranchingRule::Type::OPTNODE: {
-                std::unordered_set<uint32_t> extendedGrandchildren;
-                Graph::GraphTraversal graphTraversal(searchNode->graph, branchingRule.node1);
-                searchNode->graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren);
-                extendedGrandchildren.insert(branchingRule.node1);
-                std::vector<uint32_t> &mis = searchNode->mis.getMis();
-                mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
-                std::unordered_set<uint32_t> neighbors;
-                searchNode->graph.gatherAllNeighbors(extendedGrandchildren, neighbors);
-
-                std::unordered_set<uint32_t> *smaller = &neighbors;
-                std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;
-                if (smaller->size() > bigger->size()) {
-                    std::unordered_set<uint32_t> *tmp = smaller;
-                    smaller = bigger;
-                    bigger = tmp;
-                }
-                smaller->insert(bigger->begin(), bigger->end());
-                searchNode->graph.remove(std::vector<uint32_t>(smaller->begin(), smaller->end()), searchNode->reductions->getReduceInfo());
+                branchOnExtendedGranchildren(branchingRule, searchNode);
                 break;
             }
             case BranchingRule::Type::SHORT_EDGE: {
@@ -319,9 +310,38 @@ private:
                 //searchNode->graph.print(true);
                 break;
             }
+            case BranchingRule::Type::GOOD_FUNNEL: {
+                searchNode->mis.getMis().push_back(branchingRule.node2);
+                std::vector<uint32_t> neighbors;
+                searchNode->graph.gatherNeighbors(branchingRule.node2, neighbors);
+                neighbors.push_back(branchingRule.node2);
+                searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                break;
+            }
             default:
                 assert(false);
         }
+    }
+
+    void branchOnExtendedGranchildren(const BranchingRule &branchingRule, SearchNode *searchNode) const {
+        std::unordered_set<uint32_t> extendedGrandchildren;
+        Graph::GraphTraversal graphTraversal(searchNode->graph, branchingRule.node1);
+        searchNode->graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren);
+        extendedGrandchildren.insert(branchingRule.node1);
+        std::vector<uint32_t> &mis = searchNode->mis.getMis();
+        mis.insert(mis.end(), extendedGrandchildren.begin(), extendedGrandchildren.end());
+        std::unordered_set<uint32_t> neighbors;
+        searchNode->graph.gatherAllNeighbors(extendedGrandchildren, neighbors);
+
+        std::unordered_set<uint32_t> *smaller = &neighbors;
+        std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;
+        if (smaller->size() > bigger->size()) {
+            std::unordered_set<uint32_t> *tmp = smaller;
+            smaller = bigger;
+            bigger = tmp;
+        }
+        smaller->insert(bigger->begin(), bigger->end());
+        searchNode->graph.remove(std::vector<uint32_t>(smaller->begin(), smaller->end()), searchNode->reductions->getReduceInfo());
     }
 
     std::vector<SearchNode *> searchTree;

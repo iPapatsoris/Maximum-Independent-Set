@@ -329,6 +329,75 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
+bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
+    vector<Funnel> funnels;
+    if (getFunnels(funnels)) {
+        Funnel &funnel = funnels.back();
+        node1 = funnel.a;
+        node2 = funnel.v;
+        cout << "branching on good funnel ";
+        funnel.print();
+        return true;
+    } else {
+        for (uint32_t i = 0 ; i < 2 ; i++) {
+            for (auto &funnel: funnels) {
+                uint32_t bDegree = getNodeDegree(funnel.b);
+                uint32_t cDegree = getNodeDegree(funnel.c);
+                if (!i && bDegree == 4 && cDegree == 4 || i && (bDegree == 4 || cDegree == 4)) {
+                    node1 = funnel.a;
+                    node2 = funnel.v;
+                    cout << "branching on good funnel ";
+                    funnel.print();
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool Graph::getFunnels(vector<Funnel> &funnels) const {
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        uint32_t nodeV = graphTraversal.curNode;
+        uint32_t vDegree = getNodeDegree(nodeV);
+        if (vDegree == 3 || vDegree == 4) {
+            //cout << "nodeV " << nodeV << endl;
+            vector<uint32_t> neighborsV;
+            gatherNeighbors(nodeV, neighborsV);
+            for (uint32_t i = 0 ; i < neighborsV.size() ; i++) {
+                uint32_t nodeA = neighborsV[i];
+                uint32_t nodeB, nodeC, nodeD;
+                if (i == 0) {
+                    nodeB = neighborsV[1];
+                    nodeC = neighborsV[2];
+                    nodeD = (neighborsV.size() == 3 ? NONE : neighborsV[3]);
+                } else if (i == 1) {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[2];
+                    nodeD = (neighborsV.size() == 3 ? NONE : neighborsV[3]);
+                } else if (i == 2) {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[1];
+                    nodeD = (neighborsV.size() == 3 ? NONE : neighborsV[3]);
+                } else {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[1];
+                    nodeD = (neighborsV.size() == 3 ? NONE : neighborsV[2]);
+                }
+                if (edgeExists(nodeB, nodeC) && (vDegree == 3 || vDegree == 4 && edgeExists(nodeB, nodeD) && edgeExists(nodeC, nodeD)))  {
+                    funnels.push_back(Funnel(nodeA, nodeB, nodeC, nodeD, nodeV));
+                    if (vDegree == 4 || (getNodeDegree(nodeA) == 4 && (getNodeDegree(nodeB) == 4 || getNodeDegree(nodeC) == 4))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    return false;
+}
+
 uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNodes) const {
     for (auto &cc: ccToNodes) {
         vector<uint32_t> &nodes = *(cc.second);
@@ -367,12 +436,6 @@ uint32_t Graph::getGoodNode(vector<Traversal *> &frontier, unordered_set<uint32_
         return NONE;
     }
     while (true) {
-        //if (clique[0].curNode == 11) {
-        ////cout << "Cur clique: \n";
-        //for (uint32_t i = 0 ; i < clique.size() ; i++) {
-        ////cout << clique[i].curNode << endl;
-        //}
-        //}
         auto it = traversal->set.begin();
         std::advance(it, traversal->index);
         uint32_t neighbor = *it;
@@ -393,6 +456,7 @@ uint32_t Graph::getGoodNode(vector<Traversal *> &frontier, unordered_set<uint32_
                     return *(neighbors.begin());
                 } else {
                     //cout << "NOT FOUND" << endl;
+                    delete traversal;
                     frontier.pop_back();
                     set.erase(neighbor);
                     if (!advance(frontier, &traversal, *this, set)) {
