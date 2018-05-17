@@ -43,7 +43,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, FOUR_CYCLE, DONE
         };
 
         Type type;
@@ -114,6 +114,8 @@ private:
                             }
                         } else if (graph.getGoodFunnel(node1, node2)) {
                             type = Type::GOOD_FUNNEL;
+                        } else if (graph.get4Cycle(container)) {
+                            type = Type::FOUR_CYCLE;
                         }
                         if (maxDegree < theta) {
                             theta--;
@@ -278,6 +280,13 @@ private:
                 branchOnExtendedGranchildren(branchingRule, searchNode);
                 break;
             }
+            case BranchingRule::Type::FOUR_CYCLE: {
+                std::vector<uint32_t> nonAdjacent;
+                nonAdjacent.push_back(branchingRule.container[0]);
+                nonAdjacent.push_back(branchingRule.container[2]);
+                searchNode->graph.remove(nonAdjacent, searchNode->reductions->getReduceInfo());
+                break;
+            }
             default:
                 assert(false);
         }
@@ -316,6 +325,13 @@ private:
                 searchNode->graph.gatherNeighbors(branchingRule.node2, neighbors);
                 neighbors.push_back(branchingRule.node2);
                 searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::FOUR_CYCLE: {
+                std::vector<uint32_t> nonAdjacent;
+                nonAdjacent.push_back(branchingRule.container[1]);
+                nonAdjacent.push_back(branchingRule.container[3]);
+                searchNode->graph.remove(nonAdjacent, searchNode->reductions->getReduceInfo());
                 break;
             }
             default:

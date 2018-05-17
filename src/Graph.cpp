@@ -329,6 +329,61 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
+bool Graph::get4Cycle(vector<uint32_t> &cycle) const {
+    cycle.clear();
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        if (getNodeDegree(graphTraversal.curNode) == 4) {
+            vector<uint32_t> neighbors;
+            gatherNeighbors(graphTraversal.curNode, neighbors);
+            uint32_t b, d;
+            for (uint32_t i = 0 ; i < 6 ; i++) {
+                switch (i) {
+                    case 0:
+                        b = neighbors[0];
+                        d = neighbors[1];
+                        break;
+                    case 1:
+                        b = neighbors[0];
+                        d = neighbors[2];
+                        break;
+                    case 2:
+                        b = neighbors[0];
+                        d = neighbors[3];
+                        break;
+                    case 3:
+                        b = neighbors[1];
+                        d = neighbors[2];
+                        break;
+                    case 4:
+                        b = neighbors[1];
+                        d = neighbors[3];
+                        break;
+                    case 5:
+                        b = neighbors[2];
+                        d = neighbors[3];
+                        break;
+                    default:
+                        assert(false);
+                }
+                vector<uint32_t> commonNeighbors;
+                getCommonNeighbors(b, d, commonNeighbors, 2);
+                if (commonNeighbors.size() == 2) {
+                    uint32_t c = (commonNeighbors[0] == graphTraversal.curNode ? commonNeighbors[1] : commonNeighbors[0]);
+                    cycle.push_back(graphTraversal.curNode);
+                    cycle.push_back(b);
+                    cycle.push_back(c);
+                    cycle.push_back(d);
+                    cout << "branching on cycle " << graphTraversal.curNode << "-" << b << "-" << c << "-" << d << "\n";
+                    return true;
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    return false;
+}
+
 bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
     vector<Funnel> funnels;
     if (getFunnels(funnels)) {
@@ -516,15 +571,19 @@ void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, ui
     }
 }
 
-void Graph::getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, vector<uint32_t> &commonNeighbors) const {
+void Graph::getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, vector<uint32_t> &commonNeighbors, const uint32_t &atLeast) const {
     uint32_t pos1 = (!mapping ? node1 : idToPos->at(node1));
     uint32_t pos2 = (!mapping ? node2 : idToPos->at(node2));
     assert(!nodeIndex[pos1].removed && !nodeIndex[pos2].removed);
+    uint32_t count = 0;
     vector<uint32_t> neighbors1;
     gatherNeighbors(node1, neighbors1);
     for (auto &neighbor: neighbors1) {
         if (edgeExists(neighbor, node2)) {
             commonNeighbors.push_back(neighbor);
+            if (atLeast && ++count == atLeast) {
+                return;
+            }
         }
     }
 }
