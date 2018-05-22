@@ -329,6 +329,131 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
+uint32_t Graph::getOptimalDegree4Node() const {
+    uint32_t node = getOptimalDegree4Node1();
+    if (node == NONE) {
+        node = getOptimalDegree4Node2();
+        if (node == NONE) {
+            uint32_t maxNodeWithCond = NONE;
+            uint32_t maxNode = NONE;
+            getOptimalDegree4Node3(maxNodeWithCond, maxNode);
+            if (maxNodeWithCond != NONE) {
+                node = maxNodeWithCond;
+            } else {
+                node = maxNode;
+            }
+        }
+    }
+    cout << "branching on optimal degree 4 node " << node << "\n";
+    return node;
+}
+
+uint32_t Graph::getOptimalDegree4Node1() const {
+    cout << "OPT 1" << endl;
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        if (getNodeDegree(graphTraversal.curNode) == 4) {
+            vector<uint32_t> neighborsV;
+            gatherNeighbors(graphTraversal.curNode, neighborsV);
+            for (uint32_t neighborV: neighborsV) {
+                if (getNodeDegree(neighborV) == 3) {
+                    vector<uint32_t> neighborsN;
+                    gatherNeighbors(neighborV, neighborsN);
+                    if (edgeExists(neighborsN[0], neighborsN[1]) || edgeExists(neighborsN[0], neighborsN[2]) || edgeExists(neighborsN[1], neighborsN[2])) {
+                        return graphTraversal.curNode;
+                    }
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    return NONE;
+}
+
+uint32_t Graph::getOptimalDegree4Node2() const {
+    cout << "OPT 2" << endl;
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        if (getNodeDegree(graphTraversal.curNode) == 4) {
+            vector<uint32_t> neighborsV;
+            gatherNeighbors(graphTraversal.curNode, neighborsV);
+            for (uint32_t neighborV: neighborsV) {
+                if (getNodeDegree(neighborV) == 3) {
+                    vector<uint32_t> neighborsN;
+                    gatherNeighbors(neighborV, neighborsN);
+                    for (uint32_t neighborN: neighborsN) {
+                        if (neighborN != graphTraversal.curNode && getNodeDegree(neighborN) == 4) {
+                            return graphTraversal.curNode;
+                        }
+                    }
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    return NONE;
+}
+
+void Graph::getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode) const {
+    cout << "OPT 3" << endl;
+    uint32_t maxDegree3NeighborsWithCond = NONE;
+    maxNodeWithCond = NONE;
+    uint32_t maxDegree3Neighbors = NONE;
+    maxNode = NONE;
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        if (getNodeDegree(graphTraversal.curNode) == 4) {
+            vector<uint32_t> neighborsV;
+            gatherNeighbors(graphTraversal.curNode, neighborsV);
+            uint32_t degree3Neighbors = 0;
+            for (uint32_t neighborV: neighborsV) {
+                if (getNodeDegree(neighborV) == 3) {
+                    degree3Neighbors++;
+                }
+            }
+            if (maxDegree3Neighbors == NONE || degree3Neighbors > maxDegree3Neighbors) {
+                maxDegree3Neighbors = degree3Neighbors;
+                maxNode = graphTraversal.curNode;
+            }
+            if (maxDegree3NeighborsWithCond == NONE || degree3Neighbors > maxDegree3NeighborsWithCond) {
+                for (uint32_t neighborV: neighborsV) {
+                    if (getNodeDegree(neighborV) == 4) {
+                        vector<uint32_t> neighborsN;
+                        gatherNeighbors(neighborV, neighborsN);
+                        uint32_t a, b, c;
+                        uint32_t v = graphTraversal.curNode;
+                        uint32_t i = 0;
+                        for (uint32_t n: neighborsN) {
+                            if (n != v) {
+                                if (i == 0) {
+                                    a = n;
+                                } else if (i == 1) {
+                                    b = n;
+                                } else if (i == 2) {
+                                    c = n;
+                                }
+                                i++;
+                            }
+                        }
+                        cout << "should be different: a b c v " << a << b << c << v << "\n";
+                        bool ab = edgeExists(a, b);
+                        bool bc = edgeExists(b, c);
+                        bool ac = edgeExists(a, c);
+                        bool va = edgeExists(v, a);
+                        bool vb = edgeExists(v, b);
+                        bool vc = edgeExists(v, c);
+                        if (!va && !vb && !vc && (ab && !bc && !ac || bc && !ab && !ac || ac && !ab && !bc)) {
+                            maxDegree3NeighborsWithCond = degree3Neighbors;
+                            maxNodeWithCond = graphTraversal.curNode;
+                        }
+                    }
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+}
+
 bool Graph::get4Cycle(vector<uint32_t> &cycle) const {
     cycle.clear();
     GraphTraversal graphTraversal(*this);
@@ -473,6 +598,12 @@ uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNod
                 unordered_set<uint32_t> set;
                 frontier.push_back(new Traversal(node, *this));
                 set.insert(node);
+                cout << "size " << size << " node " << node << endl;
+                /*print(true);
+                cout << "Component nodes: " << endl;
+                for (auto n: nodes) {
+                    cout << n << endl;
+                }*/
                 uint32_t goodNode = getGoodNode(frontier, set, nodes, size);
                 if (goodNode != NONE) {
                     //cout << "Found good node for good set of size " << size << "\n";
@@ -499,10 +630,10 @@ uint32_t Graph::getGoodNode(vector<Traversal *> &frontier, unordered_set<uint32_
             frontier.push_back(new Traversal(neighbor, *this, frontier[frontier.size()-1]));
             set.insert(neighbor);
             traversal = frontier[frontier.size()-1];
-            //for (auto &n: set) {
-            //    cout << n << endl;
-            //}
-            //cout << "\n";
+            /*for (auto &n: set) {
+                cout << n << endl;
+            }
+            cout << "\n";*/
             if (set.size() == size) {
                 unordered_set<uint32_t> neighbors;
                 gatherAllNeighbors(set, neighbors, 3);

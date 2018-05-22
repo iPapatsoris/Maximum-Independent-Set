@@ -64,6 +64,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    uint32_t getOptimalDegree4Node() const;
     bool get4Cycle(std::vector<uint32_t> &cycle) const;
     bool getGoodFunnel(uint32_t &node1, uint32_t &node2) const;
     uint32_t getGoodNode(std::unordered_map<uint32_t, std::vector<uint32_t>* > &ccToNodes) const;
@@ -369,6 +370,10 @@ private:
     void fill(const uint32_t &size, const bool &checkIndependentSet);
     bool getFunnels(std::vector<Funnel> &funnels) const;
     uint32_t getGoodNode(std::vector<Traversal *> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
+    uint32_t getOptimalDegree4Node1() const;
+    uint32_t getOptimalDegree4Node2() const;
+    void getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode) const;
+
     struct NodeInfo {
     public:
         NodeInfo(const uint32_t &offset, const uint32_t &edges) : offset(offset), edges(edges), removed(false) {}
@@ -382,7 +387,11 @@ private:
         Traversal(const uint32_t &node, const Graph &graph, Traversal *previous = NULL) {
             sourceNode = node;
             if (previous != NULL) {
-                set = previous->set;
+                auto it = previous->set.begin();
+                std::advance(it, previous->index);
+                while (++it != previous->set.end()) {
+                    set.insert(*it);
+                }
                 set.erase(node);
             }
             graph.gatherNeighbors(node, set);

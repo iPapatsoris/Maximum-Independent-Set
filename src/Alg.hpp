@@ -43,7 +43,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, FOUR_CYCLE, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, FOUR_CYCLE, OPT4NODE, DONE
         };
 
         Type type;
@@ -82,8 +82,8 @@ private:
                                 getOptimalNode(graph, theta);
                             }
                         } else {
-                            theta--;
-                            if (theta == 5 && graph.nodeIndex.size()) {
+                            theta = maxDegree;
+                            if (theta <= 5 && graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                             }
@@ -97,8 +97,8 @@ private:
                         else if (maxDegree >= theta) {
                             type = Type::MAX_DEGREE;
                         } else if (maxDegree < theta) {
-                            theta--;
-                            if (theta == 4 && graph.nodeIndex.size()) {
+                            theta = maxDegree;
+                            if (theta <= 4 && graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                             }
@@ -108,22 +108,28 @@ private:
                     case 4: {
                         type = Type::MAX_DEGREE;
                         if (maxDegree >= 5) {
-                            uint32_t goodNode = graph.getGoodNode(reductions.getCCToNodes());
+                            /*uint32_t goodNode = graph.getGoodNode(reductions.getCCToNodes());
                             if (goodNode != NONE) {
                                 maxDegreeNode = goodNode;
-                            }
+                            }*/
                         } else if (graph.getGoodFunnel(node1, node2)) {
                             type = Type::GOOD_FUNNEL;
                         } else if (graph.get4Cycle(container)) {
                             type = Type::FOUR_CYCLE;
+                        } else if (maxDegree == theta) {
+                            node1 = graph.getOptimalDegree4Node();
+                            assert(node1 != NONE);
+                            type = Type::OPT4NODE;
                         }
-                        if (maxDegree < theta) {
-                            theta--;
-                            if (theta == 3 && graph.nodeIndex.size()) {
+                        else if (maxDegree < theta) {
+                            theta = 3;
+                            if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                             }
                             run = true;
+                        } else {
+                            assert(false);
                         }
                         break;
                     }
@@ -265,7 +271,8 @@ private:
         //std::cout << "left\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
-            case BranchingRule::Type::OPTNODE: {
+            case BranchingRule::Type::OPTNODE:
+            case BranchingRule::Type::OPT4NODE: {
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
@@ -332,6 +339,14 @@ private:
                 nonAdjacent.push_back(branchingRule.container[1]);
                 nonAdjacent.push_back(branchingRule.container[3]);
                 searchNode->graph.remove(nonAdjacent, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::OPT4NODE: {
+                std::vector<uint32_t> neighbors;
+                searchNode->graph.gatherNeighbors(branchingRule.node1, neighbors);
+                neighbors.push_back(branchingRule.node1);
+                searchNode->mis.getMis().push_back(branchingRule.node1);
+                searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
                 break;
             }
             default:

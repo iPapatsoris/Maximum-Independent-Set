@@ -24,10 +24,12 @@ void Reductions::run(const uint32_t &theta) {
             reduce5(theta);
             break;
         case 4:
+            reduce4(theta);
+            break;
         case 3:
         case 2:
         case 1:
-            reduce4(theta);
+            reduce3(theta);
             break;
         default:
             assert(false);
@@ -83,6 +85,13 @@ void Reductions::reduce4(const uint32_t &theta) {
     } while (removeShortFunnels(theta));
     delete oldCandidateNodes;
     delete newCandidateNodes;
+    buildCC();
+    removeEasyInstances(theta);
+    removeLineGraphs(theta);
+    graph.rebuild(reduceInfo);
+}
+
+void Reductions::reduce3(const uint32_t &theta) {
     buildCC();
     removeEasyInstances(theta);
     removeLineGraphs(theta);
@@ -254,7 +263,7 @@ void Reductions::removeEasyInstances(const uint32_t &theta) {
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
-            if (theta == 5 && cc->size() == 28 || theta == 4 && cc->size() == 23) {
+            if (theta == 5 && cc->size() <= 28 || theta == 4 && cc->size() <= 23 || theta == 3 && cc->size() <= 20) {
                 //cout << "Removing easy instance component " << it->first << "\n";
                 //findMis(*cc);
                 graph.remove(*cc, reduceInfo, true);

@@ -63,9 +63,9 @@ void Alg::run() {
             continue;
         }
         //print();
-        if (down) {
-            //cout << "node " << branchingRule.node1 << "\n";
-        }
+        /*if (down && minCompletedSearchNode == 42) {
+            cout << "node " << branchingRule.node1 << "\n";
+        }*/
         uint32_t *nextChild;
         if (searchTree[i]->leftChild == NONE) {
             nextChild = &searchTree[i]->leftChild;
