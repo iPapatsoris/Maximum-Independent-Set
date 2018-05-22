@@ -78,7 +78,7 @@ public:
     void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
     void getMinDegree(uint32_t &minDegree) const;
     uint32_t getTotalEdges() const;
-    void remove(const uint32_t &node, ReduceInfo &reduceInfo);
+    void remove(const uint32_t &node, ReduceInfo &reduceInfo, const bool &removeZeroDegreeNodes = false);
     void rebuild(ReduceInfo &reduceInfo);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
@@ -93,7 +93,7 @@ public:
      * fullComponent should be set to true when the nodes to be removed belong in the same component, and
      * that component has no other nodes (e.g. when removing line graphs). */
     template <typename Container>
-    void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &fullComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL) {
+    void remove(const Container &nodes, ReduceInfo &reduceInfo, const bool &fullComponent = false, std::unordered_set<uint32_t> *candidateNodes = NULL, const bool &removeZeroDegreeNodes = false) {
         for (auto it = nodes.begin() ; it != nodes.end() ; it++) {
             //std::cout << "removing " << *it << std::endl;
             uint32_t pos = (!mapping ? *it : idToPos->at(*it));
@@ -106,6 +106,10 @@ public:
                         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
                         if (!nodeIndex[nPos].removed) {
                             nodeIndex[nPos].edges--;
+                            if (removeZeroDegreeNodes && !nodeIndex[nPos].edges) {
+                                zeroDegreeNodes.push_back(neighbor);
+                                nodeIndex[nPos].removed = true;
+                            }
                             if (find(std::next(it, 1), nodes.end(), neighbor) == nodes.end() &&
                             candidateNodes != NULL && (nodeIndex[nPos].edges == 2 || nodeIndex[nPos].edges == 3) && nPos < pos) {
                                 candidateNodes->insert(neighbor);

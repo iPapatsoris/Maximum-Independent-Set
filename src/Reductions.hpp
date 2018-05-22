@@ -51,8 +51,9 @@ private:
     void reduce6(const uint32_t &theta);
     void reduce5(const uint32_t &theta);
     void reduce4(const uint32_t &theta);
-    bool removeDominatedNodes();
-    bool removeDominatedNodes2();
+    void reduce3(const uint32_t &theta);
+    bool removeDominatedNodes(const uint32_t &theta);
+    bool removeDominatedNodes2(const uint32_t &theta);
     bool removeShortFunnels(const uint32_t &theta);
     void removeEasyInstances(const uint32_t &theta);
     void findMis(const std::vector<uint32_t> &cc);

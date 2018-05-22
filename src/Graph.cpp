@@ -144,8 +144,8 @@ void Graph::getNeighborsAtDistance2(const uint32_t &node, unordered_set<uint32_t
 }
 
 
-void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo) {
-    remove(std::vector<uint32_t>(1, node), reduceInfo);
+void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo, const bool &removeZeroDegreeNodes) {
+    remove(std::vector<uint32_t>(1, node), reduceInfo, false, NULL, removeZeroDegreeNodes);
 }
 
 /* Rebuild structures, completely removing nodes that are marked as removed

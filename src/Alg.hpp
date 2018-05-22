@@ -83,11 +83,13 @@ private:
                             }
                         } else {
                             theta = maxDegree;
-                            if (theta <= 5 && graph.nodeIndex.size()) {
+                            if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
+                                run = true;
+                            } else {
+                                type = Type::DONE;
                             }
-                            run = true;
                         }
                         break;
                     case 5:
@@ -98,11 +100,13 @@ private:
                             type = Type::MAX_DEGREE;
                         } else if (maxDegree < theta) {
                             theta = maxDegree;
-                            if (theta <= 4 && graph.nodeIndex.size()) {
+                            if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
+                                run = true;
+                            } else {
+                                type = Type::DONE;
                             }
-                            run = true;
                         }
                         break;
                     case 4: {
@@ -126,25 +130,24 @@ private:
                             if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
+                                run = true;
+                            } else {
+                                type = Type::DONE;
                             }
-                            run = true;
                         } else {
                             assert(false);
                         }
                         break;
                     }
                     case 3:
-                    case 2:
-                    case 1:
                         if (!maxDegree) {
                             type = Type::DONE;
                         }
-                        else if (maxDegree >= theta) {
+                        else {
                             type = Type::MAX_DEGREE;
-                        } else if (maxDegree < theta) {
-                            theta--;
-                            run = true;
                         }
+                        break;
+                    case 0:
                         break;
                     default:
                         assert(false);
