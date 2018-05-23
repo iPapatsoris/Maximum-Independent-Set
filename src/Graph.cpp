@@ -454,8 +454,9 @@ void Graph::getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode)
     }
 }
 
-bool Graph::get4Cycle(vector<uint32_t> &cycle) const {
-    cycle.clear();
+bool Graph::get4Cycle(vector<uint32_t> &optimalCycle) const {
+    optimalCycle.clear();
+    uint32_t maxDegree3NodesCount = NONE;
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         if (getNodeDegree(graphTraversal.curNode) == 4) {
@@ -492,21 +493,37 @@ bool Graph::get4Cycle(vector<uint32_t> &cycle) const {
                         assert(false);
                 }
                 vector<uint32_t> commonNeighbors;
-                getCommonNeighbors(b, d, commonNeighbors, 2);
-                if (commonNeighbors.size() == 2) {
-                    uint32_t c = (commonNeighbors[0] == graphTraversal.curNode ? commonNeighbors[1] : commonNeighbors[0]);
-                    cycle.push_back(graphTraversal.curNode);
-                    cycle.push_back(b);
-                    cycle.push_back(c);
-                    cycle.push_back(d);
-                    cout << "branching on cycle " << graphTraversal.curNode << "-" << b << "-" << c << "-" << d << "\n";
-                    return true;
+                getCommonNeighbors(b, d, commonNeighbors);
+                for (auto c: commonNeighbors) {
+                    if (c == graphTraversal.curNode) {
+                        continue;
+                    }
+                    uint32_t degree3NodesCount = 0;
+                    if (getNodeDegree(b) == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (getNodeDegree(c) == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (getNodeDegree(d) == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (maxDegree3NodesCount == NONE || degree3NodesCount > maxDegree3NodesCount) {
+                        maxDegree3NodesCount = degree3NodesCount;
+                        optimalCycle.push_back(graphTraversal.curNode);
+                        optimalCycle.push_back(b);
+                        optimalCycle.push_back(c);
+                        optimalCycle.push_back(d);
+                        if (maxDegree3NodesCount == 3) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
         getNextNode(graphTraversal);
     }
-    return false;
+    return maxDegree3NodesCount != NONE;
 }
 
 bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {

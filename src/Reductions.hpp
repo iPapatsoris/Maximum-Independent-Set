@@ -52,6 +52,7 @@ private:
     void reduce5(const uint32_t &theta);
     void reduce4(const uint32_t &theta);
     void reduce3(const uint32_t &theta);
+    bool removeDesks();
     bool removeDominatedNodes(const uint32_t &theta);
     bool removeDominatedNodes2(const uint32_t &theta);
     bool removeShortFunnels(const uint32_t &theta);

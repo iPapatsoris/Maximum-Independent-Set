@@ -97,11 +97,13 @@ void Reductions::reduce3(const uint32_t &theta) {
         do {
             do {
                 do {
-                    removeDominatedNodes(theta);
-                } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes));
-            } while (removeUnconfinedNodes());
-        } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes, true));
-    } while (removeShortFunnels(theta));
+                    do {
+                        removeDominatedNodes(theta);
+                    } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes));
+                } while (removeUnconfinedNodes());
+            } while (foldCompleteKIndependentSets(theta, &oldCandidateNodes, &newCandidateNodes, true));
+        } while (removeShortFunnels(theta));
+    } while (removeDesks());
     delete oldCandidateNodes;
     delete newCandidateNodes;
     buildCC();
@@ -155,6 +157,75 @@ bool Reductions::removeDominatedNodes2(const uint32_t &theta) {
         }
     }
 }
+
+bool Reductions::removeDesks() {
+    Graph::GraphTraversal graphTraversal(graph);
+    while (graphTraversal.curNode != NONE) {
+        bool valid = true;
+        if (graph.getNodeDegree(graphTraversal.curNode) >= 3) {
+            vector<uint32_t> neighbors;
+            graph.gatherNeighbors(graphTraversal.curNode, neighbors);
+            if (valid) {
+                uint32_t b, d;
+                for (uint32_t i = 0 ; i < neighbors.size() ; i++) {
+                    b = neighbors[i];
+                    if (graph.getNodeDegree(b) < 3) {
+                        continue;
+                    }
+                    for (uint32_t j = i+1 ; j < neighbors.size() ; j++) {
+                        d = neighbors[j];
+                        if (graph.getNodeDegree(d) < 3) {
+                            continue;
+                        }
+                        vector<uint32_t> commonNeighbors;
+                        graph.getCommonNeighbors(b, d, commonNeighbors);
+                        for (auto c: commonNeighbors) {
+                            if (c == graphTraversal.curNode || graph.getNodeDegree(c) < 3) {
+                                continue;
+                            }
+                            if (!graph.edgeExists(graphTraversal.curNode, c) && !graph.edgeExists(b, d)) {
+                                set<uint32_t> neighborsAC;
+                                set<uint32_t> neighborsBD;
+                                graph.gatherNeighbors(graphTraversal.curNode, neighborsAC);
+                                graph.gatherNeighbors(c, neighborsAC);
+                                graph.gatherNeighbors(b, neighborsBD);
+                                graph.gatherNeighbors(d, neighborsBD);
+                                if (neighborsAC.size() <= 4 && neighborsBD.size() <= 4) {
+                                    for (auto n: neighborsAC) {
+                                        if (neighborsBD.find(n) != neighborsBD.end()) {
+                                            valid = false;
+                                            break;
+                                        }
+                                    }
+                                    if (valid) {
+                                        cout << "reducing desk " << graphTraversal.curNode << "-" << b << "-" << c << "-" << d << "\n";
+                                        graph.remove(neighborsAC, reduceInfo);
+                                        graph.remove(neighborsBD, reduceInfo);
+                                        std::unordered_map<uint32_t, uint32_t> &subsequentNodes = mis.getSubsequentNodes();
+                                        for (auto neighborAC: neighborsAC) {
+                                            subsequentNodes.insert({neighborAC, b});
+                                            subsequentNodes.insert({neighborAC, d});
+                                            graph.addEdges(neighborAC, vector<uint32_t>(neighborsBD.begin(), neighborsBD.end()));
+                                        }
+                                        for (auto neighborBD: neighborsBD) {
+                                            subsequentNodes.insert({neighborBD, graphTraversal.curNode});
+                                            subsequentNodes.insert({neighborBD, c});
+                                            graph.addEdges(neighborBD, vector<uint32_t>(neighborsAC.begin(), neighborsAC.end()));
+                                        }
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        graph.getNextNode(graphTraversal);
+    }
+    return false;
+}
+
 
 bool Reductions::removeShortFunnels(const uint32_t &theta) {
     //cout << "\n**Performing short funnels reduction**" << endl;

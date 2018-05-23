@@ -76,7 +76,7 @@ private:
                             graph.getOptimalShortEdge(theta, node1, node2, container);
                             if (node1 != NONE) {
                                 type = Type::SHORT_EDGE;
-                                std::cout << "optimal short edge " << node1 << " " << node2 << " with size " << container.size() << "\n";
+                                //std::cout << "optimal short edge " << node1 << " " << node2 << " with size " << container.size() << "\n";
                             } else {
                                 type = Type::OPTNODE;
                                 getOptimalNode(graph, theta);
@@ -120,6 +120,7 @@ private:
                             type = Type::GOOD_FUNNEL;
                         } else if (graph.get4Cycle(container)) {
                             type = Type::FOUR_CYCLE;
+                            std::cout << "branching on optimal cycle " << container[0] << "-" << container[1] << "-" << container[2] << "-" << container[3] << "\n";
                         } else if (maxDegree == theta) {
                             node1 = graph.getOptimalDegree4Node();
                             assert(node1 != NONE);
