@@ -64,6 +64,12 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    uint32_t getOptimalNodeTheta3(const uint32_t initialMaxDegreeNode, const uint32_t &initialMaxDegree) const;
+    bool getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &nodeV, uint32_t &nodeA) const;
+    bool get4CycleTheta3(std::vector<uint32_t> &optimalCycle) const;
+    uint32_t getEffectiveNodeMeasure(const uint32_t &bound = NONE) const;
+    bool isInTriangle(const uint32_t &node) const;
+    bool isFineInstance() const;
     uint32_t getOptimalDegree4Node() const;
     bool get4Cycle(std::vector<uint32_t> &cycle) const;
     bool getGoodFunnel(uint32_t &node1, uint32_t &node2) const;
@@ -372,7 +378,7 @@ private:
 
     void static parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode);
     void fill(const uint32_t &size, const bool &checkIndependentSet);
-    bool getFunnels(std::vector<Funnel> &funnels) const;
+    bool getFunnels(std::vector<Funnel> &funnels, const uint32_t *measure = NULL, uint32_t *effectiveNode = NULL, Funnel *fourFunnel = NULL) const;
     uint32_t getGoodNode(std::vector<Traversal *> &frontier, std::unordered_set<uint32_t> &set, std::vector<uint32_t> &nodes, const uint32_t &size) const;
     uint32_t getOptimalDegree4Node1() const;
     uint32_t getOptimalDegree4Node2() const;
@@ -419,6 +425,7 @@ private:
 
     struct Funnel {
         Funnel(const uint32_t &a, const uint32_t &b, const uint32_t &c, const uint32_t &d, const uint32_t &v) : a(a), b(b), c(c), d(d), v(v) {}
+        Funnel() : a(NONE), b(NONE), c(NONE), d(NONE) {}
         void print() const {
             std::cout << a << "-" << v << "-{" << b << "," << c;
             if (d != NONE) {

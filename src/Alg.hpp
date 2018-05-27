@@ -43,7 +43,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, FOUR_CYCLE, OPT4NODE, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, FOUR_CYCLE, OPT4NODE, EFFECTIVE_NODE, DONE
         };
 
         Type type;
@@ -145,7 +145,24 @@ private:
                             type = Type::DONE;
                         }
                         else {
-                            type = Type::MAX_DEGREE;
+                            uint32_t effectiveNode = NONE;
+                            uint32_t nodeV = NONE;
+                            uint32_t nodeA = NONE;
+                            graph.getEffectiveNodeOrOptimalFunnel(effectiveNode, nodeV, nodeA);
+                            if (effectiveNode != NONE) {
+                                node1 = effectiveNode;
+                                type = Type::EFFECTIVE_NODE;
+                            } else if (nodeV != NONE && nodeA != NONE) {
+                                node1 = nodeA;
+                                node2 = nodeV;
+                                type = Type::GOOD_FUNNEL;
+                            } else if (graph.get4CycleTheta3(container)) {
+                                type = Type::FOUR_CYCLE;
+                            }
+                            else {
+                                node1 = graph.getOptimalNodeTheta3(maxDegreeNode, maxDegree);
+                                type = Type::MAX_DEGREE;
+                            }
                         }
                         break;
                     case 0:
@@ -276,7 +293,8 @@ private:
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
             case BranchingRule::Type::OPTNODE:
-            case BranchingRule::Type::OPT4NODE: {
+            case BranchingRule::Type::OPT4NODE:
+            case BranchingRule::Type::EFFECTIVE_NODE: {
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
@@ -307,7 +325,8 @@ private:
         //std::cout << "right\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
-            case BranchingRule::Type::OPTNODE: {
+            case BranchingRule::Type::OPTNODE:
+            case BranchingRule::Type::EFFECTIVE_NODE: {
                 branchOnExtendedGranchildren(branchingRule, searchNode);
                 break;
             }

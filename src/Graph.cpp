@@ -329,6 +329,25 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
     }
 }
 
+uint32_t Graph::getOptimalNodeTheta3(const uint32_t initialMaxDegreeNode, const uint32_t &initialMaxDegree) const {
+    uint32_t maxDegree = initialMaxDegree;
+    uint32_t maxDegreeNode = initialMaxDegreeNode;
+    if (maxDegree >= 4) {
+        uint32_t maxNeighborsAtDistance2 = 0;
+        GraphTraversal graphTraversal(*this, maxDegreeNode);
+        while (graphTraversal.curNode != NONE) {
+            unordered_set<uint32_t> neighborsAtDistance2;
+            getNeighborsAtDistance2(graphTraversal.curNode, neighborsAtDistance2);
+            if (neighborsAtDistance2.size() > maxNeighborsAtDistance2) {
+                maxDegreeNode = graphTraversal.curNode;
+                maxNeighborsAtDistance2 = neighborsAtDistance2.size();
+            }
+            getNextNode(graphTraversal);
+        }
+    }
+    return maxDegreeNode;
+}
+
 uint32_t Graph::getOptimalDegree4Node() const {
     uint32_t node = getOptimalDegree4Node1();
     if (node == NONE) {
@@ -510,6 +529,7 @@ bool Graph::get4Cycle(vector<uint32_t> &optimalCycle) const {
                     }
                     if (maxDegree3NodesCount == NONE || degree3NodesCount > maxDegree3NodesCount) {
                         maxDegree3NodesCount = degree3NodesCount;
+                        optimalCycle.clear();
                         optimalCycle.push_back(graphTraversal.curNode);
                         optimalCycle.push_back(b);
                         optimalCycle.push_back(c);
@@ -524,6 +544,132 @@ bool Graph::get4Cycle(vector<uint32_t> &optimalCycle) const {
         getNextNode(graphTraversal);
     }
     return maxDegree3NodesCount != NONE;
+}
+
+bool Graph::get4CycleTheta3(vector<uint32_t> &optimalCycle) const {
+    optimalCycle.clear();
+    uint32_t maxDegree3NodesCount = NONE;
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        vector<uint32_t> neighbors;
+        gatherNeighbors(graphTraversal.curNode, neighbors);
+        uint32_t b, d;
+        for (uint32_t i = 0 ; i < neighbors.size() ; i++) {
+            for (uint32_t j = i+1 ; j < neighbors.size() ; j++) {
+                b = neighbors[i];
+                d = neighbors[j];
+                vector<uint32_t> commonNeighbors;
+                getCommonNeighbors(b, d, commonNeighbors);
+                for (auto c: commonNeighbors) {
+                    if (c == graphTraversal.curNode) {
+                        continue;
+                    }
+                    uint32_t degreeA = getNodeDegree(graphTraversal.curNode);
+                    uint32_t degreeB = getNodeDegree(b);
+                    uint32_t degreeC = getNodeDegree(c);
+                    uint32_t degreeD = getNodeDegree(d);
+                    if (degreeA == 3 && degreeC == 3 || degreeB == 3 && degreeD == 3) {
+                        optimalCycle.clear();
+                        optimalCycle.push_back(graphTraversal.curNode);
+                        optimalCycle.push_back(b);
+                        optimalCycle.push_back(c);
+                        optimalCycle.push_back(d);
+                        return true;
+                    }
+                    uint32_t degree3NodesCount = 0;
+                    if (degreeA == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (degreeB == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (degreeC == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (degreeD == 3) {
+                        degree3NodesCount++;
+                    }
+                    if (maxDegree3NodesCount == NONE || degree3NodesCount > maxDegree3NodesCount) {
+                        maxDegree3NodesCount = degree3NodesCount;
+                        optimalCycle.clear();
+                        optimalCycle.push_back(graphTraversal.curNode);
+                        optimalCycle.push_back(b);
+                        optimalCycle.push_back(c);
+                        optimalCycle.push_back(d);
+                    }
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    return maxDegree3NodesCount != NONE;
+}
+
+uint32_t Graph::getEffectiveNodeMeasure(const uint32_t &bound) const {
+    uint32_t measure = 0;
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        uint32_t degree = getNodeDegree(graphTraversal.curNode);
+        if (degree > 2) {
+            measure += (degree - 2);
+        }
+        if (bound != NONE && measure > bound) {
+            break;
+        }
+        getNextNode(graphTraversal);
+    }
+    return measure;
+}
+
+bool Graph::getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &nodeV, uint32_t &nodeA) const {
+    effectiveNode = nodeV = nodeA = NONE;
+    uint32_t measure = getEffectiveNodeMeasure();
+    vector<Funnel> funnels;
+    Funnel fourFunnel;
+    if (getFunnels(funnels, &measure, &effectiveNode, &fourFunnel)) {
+        if (effectiveNode != NONE) {
+            return true;
+        } else {
+            nodeV = fourFunnel.v;
+            nodeA = fourFunnel.a;
+            return true;
+        }
+    } else {
+        for (uint32_t i = 0 ; i < 3 ; i++) {
+            for (auto &funnel: funnels) {
+                bool optimal = false;
+                if (!i && getNodeDegree(funnel.a) >= 4 || i == 1 && isInTriangle(funnel.a)) {
+                    optimal = true;
+                }
+                else if (i == 2) {
+                    unordered_set<uint32_t> nodes;
+                    nodes.insert(funnel.v);
+                    nodes.insert(funnel.a);
+                    unordered_set<uint32_t> neighbors;
+                    gatherAllNeighbors(nodes, neighbors);
+                    for (auto neighbor: neighbors) {
+                        if (getNodeDegree(neighbor) >= 4) {
+                            optimal = true;
+                            break;
+                        }
+                    }
+                } else if (i == 3) {
+                    Graph newGraph = *this;
+                    vector<uint32_t> neighborsA;
+                    gatherNeighbors(funnel.a, neighborsA);
+                    neighborsA.push_back(funnel.a);
+                    ReduceInfo dummy;
+                    newGraph.remove(neighborsA, dummy);
+                    optimal = newGraph.isFineInstance();
+                }
+                if (optimal) {
+                    nodeV = fourFunnel.v;
+                    nodeA = fourFunnel.a;
+                    return true;
+                }
+            }
+        }
+    }
 }
 
 bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
@@ -553,7 +699,7 @@ bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
     return false;
 }
 
-bool Graph::getFunnels(vector<Funnel> &funnels) const {
+bool Graph::getFunnels(vector<Funnel> &funnels, const uint32_t *measure, uint32_t *effectiveNode, Funnel *fourFunnel) const {
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         uint32_t nodeV = graphTraversal.curNode;
@@ -583,9 +729,55 @@ bool Graph::getFunnels(vector<Funnel> &funnels) const {
                     nodeD = (neighborsV.size() == 3 ? NONE : neighborsV[2]);
                 }
                 if (edgeExists(nodeB, nodeC) && (vDegree == 3 || vDegree == 4 && edgeExists(nodeB, nodeD) && edgeExists(nodeC, nodeD)))  {
-                    funnels.push_back(Funnel(nodeA, nodeB, nodeC, nodeD, nodeV));
-                    if (vDegree == 4 || (getNodeDegree(nodeA) == 4 && (getNodeDegree(nodeB) == 4 || getNodeDegree(nodeC) == 4))) {
-                        return true;
+                    if (measure == NULL) {
+                        funnels.push_back(Funnel(nodeA, nodeB, nodeC, nodeD, nodeV));
+                        if (vDegree == 4 || (getNodeDegree(nodeA) == 4 && (getNodeDegree(nodeB) == 4 || getNodeDegree(nodeC) == 4))) {
+                            return true;
+                        }
+                    } else {
+                        uint32_t degree3NodesCount;
+                        if (getNodeDegree(nodeA) == 3) {
+                            degree3NodesCount++;
+                        }
+                        if (getNodeDegree(nodeB) == 3) {
+                            degree3NodesCount++;
+                        }
+                        if (getNodeDegree(nodeC) == 3) {
+                            degree3NodesCount++;
+                        }
+                        if (vDegree == 4 && getNodeDegree(nodeD) == 3) {
+                            degree3NodesCount++;
+                        }
+                        if (degree3NodesCount >= 3) {
+                            Graph newGraph = *this;
+                            unordered_set<uint32_t> extendedGrandchildren;
+                            goToNode(nodeV, graphTraversal);
+                            getExtendedGrandchildren(graphTraversal, extendedGrandchildren);
+                            extendedGrandchildren.insert(nodeV);
+                            std::unordered_set<uint32_t> neighbors;
+                            gatherAllNeighbors(extendedGrandchildren, neighbors);
+                            unordered_set<uint32_t> *smaller = &neighbors;
+                            unordered_set<uint32_t> *bigger = &extendedGrandchildren;
+                            if (smaller->size() > bigger->size()) {
+                                std::unordered_set<uint32_t> *tmp = smaller;
+                                smaller = bigger;
+                                bigger = tmp;
+                            }
+                            smaller->insert(bigger->begin(), bigger->end());
+                            ReduceInfo dummy;
+                            newGraph.remove(vector<uint32_t>(smaller->begin(), smaller->end()), dummy);
+                            if (newGraph.getEffectiveNodeMeasure(*measure - 20) <= *measure - 20) {
+                                *effectiveNode = nodeV;
+                                return true;
+                            }
+                        }
+                        Funnel funnel(nodeA, nodeB, nodeC, nodeD, nodeV);
+                        if (vDegree == 4) {
+                            *fourFunnel = funnel;
+                            return true;
+                        } else {
+                            funnels.push_back(funnel);
+                        }
                     }
                 }
             }
@@ -593,6 +785,33 @@ bool Graph::getFunnels(vector<Funnel> &funnels) const {
         getNextNode(graphTraversal);
     }
     return false;
+}
+
+bool Graph::isInTriangle(const uint32_t &node) const {
+    vector<uint32_t> neighbors;
+    for (uint32_t i = 0 ; i < neighbors.size() ; i++) {
+        for (uint32_t j = i+1 ; j < neighbors.size() ; j++) {
+            if (edgeExists(neighbors[i], neighbors[j])) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Graph::isFineInstance() const {
+    GraphTraversal graphTraversal(*this);
+    bool fineInstance = false;
+    while (graphTraversal.curNode != NONE) {
+        uint32_t degree = getNodeDegree(graphTraversal.curNode);
+        if (degree >= 4) {
+            fineInstance = true;
+        } else if (degree == 1) {
+            return false;
+        }
+        getNextNode(graphTraversal);
+    }
+    return fineInstance;
 }
 
 uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNodes) const {
