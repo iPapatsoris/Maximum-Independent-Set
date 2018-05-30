@@ -303,7 +303,7 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                             }
                         }
                     } else if (theta == 3) {
-                    cout << "k" << endl;
+                        //cout << "k" << endl;
                         //cout << "minDegree " << minDegree << endl;
                         uint32_t count = 0;
                         uint32_t atmost = graph.getNodeDegree(nodeA);

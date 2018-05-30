@@ -65,6 +65,7 @@ private:
             graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
             bool run = true;
             while (run) {
+                std::cout << "theta " << theta << " max degree " << maxDegree << "\n";
                 run = false;
                 switch (theta) {
                     case 8:
@@ -174,6 +175,33 @@ private:
             if (type == Type::MAX_DEGREE) {
                 node1 = maxDegreeNode;
             }
+            std::cout << node1 << " ";
+            switch (type) {
+                case Type::MAX_DEGREE:
+                    std::cout << "-> MAX_DEGREE\n";
+                    break;
+                case Type::SHORT_EDGE:
+                    std::cout << "-> SHORT_EDGE\n";
+                    break;
+                case Type::OPTNODE:
+                    std::cout << "-> OPTNODE\n";
+                    break;
+                case Type::GOOD_FUNNEL:
+                    std::cout << "-> GOOD_FUNNEL\n";
+                    break;
+                case Type::FOUR_CYCLE:
+                    std::cout << "-> FOUR_CYCLE\n";
+                    break;
+                case Type::OPT4NODE:
+                    std::cout << "-> OPT4NODE\n";
+                    break;
+                case Type::EFFECTIVE_NODE:
+                    std::cout << "-> EFFECTIVE_NODE\n";
+                    break;
+                case Type::DONE:
+                    std::cout << "-> DONE\n";
+                    break;
+            }
         }
 
         void getOptimalNode(const Graph &graph, const uint32_t &theta) {
@@ -181,71 +209,73 @@ private:
             uint32_t count = 0;
             Graph::GraphTraversal graphTraversal(graph);
             while (graphTraversal.curNode != NONE) {
-                count++;
-                //std::cout << "theta " << theta << " count " << count << "\n";
-                uint32_t node = graphTraversal.curNode;
-                switch (theta) {
-                    case 8: {
-                        uint32_t degree8Neighbors = graph.getNumberOfDegreeNeighbors(node, 8);
-                        if (degree8Neighbors <= 7) {
-                            found = true;
-                        } else if (degree8Neighbors == 8 && getMeasure(graph, node) >= 36) {
-                            found = true;
-                        }
-                        break;
-                    }
-                    case 7: {
-                        std::unordered_set<uint32_t> extendedGrandchildren;
-                        graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren, NULL, true);
-                        if (extendedGrandchildren.size()) {
-                            found = true;
-                        } else {
-                            uint32_t degree7Neighbors = graph.getNumberOfDegreeNeighbors(node, 7);
-                            if (degree7Neighbors <= 5) {
+                if (graph.getNodeDegree(graphTraversal.curNode) == theta) {
+                    count++;
+                    //std::cout << "theta " << theta << " count " << count << "\n";
+                    uint32_t node = graphTraversal.curNode;
+                    switch (theta) {
+                        case 8: {
+                            uint32_t degree8Neighbors = graph.getNumberOfDegreeNeighbors(node, 8);
+                            if (degree8Neighbors <= 7) {
                                 found = true;
-                            } else {
-                                uint32_t measure = getMeasure(graph, node);
-                                if (degree7Neighbors == 6 && measure >= 22 - 2 * graph.getNumberOfDegreeNeighbors(node, 3) - graph.getNumberOfDegreeNeighbors(node, 4) ||
-                                degree7Neighbors == 7 && measure >= 26) {
-                                    found = true;
-                                }
+                            } else if (degree8Neighbors == 8 && getMeasure(graph, node) >= 36) {
+                                found = true;
                             }
+                            break;
                         }
-                        break;
-                    }
-                    case 6: {
-                        if (graph.getNumberOfDegreeNeighbors(node, 3) >= 1) {
-                            found = true;
-                        } else {
-                            uint32_t degree6Neighbors = graph.getNumberOfDegreeNeighbors(node, 6);
-                            if (degree6Neighbors <= 3) {
+                        case 7: {
+                            std::unordered_set<uint32_t> extendedGrandchildren;
+                            graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren, NULL, true);
+                            if (extendedGrandchildren.size()) {
                                 found = true;
                             } else {
-                                uint32_t degree5Neighbors = graph.getNumberOfDegreeNeighbors(node, 5);
-                                if (degree6Neighbors == 4 && degree5Neighbors <= 1) {
+                                uint32_t degree7Neighbors = graph.getNumberOfDegreeNeighbors(node, 7);
+                                if (degree7Neighbors <= 5) {
                                     found = true;
                                 } else {
-                                    std::unordered_set<uint32_t> neighborsAtDistance2;
-                                    uint32_t count = 0;
-                                    graph.getNeighborsAtDistance2(node, neighborsAtDistance2, theta, &count);
-                                    uint32_t measure = getMeasure(graph, node, &neighborsAtDistance2);
-                                    measure += count;
-                                    if (degree6Neighbors == 4 && degree5Neighbors == 2 && measure >= 17 ||
-                                    degree6Neighbors == 5 && graph.getNumberOfDegreeNeighbors(node, 4) == 1 && measure >= 18 ||
-                                    degree6Neighbors == 5 && degree5Neighbors == 1 && measure >= 19 ||
-                                    degree6Neighbors == 6 && measure >= 22) {
+                                    uint32_t measure = getMeasure(graph, node);
+                                    if (degree7Neighbors == 6 && measure >= 22 - 2 * graph.getNumberOfDegreeNeighbors(node, 3) - graph.getNumberOfDegreeNeighbors(node, 4) ||
+                                    degree7Neighbors == 7 && measure >= 26) {
                                         found = true;
                                     }
                                 }
                             }
+                            break;
                         }
+                        case 6: {
+                            if (graph.getNumberOfDegreeNeighbors(node, 3) >= 1) {
+                                found = true;
+                            } else {
+                                uint32_t degree6Neighbors = graph.getNumberOfDegreeNeighbors(node, 6);
+                                if (degree6Neighbors <= 3) {
+                                    found = true;
+                                } else {
+                                    uint32_t degree5Neighbors = graph.getNumberOfDegreeNeighbors(node, 5);
+                                    if (degree6Neighbors == 4 && degree5Neighbors <= 1) {
+                                        found = true;
+                                    } else {
+                                        std::unordered_set<uint32_t> neighborsAtDistance2;
+                                        uint32_t count = 0;
+                                        graph.getNeighborsAtDistance2(node, neighborsAtDistance2, theta, &count);
+                                        uint32_t measure = getMeasure(graph, node, &neighborsAtDistance2);
+                                        measure += count;
+                                        if (degree6Neighbors == 4 && degree5Neighbors == 2 && measure >= 17 ||
+                                        degree6Neighbors == 5 && graph.getNumberOfDegreeNeighbors(node, 4) == 1 && measure >= 18 ||
+                                        degree6Neighbors == 5 && degree5Neighbors == 1 && measure >= 19 ||
+                                        degree6Neighbors == 6 && measure >= 22) {
+                                            found = true;
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                        default:
+                            assert(false);
+                    }
+                    if (found) {
                         break;
                     }
-                    default:
-                        assert(false);
-                }
-                if (found) {
-                    break;
                 }
                 graph.getNextNode(graphTraversal);
             }
