@@ -11,7 +11,7 @@
 using namespace std;
 
 void Reductions::run(const uint32_t &theta) {
-    //cout << " \nReductions\n";
+    //cout << " \nReductions theta " << theta << "\n";
     //printCC();
     //graph.print(true);
     switch(theta) {
@@ -27,8 +27,6 @@ void Reductions::run(const uint32_t &theta) {
             reduce4(theta);
             break;
         case 3:
-        case 2:
-        case 1:
             reduce3(theta);
             break;
         default:
@@ -462,6 +460,7 @@ void Reductions::findMis(const vector<uint32_t> &cc) {
 }
 
 bool Reductions::foldCompleteKIndependentSets(const uint32_t &theta, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes, const bool &theta4) {
+    //graph.print(true);
     //cout << "\n**Performing K-Independent set folding reduction**" << endl;
     (*oldCandidateNodes)->clear();
     ReduceInfo old = reduceInfo;

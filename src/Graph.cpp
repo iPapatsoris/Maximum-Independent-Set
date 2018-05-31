@@ -55,7 +55,7 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) 
 
 /* Could be potentially replaced by structures that are updated on the fly as degrees change,
  * but is pretty fast and memory efficient nonetheless, even on huge graphs */
-void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
+void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree, const uint32_t &bound) const {
     //cout << "Finding max node degree" << endl;
     node = NONE;
     maxDegree = 0;
@@ -63,6 +63,9 @@ void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const {
         if (!nodeIndex[i].removed && nodeIndex[i].edges > maxDegree) {
             node = (!mapping ? i : posToId->at(i));
             maxDegree = nodeIndex[i].edges;
+            if (bound != NONE && maxDegree >= bound) {
+                return;
+            }
         }
     }
     //cout << "node " << node << " with max degree " << maxDegree << endl;
@@ -1066,8 +1069,11 @@ void Graph::printWithGraphTraversal(bool direction) const {
 }
 
 void Graph::printEdgeCounts() const {
-    cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer->size() / 2 << "\n";
+    //cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer->size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
+        if (nodeIndex[pos].removed) {
+            continue;
+        }
         uint32_t node = (!mapping ? pos : (*posToId)[pos]);
         cout << "Node " << node << " has " << nodeIndex[pos].edges << " edges\n";
     }

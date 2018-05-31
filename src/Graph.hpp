@@ -81,7 +81,7 @@ public:
     void getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, std::vector<uint32_t> &container, const uint32_t &atLeast= 0) const;
     void getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, uint32_t &finalNode2, std::vector<uint32_t> &finalSet) const;
     void getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, std::unordered_set<uint32_t> &extendedGrandchildren, bool *isUnconfined = NULL, const bool &stopAtFirst = false) const;
-    void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree) const;
+    void getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree, const uint32_t &bound = NONE) const;
     void getMinDegree(uint32_t &minDegree) const;
     uint32_t getTotalEdges() const;
     void remove(const uint32_t &node, ReduceInfo &reduceInfo, const bool &removeZeroDegreeNodes = false);

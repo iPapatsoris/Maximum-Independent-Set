@@ -22,7 +22,15 @@ private:
     struct SearchNode {
     public:
         SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
-        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), theta(8), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {}
+        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {
+            uint32_t maxDegreeNode;
+            graph.getMaxNodeDegree(maxDegreeNode, theta);
+            if (theta > 8) {
+                theta = 8;
+            } else if (theta < 3) {
+                theta = 3;
+            }
+        }
         ~SearchNode();
         const Graph &getGraph() const {
             return graph;
@@ -65,7 +73,7 @@ private:
             graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
             bool run = true;
             while (run) {
-                std::cout << "theta " << theta << " max degree " << maxDegree << "\n";
+                //std::cout << "theta " << theta << " max degree " << maxDegree << "\n";
                 run = false;
                 switch (theta) {
                     case 8:
@@ -84,6 +92,9 @@ private:
                             }
                         } else {
                             theta = maxDegree;
+                            if (theta < 3) {
+                                theta = 3;
+                            }
                             if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
@@ -101,6 +112,9 @@ private:
                             type = Type::MAX_DEGREE;
                         } else if (maxDegree < theta) {
                             theta = maxDegree;
+                            if (theta < 3) {
+                                theta = 3;
+                            }
                             if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
@@ -175,7 +189,7 @@ private:
             if (type == Type::MAX_DEGREE) {
                 node1 = maxDegreeNode;
             }
-            std::cout << node1 << " ";
+            /*std::cout << node1 << " ";
             switch (type) {
                 case Type::MAX_DEGREE:
                     std::cout << "-> MAX_DEGREE\n";
@@ -185,6 +199,9 @@ private:
                     break;
                 case Type::OPTNODE:
                     std::cout << "-> OPTNODE\n";
+                    if (maxDegreeNode == 106) {
+                        graph.print(true);
+                    }
                     break;
                 case Type::GOOD_FUNNEL:
                     std::cout << "-> GOOD_FUNNEL\n";
@@ -201,7 +218,7 @@ private:
                 case Type::DONE:
                     std::cout << "-> DONE\n";
                     break;
-            }
+            }*/
         }
 
         void getOptimalNode(const Graph &graph, const uint32_t &theta) {
@@ -283,6 +300,7 @@ private:
             node1 = graphTraversal.curNode;
         }
 
+
         static uint32_t getMeasure(const Graph &graph, const uint32_t &node, std::unordered_set<uint32_t> *neighborsAtDistance2Ptr = NULL) {
             std::vector<uint32_t> neighbors;
             graph.gatherNeighbors(node, neighbors);
@@ -349,6 +367,16 @@ private:
             default:
                 assert(false);
         }
+        uint32_t dummy, maxDegree;
+        uint32_t oldTheta = searchNode->theta;
+        searchNode->graph.getMaxNodeDegree(dummy, maxDegree, oldTheta);
+        if (maxDegree < oldTheta) {
+            if (maxDegree >= 3) {
+                searchNode->theta = maxDegree;
+            } else {
+                searchNode->theta = 3;
+            }
+        }
     }
 
     void branchRight(BranchingRule &branchingRule, SearchNode *searchNode) const {
@@ -405,6 +433,16 @@ private:
             default:
                 assert(false);
         }
+        uint32_t dummy, maxDegree;
+        uint32_t oldTheta = searchNode->theta;
+        searchNode->graph.getMaxNodeDegree(dummy, maxDegree, oldTheta);
+        if (maxDegree < oldTheta) {
+            if (maxDegree >= 3) {
+                searchNode->theta = maxDegree;
+            } else {
+                searchNode->theta = 3;
+            }
+        }
     }
 
     void branchOnExtendedGranchildren(const BranchingRule &branchingRule, SearchNode *searchNode) const {
@@ -417,6 +455,15 @@ private:
         std::unordered_set<uint32_t> neighbors;
         searchNode->graph.gatherAllNeighbors(extendedGrandchildren, neighbors);
 
+        /*std::cout << "extending grandchildren are\n";
+                for (auto n: extendedGrandchildren) {
+                    std::cout << n << "\n";
+                }
+                std::cout << "their neighbors are\n";
+                for (auto n: neighbors) {
+                    std::cout << n << "\n";
+                }
+*/
         std::unordered_set<uint32_t> *smaller = &neighbors;
         std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;
         if (smaller->size() > bigger->size()) {
