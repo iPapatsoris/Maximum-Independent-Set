@@ -44,6 +44,7 @@ void Alg::run() {
     while(true) {
         if (down) {
             searchTree[i]->reductions->run(searchTree[i]->theta);
+            //cout << "search node " << searchNodes ;
             searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;

@@ -96,7 +96,7 @@ uint32_t Graph::getTotalEdges() const {
     return count;
 }
 
-uint32_t Graph::getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t &degree) const {
+uint32_t Graph::getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t &degree, const uint32_t &atLeast) const {
     uint32_t count = 0;
     uint32_t pos = (!mapping ? node : idToPos->at(node));
     uint32_t neighborCount = nodeIndex[pos].edges;
@@ -107,6 +107,9 @@ uint32_t Graph::getNumberOfDegreeNeighbors(const uint32_t &node, const uint32_t 
             neighborCount--;
             if (nodeIndex[nPos].edges == degree) {
                 count++;
+                if (atLeast && count == atLeast) {
+                    break;
+                }
             }
         }
     }
@@ -858,13 +861,89 @@ bool Graph::getGoodPair(uint32_t &node1, uint32_t &node2, vector<uint32_t> &comm
                 if (commonNeighbors.size() >= 3) {
                     node1 = nodeA;
                     node2 = nodeB;
-                    cout << "branching on a good pair " << node1 << "-" << node2 << "\n";
+                    //cout << "branching on a good pair " << node1 << "-" << node2 << "\n";
                     return true;
                 }
             }
         }
     }
     return false;
+}
+
+uint32_t Graph::getOptimalDegree5Node() const {
+    uint32_t node = NONE;
+    vector<uint32_t> nodes;
+    for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
+        if (nodeIndex[pos].removed || nodeIndex[pos].edges != 5) {
+            continue;
+        }
+        uint32_t node = (!mapping ? pos : posToId->at(pos));
+        nodes.push_back(node);
+        if (getNumberOfDegreeNeighbors(node, 3, 1) >= 1) {
+            //cout << "Branching on optimal degree-5 node: at least 1 degree 3 neighbor " << node << "\n";
+            return node;
+        }
+    }
+    for (auto node: nodes) {
+        if (nodeIsEffective(node)) {
+            //cout << "Branching on optimal degree-5 node: effective node " << node << "\n";
+            return node;
+        }
+        std::unordered_set<uint32_t> extendedGrandchildren;
+        GraphTraversal graphTraversal(*this, node);
+        getExtendedGrandchildren(graphTraversal, extendedGrandchildren, NULL, true);
+        if (extendedGrandchildren.size()) {
+            //cout << "Branching on optimal degree-5 node: extended grandchildren " << node << "\n";
+            return node;
+        }
+    }
+    return node;
+}
+
+uint32_t Graph::nodeIsEffective(const uint32_t &node) const {
+    vector<uint32_t> neighbors;
+    gatherNeighbors(node, neighbors);
+    neighbors.push_back(node);
+    unordered_set<uint32_t> neighborsAtDistance2;
+    getNeighborsAtDistance2(node, neighborsAtDistance2);
+    uint32_t f = 0;
+    for (auto it = neighborsAtDistance2.begin() ; it != neighborsAtDistance2.end() ; it++) {
+        for (auto neighbor: neighbors) {
+            if (edgeExists(*it, neighbor)) {
+                f++;
+            }
+        }
+    }
+    uint32_t g = 0;
+    for (auto it = neighborsAtDistance2.begin() ; it != neighborsAtDistance2.end() ; it++) {
+        g += (5 - getNodeDegree(*it) + f - neighborsAtDistance2.size());
+    }
+
+    uint32_t k4 = getNumberOfDegreeNeighbors(node, 4);
+    uint32_t k5 = getNumberOfDegreeNeighbors(node, 5);
+    bool effective = false;
+    if (k4 == 0 && k5 == 5) {
+        if (f >= 14 && g >= 0 || f >= 12 && g >= 3 || f >= 10 && g >= 5) {
+            effective = true;
+        }
+    } else if (k4 == 1 && k5 == 4) {
+        if (f >= 13 && g >= 0 || f >= 11 && g >= 2) {
+            effective = true;
+        }
+    } else if (k4 == 2 && k5 == 3) {
+        if (f >= 12 && g >= 0 || f >= 10 && g >= 2) {
+            effective = true;
+        }
+    } else if (k4 == 3 && k5 == 2 && f >= 11 && g >= 0) {
+        effective = true;
+    } else if (k4 == 4 && k5 == 1) {
+        if (f >= 12 && g >= 0 || f >= 10 && g >= 1) {
+            effective = true;
+        }
+    } else if (k4 == 5 && k5 == 0 && f >= 10 && g >= 0) {
+        effective = true;
+    }
+    return effective;
 }
 
 bool Graph::isInTriangle(const uint32_t &node) const {

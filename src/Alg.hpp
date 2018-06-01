@@ -84,8 +84,9 @@ private:
                             type = Type::GOOD_FUNNEL;
                         } else if (graph.getGoodPair(node1, node2, container)) {
                             type = Type::GOOD_PAIR;
-                        } else if (maxDegree == 5) {
-                            type = Type::MAX_DEGREE; //
+                        } else if (maxDegree >= 5) {
+                            node1 = graph.getOptimalDegree5Node();
+                            type = Type::OPTNODE;
                         } else if (maxDegree < theta) {
                             theta = maxDegree;
                             if (theta < 3) {
@@ -165,8 +166,8 @@ private:
             if (type == Type::MAX_DEGREE) {
                 node1 = maxDegreeNode;
             }
-            /*std::cout << node1 << " ";
-            switch (type) {
+            //std::cout << node1 << " ";
+            /*switch (type) {
                 case Type::MAX_DEGREE:
                     std::cout << "-> MAX_DEGREE\n";
                     break;
@@ -175,9 +176,6 @@ private:
                     break;
                 case Type::OPTNODE:
                     std::cout << "-> OPTNODE\n";
-                    if (maxDegreeNode == 106) {
-                        graph.print(true);
-                    }
                     break;
                 case Type::GOOD_FUNNEL:
                     std::cout << "-> GOOD_FUNNEL\n";
