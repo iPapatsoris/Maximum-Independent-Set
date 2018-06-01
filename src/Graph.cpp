@@ -702,6 +702,54 @@ bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
     return false;
 }
 
+bool Graph::getGoodFunnelTheta5(uint32_t &node1, uint32_t &node2) const {
+    GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        uint32_t nodeV = graphTraversal.curNode;
+        uint32_t vDegree = getNodeDegree(nodeV);
+        if (vDegree == 3) {
+            //cout << "nodeV " << nodeV << endl;
+            vector<uint32_t> neighborsV;
+            gatherNeighbors(nodeV, neighborsV);
+            for (uint32_t i = 0 ; i < neighborsV.size() ; i++) {
+                uint32_t nodeA = neighborsV[i];
+                uint32_t nodeB, nodeC;
+                if (i == 0) {
+                    nodeB = neighborsV[1];
+                    nodeC = neighborsV[2];
+                } else if (i == 1) {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[2];
+                } else if (i == 2) {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[1];
+                } else {
+                    nodeB = neighborsV[0];
+                    nodeC = neighborsV[1];
+                }
+                if (edgeExists(nodeB, nodeC))  {
+                    vector<uint32_t> neighborsA;
+                    gatherNeighbors(nodeA, neighborsA);
+                    for (auto neighborA: neighborsA) {
+                        if (neighborA != nodeV && getNodeDegree(neighborA) == 5) {
+                            vector<uint32_t> commonNeighbors;
+                            getCommonNeighbors(neighborA, nodeV, commonNeighbors, 3);
+                            if (commonNeighbors.size() >= 3) {
+                                node1 = nodeA;
+                                node2 = nodeV;
+                                cout << "branching on theta-5 good funnel " << node1 << "-" << node2 << "\n";
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    return false;
+}
+
 bool Graph::getFunnels(vector<Funnel> &funnels, const uint32_t *measure, uint32_t *effectiveNode, Funnel *fourFunnel) const {
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {

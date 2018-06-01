@@ -107,9 +107,12 @@ private:
                     case 5:
                         if (!maxDegree) {
                             type = Type::DONE;
-                        }
-                        else if (maxDegree >= theta) {
+                        } else if (maxDegree >= 6) {
                             type = Type::MAX_DEGREE;
+                        } else if (graph.getGoodFunnelTheta5(node1, node2)) {
+                            type = Type::GOOD_FUNNEL;
+                        } else if (maxDegree == 5) {
+                            type = Type::MAX_DEGREE; //
                         } else if (maxDegree < theta) {
                             theta = maxDegree;
                             if (theta < 3) {
