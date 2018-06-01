@@ -838,6 +838,35 @@ bool Graph::getFunnels(vector<Funnel> &funnels, const uint32_t *measure, uint32_
     return false;
 }
 
+bool Graph::getGoodPair(uint32_t &node1, uint32_t &node2, vector<uint32_t> &commonNeighbors) const {
+    for (uint32_t pos1 = 0 ; pos1 < nodeIndex.size() ; pos1++) {
+        if (nodeIndex[pos1].removed) {
+            continue;
+        }
+        for (uint32_t pos2 = pos1+1 ; pos2 < nodeIndex.size() ; pos2++) {
+            if (nodeIndex[pos2].removed) {
+                continue;
+            }
+            if (nodeIndex[pos1].edges == 5 || nodeIndex[pos2].edges == 5) {
+                uint32_t nodeA = (!mapping ? pos1 : posToId->at(pos1));
+                uint32_t nodeB = (!mapping ? pos2 : posToId->at(pos2));
+                if (edgeExists(nodeA, nodeB)) {
+                    continue;
+                }
+                commonNeighbors.clear();
+                getCommonNeighbors(nodeA, nodeB, commonNeighbors);
+                if (commonNeighbors.size() >= 3) {
+                    node1 = nodeA;
+                    node2 = nodeB;
+                    cout << "branching on a good pair " << node1 << "-" << node2 << "\n";
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 bool Graph::isInTriangle(const uint32_t &node) const {
     vector<uint32_t> neighbors;
     for (uint32_t i = 0 ; i < neighbors.size() ; i++) {

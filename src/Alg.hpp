@@ -51,7 +51,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, FOUR_CYCLE, OPT4NODE, EFFECTIVE_NODE, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, GOOD_PAIR, FOUR_CYCLE, OPT4NODE, EFFECTIVE_NODE, DONE
         };
 
         Type type;
@@ -111,6 +111,8 @@ private:
                             type = Type::MAX_DEGREE;
                         } else if (graph.getGoodFunnelTheta5(node1, node2)) {
                             type = Type::GOOD_FUNNEL;
+                        } else if (graph.getGoodPair(node1, node2, container)) {
+                            type = Type::GOOD_PAIR;
                         } else if (maxDegree == 5) {
                             type = Type::MAX_DEGREE; //
                         } else if (maxDegree < theta) {
@@ -360,6 +362,13 @@ private:
                 branchOnExtendedGranchildren(branchingRule, searchNode);
                 break;
             }
+            case BranchingRule::Type::GOOD_PAIR: {
+                std::vector<uint32_t> goodPair;
+                goodPair.push_back(branchingRule.node1);
+                goodPair.push_back(branchingRule.node2);
+                searchNode->graph.remove(goodPair, searchNode->reductions->getReduceInfo());
+                break;
+            }
             case BranchingRule::Type::FOUR_CYCLE: {
                 std::vector<uint32_t> nonAdjacent;
                 nonAdjacent.push_back(branchingRule.container[0]);
@@ -416,6 +425,10 @@ private:
                 searchNode->graph.gatherNeighbors(branchingRule.node2, neighbors);
                 neighbors.push_back(branchingRule.node2);
                 searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::GOOD_PAIR: {
+                searchNode->graph.remove(branchingRule.container, searchNode->reductions->getReduceInfo());
                 break;
             }
             case BranchingRule::Type::FOUR_CYCLE: {

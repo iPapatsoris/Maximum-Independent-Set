@@ -74,6 +74,7 @@ public:
     bool get4Cycle(std::vector<uint32_t> &cycle) const;
     bool getGoodFunnel(uint32_t &node1, uint32_t &node2) const;
     bool getGoodFunnelTheta5(uint32_t &node1, uint32_t &node2) const;
+    bool getGoodPair(uint32_t &node1, uint32_t &node2, std::vector<uint32_t> &commonNeighbors) const;
     uint32_t getGoodNode(std::unordered_map<uint32_t, std::vector<uint32_t>* > &ccToNodes) const;
     void collectZeroDegreeNodes();
     void addEdges(const uint32_t node, const std::vector<uint32_t> &nodes);
