@@ -18,6 +18,7 @@ Alg::~Alg() {
 Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parentNode) {
     id = NONE;
     theta = searchNode.theta;
+    branchingRule = BranchingRule();
     graph = searchNode.graph;
     mis = searchNode.mis;
     reductions = new Reductions(graph, mis);
@@ -39,18 +40,16 @@ void Alg::run() {
     uint32_t searchNodes = 1;
     uint32_t minCompletedSearchNode = NONE;
     bool down = true;
-    BranchingRule branchingRule;
     uint32_t i = 0;
     while(true) {
         if (down) {
             searchTree[i]->reductions->run(searchTree[i]->theta);
-            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
+            searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;
-            branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
-            assert(branchingRule.type != BranchingRule::Type::DONE);
+            assert(searchTree[i]->branchingRule.type != BranchingRule::Type::DONE);
         }
-        if (down && branchingRule.type == BranchingRule::Type::DONE) {
+        if (down && searchTree[i]->branchingRule.type == BranchingRule::Type::DONE) {
             searchTree[i]->id = searchNodeID++;
             //cout << "Id " << searchTree[i]->id;
             searchTree[i]->finalMis = new vector<uint32_t>();
@@ -64,7 +63,7 @@ void Alg::run() {
         }
         //print();
         /*if (down && minCompletedSearchNode == 42) {
-            cout << "node " << branchingRule.node1 << "\n";
+            cout << "node " << searchTree[i]->branchingRule.node1 << "\n";
         }*/
         uint32_t *nextChild;
         if (searchTree[i]->leftChild == NONE) {
@@ -91,10 +90,10 @@ void Alg::run() {
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
         if (nextChild == &searchTree[i]->leftChild) {
-            branchLeft(branchingRule, searchNode);
+            branchLeft(searchTree[i]->branchingRule, searchNode);
         }
         else if (nextChild == &searchTree[i]->rightChild) {
-            branchRight(branchingRule, searchNode);
+            branchRight(searchTree[i]->branchingRule, searchNode);
         }
         else {
             assert(false);

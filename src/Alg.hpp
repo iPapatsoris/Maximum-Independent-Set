@@ -7,7 +7,7 @@
 
 
 class Alg {
-    class SearchNode;
+    struct SearchNode;
 
 public:
     Alg(const std::string &inputFile, const bool &checkIndependentSet);
@@ -19,35 +19,6 @@ public:
     void print() const;
 
 private:
-    struct SearchNode {
-    public:
-        SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
-        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {
-            uint32_t maxDegreeNode;
-            graph.getMaxNodeDegree(maxDegreeNode, theta);
-            if (theta > 8) {
-                theta = 8;
-            } else if (theta < 3) {
-                theta = 3;
-            }
-        }
-        ~SearchNode();
-        const Graph &getGraph() const {
-            return graph;
-        }
-        void print() const;
-
-        uint32_t id;
-        uint32_t theta;
-        Graph graph;
-        Mis mis; // Current mis and hypernodes
-        Reductions *reductions;
-        uint32_t parent;
-        uint32_t leftChild;
-        uint32_t rightChild;
-        std::vector<uint32_t> *finalMis; // Final mis of children search nodes, no hypernodes
-    };
-
     struct BranchingRule {
     public:
         enum class Type {
@@ -321,6 +292,37 @@ private:
 
     };
 
+    struct SearchNode {
+    public:
+        SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
+        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {
+            uint32_t maxDegreeNode;
+            graph.getMaxNodeDegree(maxDegreeNode, theta);
+            if (theta > 8) {
+                theta = 8;
+            } else if (theta < 3) {
+                theta = 3;
+            }
+        }
+        ~SearchNode();
+        const Graph &getGraph() const {
+            return graph;
+        }
+        void print() const;
+
+        uint32_t id;
+        uint32_t theta;
+        BranchingRule branchingRule;
+        Graph graph;
+        Mis mis; // Current mis and hypernodes
+        Reductions *reductions;
+        uint32_t parent;
+        uint32_t leftChild;
+        uint32_t rightChild;
+        std::vector<uint32_t> *finalMis; // Final mis of children search nodes, no hypernodes
+    };
+
+
     void chooseMaxMis(SearchNode *parent) {
         //std::cout << "no next child" << std::endl;
         SearchNode *leftChild = searchTree[parent->leftChild];
@@ -479,7 +481,7 @@ private:
                 for (auto n: neighbors) {
                     std::cout << n << "\n";
                 }
-*/
+    */
         std::unordered_set<uint32_t> *smaller = &neighbors;
         std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;
         if (smaller->size() > bigger->size()) {
@@ -492,6 +494,10 @@ private:
     }
 
     std::vector<SearchNode *> searchTree;
+
+
+
 };
+
 
 #endif
