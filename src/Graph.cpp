@@ -4,6 +4,7 @@
 #include <cstring>
 #include <algorithm>
 #include <set>
+#include <stack>
 #include "Graph.hpp"
 
 using namespace std;
@@ -1170,7 +1171,83 @@ void Graph::collectZeroDegreeNodes() {
     }
 }
 
+void Graph::getArticulationPoints() const {
+    struct Value {
+        Value(const uint32_t &visit) : visit(visit), low(visit) {}
+        uint32_t visit;
+        uint32_t low;
+    };
 
+    struct Instance {
+        Instance(const uint32_t &node, const uint32_t &parentNode, const Graph &graph) : graphTraversal(graph, node), parentNode(parentNode), dfsChildren(0) {}
+        GraphTraversal graphTraversal;
+        uint32_t parentNode;
+        uint32_t dfsChildren;
+    };
+
+    unordered_map<uint32_t, Value> exploredSet;
+    stack<Instance> frontier;
+    uint32_t visit = 0;
+    Graph::GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
+            frontier.push(Instance(graphTraversal.curNode, NONE, *this));
+            while (!frontier.empty()) {
+                uint32_t node = frontier.top().graphTraversal.curNode;
+                exploredSet.insert({node, Value(visit)});
+                visit++;
+                bool newCall;
+                do {
+                    Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
+                    newCall = false;
+                    while (neighbors.curEdgeOffset != NONE) {
+                        uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
+                        if (neighbor != node) {
+                            auto it = exploredSet.find(neighbor);
+                            if (it == exploredSet.end()) {
+                                newCall = true;
+                                frontier.top().dfsChildren++;
+                                frontier.push(Instance(neighbor, node, *this));
+                                break;
+                            } else if (node != neighbor && it->second.visit < exploredSet.find(node)->second.visit) {
+                                auto it1 = exploredSet.find(node);
+                                if (it->second.visit < it1->second.low) {
+                                    it1->second.low = it->second.visit;
+                                }
+                            }
+                        }
+                        getNextEdge(neighbors);
+                    }
+                    if (!newCall) {
+                        uint32_t parentNode = frontier.top().parentNode;
+                        if (frontier.size() > 1 && frontier.top().dfsChildren) {
+                            auto it1 = exploredSet.find(parentNode);
+                            auto it2 = exploredSet.find(node);
+                            assert(it1 != exploredSet.end() && it2 != exploredSet.end());
+                            if (it2->second.low < it1->second.low) {
+                                it1->second.low = it2->second.low;
+                            }
+                            if (it2->second.low >= it1->second.visit) {
+                                cout << "Articulation point " << parentNode << "\n";
+                            }
+                            frontier.pop();
+                            if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
+                                getNextEdge(frontier.top().graphTraversal);
+                            }
+                        } else if (frontier.size() == 1) {
+                            if (frontier.top().dfsChildren > 1) {
+                                cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
+                            }
+                            frontier.pop();
+                        }
+                        node = frontier.top().graphTraversal.curNode;
+                    }
+                } while (!newCall);
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+}
 
 /* Only for debugging. If needed in actual algorithm,
  * make it a class field */

@@ -64,6 +64,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
+    void getArticulationPoints() const;
     uint32_t getOptimalNodeTheta3(const uint32_t initialMaxDegreeNode, const uint32_t &initialMaxDegree) const;
     bool getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &nodeV, uint32_t &nodeA) const;
     bool get4CycleTheta3(std::vector<uint32_t> &optimalCycle) const;
