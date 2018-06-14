@@ -35,6 +35,8 @@ Alg::SearchNode::~SearchNode() {
 uint32_t searchNodeID = 0;
 
 void Alg::run() {
+    searchTree[0]->graph.getArticulationPoints();
+    return;
     //searchTree[0]->graph.print(true);
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
     uint32_t searchNodes = 1;

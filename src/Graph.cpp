@@ -1184,13 +1184,15 @@ void Graph::getArticulationPoints() const {
         uint32_t parentNode;
         uint32_t dfsChildren;
     };
-
+    unordered_set<uint32_t> articulationPoints;
     unordered_map<uint32_t, Value> exploredSet;
     stack<Instance> frontier;
     uint32_t visit = 0;
+    uint32_t root = NONE;
     Graph::GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
+            root = graphTraversal.curNode;
             frontier.push(Instance(graphTraversal.curNode, NONE, *this));
             while (!frontier.empty()) {
                 uint32_t node = frontier.top().graphTraversal.curNode;
@@ -1198,10 +1200,13 @@ void Graph::getArticulationPoints() const {
                 visit++;
                 bool newCall;
                 do {
+                    node = frontier.top().graphTraversal.curNode;
+                    //cout << node << endl;
                     Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
                     newCall = false;
                     while (neighbors.curEdgeOffset != NONE) {
                         uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
+                        //cout << "checking neighbor " << neighbor << endl;
                         if (neighbor != node) {
                             auto it = exploredSet.find(neighbor);
                             if (it == exploredSet.end()) {
@@ -1209,7 +1214,8 @@ void Graph::getArticulationPoints() const {
                                 frontier.top().dfsChildren++;
                                 frontier.push(Instance(neighbor, node, *this));
                                 break;
-                            } else if (node != neighbor && it->second.visit < exploredSet.find(node)->second.visit) {
+                            } else if (it->second.visit < exploredSet.find(node)->second.visit) {
+                                //cout << "neighbor " << neighbor << " already exists" << endl;
                                 auto it1 = exploredSet.find(node);
                                 if (it->second.visit < it1->second.low) {
                                     it1->second.low = it->second.visit;
@@ -1220,14 +1226,14 @@ void Graph::getArticulationPoints() const {
                     }
                     if (!newCall) {
                         uint32_t parentNode = frontier.top().parentNode;
-                        if (frontier.size() > 1 && frontier.top().dfsChildren) {
+                        if (frontier.size() > 1) {
                             auto it1 = exploredSet.find(parentNode);
                             auto it2 = exploredSet.find(node);
                             assert(it1 != exploredSet.end() && it2 != exploredSet.end());
                             if (it2->second.low < it1->second.low) {
                                 it1->second.low = it2->second.low;
                             }
-                            if (it2->second.low >= it1->second.visit) {
+                            if (parentNode != root && it2->second.low >= it1->second.visit && articulationPoints.insert(parentNode).second) {
                                 cout << "Articulation point " << parentNode << "\n";
                             }
                             frontier.pop();
@@ -1235,18 +1241,21 @@ void Graph::getArticulationPoints() const {
                                 getNextEdge(frontier.top().graphTraversal);
                             }
                         } else if (frontier.size() == 1) {
-                            if (frontier.top().dfsChildren > 1) {
+                            if (frontier.top().dfsChildren > 1 && articulationPoints.insert(frontier.top().graphTraversal.curNode).second) {
                                 cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
                             }
                             frontier.pop();
+                            break;
                         }
-                        node = frontier.top().graphTraversal.curNode;
                     }
                 } while (!newCall);
             }
         }
         getNextNode(graphTraversal);
     }
+    /*for (auto it: exploredSet) {
+        cout << it.first << ": " <<  it.second.visit << " " << it.second.low << endl;
+    }*/
 }
 
 /* Only for debugging. If needed in actual algorithm,
