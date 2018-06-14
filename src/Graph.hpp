@@ -64,7 +64,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
-    void getArticulationPoints() const;
+    bool getArticulationPoints(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
     uint32_t getOptimalNodeTheta3(const uint32_t initialMaxDegreeNode, const uint32_t &initialMaxDegree) const;
     bool getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &nodeV, uint32_t &nodeA) const;
     bool get4CycleTheta3(std::vector<uint32_t> &optimalCycle) const;
@@ -388,6 +388,8 @@ private:
     uint32_t getOptimalDegree4Node1() const;
     uint32_t getOptimalDegree4Node2() const;
     void getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode) const;
+    bool checkSeparation(const std::unordered_set<uint32_t> &cut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
+    bool buildCC(const std::unordered_set<uint32_t> &excludedNodes, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2) const;
 
     struct NodeInfo {
     public:

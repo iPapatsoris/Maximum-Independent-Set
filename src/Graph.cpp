@@ -1171,7 +1171,7 @@ void Graph::collectZeroDegreeNodes() {
     }
 }
 
-void Graph::getArticulationPoints() const {
+bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
     struct Value {
         Value(const uint32_t &visit) : visit(visit), low(visit) {}
         uint32_t visit;
@@ -1184,6 +1184,11 @@ void Graph::getArticulationPoints() const {
         uint32_t parentNode;
         uint32_t dfsChildren;
     };
+
+    vertexCut.clear();
+    component1.clear();
+    component2.clear();
+
     unordered_set<uint32_t> articulationPoints;
     unordered_map<uint32_t, Value> exploredSet;
     stack<Instance> frontier;
@@ -1235,6 +1240,12 @@ void Graph::getArticulationPoints() const {
                             }
                             if (parentNode != root && it2->second.low >= it1->second.visit && articulationPoints.insert(parentNode).second) {
                                 cout << "Articulation point " << parentNode << "\n";
+                                unordered_set<uint32_t> cut;
+                                cut.insert(parentNode);
+                                if (checkSeparation(cut, component1, component2, actualComponent1)) {
+                                    vertexCut = cut;
+                                    return true;;
+                                }
                             }
                             frontier.pop();
                             if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
@@ -1243,6 +1254,12 @@ void Graph::getArticulationPoints() const {
                         } else if (frontier.size() == 1) {
                             if (frontier.top().dfsChildren > 1 && articulationPoints.insert(frontier.top().graphTraversal.curNode).second) {
                                 cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
+                                unordered_set<uint32_t> cut;
+                                cut.insert(frontier.top().graphTraversal.curNode);
+                                if (checkSeparation(cut, component1, component2, actualComponent1)) {
+                                    vertexCut = cut;
+                                    return true;;
+                                }
                             }
                             frontier.pop();
                             break;
@@ -1256,6 +1273,87 @@ void Graph::getArticulationPoints() const {
     /*for (auto it: exploredSet) {
         cout << it.first << ": " <<  it.second.visit << " " << it.second.low << endl;
     }*/
+    return false;
+}
+
+bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
+    if (buildCC(cut, component1, component2)) {
+        cout << "more than 2 cc" << endl;
+        component1.clear();
+        component2.clear();
+        return false;
+    }
+    uint32_t degreeSum1 = 0;
+    for (auto node: component1) {
+        uint32_t degree = getNodeDegree(node);
+        for (auto z: cut) {
+            if (edgeExists(z, node)) {
+                degree--;
+            }
+        }
+        if (degree >= 3) {
+            degreeSum1 += degree;
+        }
+    }
+
+    uint32_t degreeSum2 = 0;
+    for (auto node: component2) {
+        uint32_t degree = getNodeDegree(node);
+        for (auto z: cut) {
+            if (edgeExists(z, node)) {
+                degree--;
+            }
+        }
+        if (degree >= 3) {
+            degreeSum2 += degree;
+            if (degreeSum2 >= degreeSum1) {
+                break;
+            }
+        }
+    }
+    cout << "degreeSum1 " << degreeSum1 << ", degreeSum2: " << degreeSum2 << endl;
+    if (degreeSum1 <= degreeSum2) {
+        cout << "1" << endl;
+        actualComponent1 = true;
+    } else {
+        cout << "2" << endl;
+        actualComponent1 = false;
+    }
+    return true;
+}
+
+/* Only builds 2 CCs, optimized for separation set detection */
+bool Graph::buildCC(const unordered_set<uint32_t> &excludedNodes, vector<uint32_t> &component1, vector<uint32_t> &component2) const {
+    uint32_t component = 0;
+    unordered_set<uint32_t> exploredSet;
+    stack<uint32_t> frontier;
+    Graph::GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        if (excludedNodes.find(graphTraversal.curNode) == excludedNodes.end() && exploredSet.insert(graphTraversal.curNode).second) {
+            if (component == 2) {
+                return false;
+            }
+            vector<uint32_t> *componentNodes = (component == 0 ? &component1 : &component2);
+            componentNodes->push_back(graphTraversal.curNode);
+            frontier.push(graphTraversal.curNode);
+            while (!frontier.empty()) {
+                uint32_t node = frontier.top();
+                frontier.pop();
+                Graph::GraphTraversal neighbors(*this, node);
+                while (neighbors.curEdgeOffset != NONE) {
+                    node = (*edgeBuffer)[neighbors.curEdgeOffset];
+                    if (excludedNodes.find(node) == excludedNodes.end() && exploredSet.insert(node).second) {
+                        frontier.push(node);
+                        componentNodes->push_back(node);
+                    }
+                    getNextEdge(neighbors);
+                }
+            }
+            component++;
+        }
+        getNextNode(graphTraversal);
+    }
+    return true;
 }
 
 /* Only for debugging. If needed in actual algorithm,

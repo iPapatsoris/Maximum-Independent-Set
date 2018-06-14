@@ -6,7 +6,7 @@
 
 class Reductions {
 public:
-    Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis){}
+    Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
     ~Reductions();
     void run(const uint32_t &theta);
     ReduceInfo &getReduceInfo() {

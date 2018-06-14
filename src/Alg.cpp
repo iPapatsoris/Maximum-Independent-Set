@@ -35,8 +35,27 @@ Alg::SearchNode::~SearchNode() {
 uint32_t searchNodeID = 0;
 
 void Alg::run() {
-    searchTree[0]->graph.getArticulationPoints();
+    unordered_set<uint32_t> cut;
+    vector<uint32_t> component1, component2;
+    bool actualComponent1;
+    if (searchTree[0]->graph.getArticulationPoints(cut, component1, component2, actualComponent1)) {
+        cout << "cut is ";
+        for (auto i: cut) {
+            cout << i << " ";
+        }
+        cout << endl;
+        cout << "actual component1: " << actualComponent1 << endl;
+        cout << "component1\n";
+        for (auto n: component1) {
+            cout << n << "\n";
+        }
+        cout << "\ncomponent2\n";
+        for (auto n: component2) {
+            cout << n << "\n";
+        }
+    }
     return;
+
     //searchTree[0]->graph.print(true);
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
     uint32_t searchNodes = 1;
@@ -45,6 +64,28 @@ void Alg::run() {
     uint32_t i = 0;
     while(true) {
         if (down) {
+            /*if (searchTree[i]->theta == 5) {
+                unordered_set<uint32_t> cut;
+                vector<uint32_t> component1, component2;
+                bool actualComponent1;
+                if (searchTree[i]->graph.getArticulationPoints(cut, component1, component2, actualComponent1)) {
+                    cout << "cut is ";
+                    for (auto i: cut) {
+                        cout << i << " ";
+                    }
+                    cout << endl;
+                    cout << "actual component1: " << actualComponent1 << endl;
+                    cout << "component1\n";
+                    for (auto n: component1) {
+                        cout << n << "\n";
+                    }
+                    cout << "\ncomponent2\n";
+                    for (auto n: component2) {
+                        cout << n << "\n";
+                    }
+
+                }
+            }*/
             searchTree[i]->reductions->run(searchTree[i]->theta);
             //cout << "search node " << searchNodes ;
             searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
