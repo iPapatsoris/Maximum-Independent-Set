@@ -22,7 +22,7 @@ private:
     struct BranchingRule {
     public:
         enum class Type {
-            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, GOOD_PAIR, FOUR_CYCLE, OPT4NODE, EFFECTIVE_NODE, DONE
+            MAX_DEGREE, SHORT_EDGE, OPTNODE, GOOD_FUNNEL, GOOD_PAIR, FOUR_CYCLE, OPT4NODE, EFFECTIVE_NODE, CUT, CUT_RIGHT_1, CUT_RIGHT_2, DONE
         };
 
         Type type;
@@ -38,7 +38,7 @@ private:
             container.clear();
         }
 
-        void choose(const Graph &graph, Reductions &reductions, uint32_t &theta) {
+        void choose(const Graph &graph, Reductions &reductions, uint32_t &theta, SearchNode *searchNode) {
             uint32_t maxDegree = 0;
             uint32_t maxDegreeNode = NONE;
             graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
@@ -65,6 +65,8 @@ private:
                             theta = maxDegree;
                             if (theta < 3) {
                                 theta = 3;
+                            } else if (theta == 5 && searchNode->handleCuts()) {
+                                return;
                             }
                             if (graph.nodeIndex.size()) {
                                 reductions.run(theta);
@@ -293,7 +295,7 @@ private:
     struct SearchNode {
     public:
         SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
-        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL) {
+        SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL), hasCut(false), cutIsDone(false) {
             uint32_t maxDegreeNode;
             graph.getMaxNodeDegree(maxDegreeNode, theta);
             if (theta > 8) {
@@ -307,6 +309,7 @@ private:
             return graph;
         }
         void print() const;
+        bool handleCuts();
 
         uint32_t id;
         uint32_t theta;
@@ -318,6 +321,12 @@ private:
         uint32_t leftChild;
         uint32_t rightChild;
         std::vector<uint32_t> *finalMis; // Final mis of children search nodes, no hypernodes
+
+        bool hasCut;
+        std::unordered_set<uint32_t> cut;
+        std::vector<uint32_t> c1, c2;
+        bool actualComponent1;
+        bool cutIsDone;
     };
 
 
@@ -339,6 +348,36 @@ private:
         searchTree.pop_back();
         delete searchTree.back();
         searchTree.pop_back();
+    }
+
+    void concatMis(SearchNode *parent) {
+        SearchNode *leftChild = searchTree[parent->leftChild];
+        SearchNode *rightChild = searchTree[parent->rightChild];
+        assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
+        parent->finalMis = leftChild->finalMis;
+        parent->finalMis->insert(parent->finalMis->end(), rightChild->finalMis->begin(), rightChild->finalMis->end());
+        delete rightChild->finalMis;
+        delete searchTree.back();
+        searchTree.pop_back();
+        delete searchTree.back();
+        searchTree.pop_back();
+    }
+
+    void chooseCutBranch(SearchNode *parent) {
+        SearchNode *leftChild = searchTree[parent->leftChild];
+        SearchNode *rightChild = searchTree[parent->rightChild];
+        assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
+        if (leftChild->finalMis->size() == rightChild->finalMis->size()) {
+            parent->branchingRule.type = BranchingRule::Type::CUT_RIGHT_1;
+        } else if (leftChild->finalMis->size() > rightChild->finalMis->size()) {
+            parent->branchingRule.type = BranchingRule::Type::CUT_RIGHT_2;
+        } else {
+            assert(false);
+        }
+        delete rightChild->finalMis;
+        delete searchTree.back();
+        searchTree.pop_back();
+        parent->cutIsDone = true;
     }
 
     void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) const {
@@ -374,6 +413,16 @@ private:
                 nonAdjacent.push_back(branchingRule.container[0]);
                 nonAdjacent.push_back(branchingRule.container[2]);
                 searchNode->graph.remove(nonAdjacent, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::CUT: {
+                std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
+                std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                component2->insert(component2->end(), searchNode->cut.begin(), searchNode->cut.end());
+                searchNode->graph.remove(*component2, searchNode->reductions->getReduceInfo());
+                for (auto c: searchNode->cut) {
+                    component2->pop_back();
+                }
                 break;
             }
             default:
@@ -444,6 +493,35 @@ private:
                 neighbors.push_back(branchingRule.node1);
                 searchNode->mis.getMis().push_back(branchingRule.node1);
                 searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::CUT: {
+                std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
+                std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                component2->insert(component2->end(), searchNode->cut.begin(), searchNode->cut.end());
+                searchNode->graph.remove(*component2, searchNode->reductions->getReduceInfo());
+                for (auto c: searchNode->cut) {
+                    component2->pop_back();
+                }
+                std::set<uint32_t> neighbors;
+                searchNode->graph.gatherAllNeighbors(searchNode->cut, neighbors);
+                searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::CUT_RIGHT_1: {
+                std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
+                std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
+                break;
+            }
+            case BranchingRule::Type::CUT_RIGHT_2: {
+                std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
+                std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                component1->insert(component1->end(), searchNode->cut.begin(), searchNode->cut.end());
+                searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
+                for (auto c: searchNode->cut) {
+                    component1->pop_back();
+                }
                 break;
             }
             default:

@@ -26,6 +26,8 @@ Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parent
     leftChild = NONE;
     rightChild = NONE;
     finalMis = NULL;
+    hasCut = false;
+    cutIsDone = false;
 }
 
 Alg::SearchNode::~SearchNode() {
@@ -38,24 +40,6 @@ void Alg::run() {
     unordered_set<uint32_t> cut;
     vector<uint32_t> component1, component2;
     bool actualComponent1;
-    if (searchTree[0]->graph.getArticulationPoints(cut, component1, component2, actualComponent1)) {
-        cout << "cut is ";
-        for (auto i: cut) {
-            cout << i << " ";
-        }
-        cout << endl;
-        cout << "actual component1: " << actualComponent1 << endl;
-        cout << "component1\n";
-        for (auto n: component1) {
-            cout << n << "\n";
-        }
-        cout << "\ncomponent2\n";
-        for (auto n: component2) {
-            cout << n << "\n";
-        }
-    }
-    return;
-
     //searchTree[0]->graph.print(true);
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
     uint32_t searchNodes = 1;
@@ -64,31 +48,13 @@ void Alg::run() {
     uint32_t i = 0;
     while(true) {
         if (down) {
-            /*if (searchTree[i]->theta == 5) {
-                unordered_set<uint32_t> cut;
-                vector<uint32_t> component1, component2;
-                bool actualComponent1;
-                if (searchTree[i]->graph.getArticulationPoints(cut, component1, component2, actualComponent1)) {
-                    cout << "cut is ";
-                    for (auto i: cut) {
-                        cout << i << " ";
-                    }
-                    cout << endl;
-                    cout << "actual component1: " << actualComponent1 << endl;
-                    cout << "component1\n";
-                    for (auto n: component1) {
-                        cout << n << "\n";
-                    }
-                    cout << "\ncomponent2\n";
-                    for (auto n: component2) {
-                        cout << n << "\n";
-                    }
-
-                }
-            }*/
-            searchTree[i]->reductions->run(searchTree[i]->theta);
-            //cout << "search node " << searchNodes ;
-            searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta);
+            if (searchTree[i]->theta == 5 && searchTree[i]->handleCuts()) {
+                ;
+            } else {
+                searchTree[i]->reductions->run(searchTree[i]->theta);
+                //cout << "search node " << searchNodes ;
+                searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta, searchTree[i]);
+            }
         } else if (searchTree[i]->rightChild == NONE) {
             down = true;
             assert(searchTree[i]->branchingRule.type != BranchingRule::Type::DONE);
@@ -114,13 +80,21 @@ void Alg::run() {
             nextChild = &searchTree[i]->leftChild;
         } else if (searchTree[i]->rightChild == NONE) {
             nextChild = &searchTree[i]->rightChild;
+        } else if (searchTree[i]->hasCut && !searchTree[i]->cutIsDone) {
+            chooseCutBranch(searchTree[i]);
+            nextChild = &searchTree[i]->rightChild;
         } else {
             if (i < minCompletedSearchNode) {
                 minCompletedSearchNode = i;
                 cout << i << endl;
             }
             SearchNode *parent = searchTree[i];
-            chooseMaxMis(parent);
+            if (parent->hasCut) {
+                assert(parent->cutIsDone);
+                concatMis(parent);
+            } else {
+                chooseMaxMis(parent);
+            }
             i = parent->parent;
             if (searchTree.size() == 1) {
                 break;
@@ -150,6 +124,16 @@ void Alg::run() {
     cout << "Final id " << searchTree[0]->id;
     Mis::print(*searchTree[0]->finalMis);
     delete searchTree[0]->finalMis;
+}
+
+bool Alg::SearchNode::handleCuts() {
+    if (graph.getArticulationPoints(cut, c1, c2, actualComponent1)) {
+        branchingRule.type = BranchingRule::Type::CUT;
+        hasCut = true;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void Alg::print() const {

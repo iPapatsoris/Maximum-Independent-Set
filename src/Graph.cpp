@@ -1277,7 +1277,7 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
 }
 
 bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
-    if (buildCC(cut, component1, component2)) {
+    if (!buildCC(cut, component1, component2)) {
         cout << "more than 2 cc" << endl;
         component1.clear();
         component2.clear();
@@ -1311,12 +1311,9 @@ bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t>
             }
         }
     }
-    cout << "degreeSum1 " << degreeSum1 << ", degreeSum2: " << degreeSum2 << endl;
     if (degreeSum1 <= degreeSum2) {
-        cout << "1" << endl;
         actualComponent1 = true;
     } else {
-        cout << "2" << endl;
         actualComponent1 = false;
     }
     return true;
