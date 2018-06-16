@@ -66,10 +66,11 @@ private:
                             if (theta < 3) {
                                 theta = 3;
                             } else if (theta == 5 && searchNode->handleCuts()) {
+                                std::cout << "hey" << std::endl;
                                 return;
                             }
                             if (graph.nodeIndex.size()) {
-                                reductions.run(theta);
+                                reductions.run(theta, searchNode->nodesInComponent);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                                 run = true;
                             } else {
@@ -95,7 +96,7 @@ private:
                                 theta = 3;
                             }
                             if (graph.nodeIndex.size()) {
-                                reductions.run(theta);
+                                reductions.run(theta, searchNode->nodesInComponent);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                                 run = true;
                             } else {
@@ -123,7 +124,7 @@ private:
                         else if (maxDegree < theta) {
                             theta = 3;
                             if (graph.nodeIndex.size()) {
-                                reductions.run(theta);
+                                reductions.run(theta, searchNode->nodesInComponent);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                                 run = true;
                             } else {
@@ -168,8 +169,10 @@ private:
             if (type == Type::MAX_DEGREE) {
                 node1 = maxDegreeNode;
             }
-            //std::cout << node1 << " ";
-            /*switch (type) {
+            //
+
+            /*std::cout << node1 << " ";
+            switch (type) {
                 case Type::MAX_DEGREE:
                     std::cout << "-> MAX_DEGREE\n";
                     break;
@@ -327,6 +330,7 @@ private:
         std::vector<uint32_t> c1, c2;
         bool actualComponent1;
         bool cutIsDone;
+        std::unordered_set<uint32_t> nodesInComponent; // Nodes left after branching on a cut
     };
 
 
@@ -369,11 +373,12 @@ private:
         assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
         if (leftChild->finalMis->size() == rightChild->finalMis->size()) {
             parent->branchingRule.type = BranchingRule::Type::CUT_RIGHT_1;
-        } else if (leftChild->finalMis->size() > rightChild->finalMis->size()) {
+        } else { //if (leftChild->finalMis->size() > rightChild->finalMis->size()) {
             parent->branchingRule.type = BranchingRule::Type::CUT_RIGHT_2;
-        } else {
+        } /*else {
+            std::cout << leftChild->finalMis->size() << " " << rightChild->finalMis->size() << std::endl;
             assert(false);
-        }
+        }*/
         delete rightChild->finalMis;
         delete searchTree.back();
         searchTree.pop_back();
@@ -381,12 +386,40 @@ private:
     }
 
     void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) const {
+        /*std::cout << branchingRule.node1 << " ";
+        switch (branchingRule.type) {
+            case BranchingRule::Type::MAX_DEGREE:
+                std::cout << "-> MAX_DEGREE\n";
+                break;
+            case BranchingRule::Type::SHORT_EDGE:
+                std::cout << "-> SHORT_EDGE\n";
+                break;
+            case BranchingRule::Type::OPTNODE:
+                std::cout << "-> OPTNODE\n";
+                break;
+            case BranchingRule::Type::GOOD_FUNNEL:
+                std::cout << "-> GOOD_FUNNEL\n";
+                break;
+            case BranchingRule::Type::FOUR_CYCLE:
+                std::cout << "-> FOUR_CYCLE\n";
+                break;
+            case BranchingRule::Type::OPT4NODE:
+                std::cout << "-> OPT4NODE\n";
+                break;
+            case BranchingRule::Type::EFFECTIVE_NODE:
+                std::cout << "-> EFFECTIVE_NODE\n";
+                break;
+            case BranchingRule::Type::DONE:
+                std::cout << "-> DONE\n";
+                break;
+        }*/
         //std::cout << "left\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
             case BranchingRule::Type::OPTNODE:
             case BranchingRule::Type::OPT4NODE:
             case BranchingRule::Type::EFFECTIVE_NODE: {
+                std::cout << branchingRule.node1 << std::endl;
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
@@ -416,13 +449,27 @@ private:
                 break;
             }
             case BranchingRule::Type::CUT: {
+                std::cout << "left cut" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 component2->insert(component2->end(), searchNode->cut.begin(), searchNode->cut.end());
                 searchNode->graph.remove(*component2, searchNode->reductions->getReduceInfo());
                 for (auto c: searchNode->cut) {
                     component2->pop_back();
                 }
+                searchNode->nodesInComponent.clear();
+                searchNode->nodesInComponent.insert(component1->begin(), component1->end());
+                for (auto n: searchNode->nodesInComponent) {
+                    std::cout << n << "\n";
+                } std::cout << "\n";
+                searchNode->graph.print(1);
+                std::cout << "\n";
+                for (auto n: *component2) {
+                    std::cout << n << "\n";
+                }
+                std::cout << "cut is " << *(searchNode->cut.begin()) << std::endl;
+
                 break;
             }
             default:
@@ -496,32 +543,48 @@ private:
                 break;
             }
             case BranchingRule::Type::CUT: {
+                std::cout << "right cut" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
+                std::set<uint32_t> neighbors;
+                searchNode->graph.gatherAllNeighbors(searchNode->cut, neighbors);
                 component2->insert(component2->end(), searchNode->cut.begin(), searchNode->cut.end());
                 searchNode->graph.remove(*component2, searchNode->reductions->getReduceInfo());
                 for (auto c: searchNode->cut) {
                     component2->pop_back();
                 }
-                std::set<uint32_t> neighbors;
-                searchNode->graph.gatherAllNeighbors(searchNode->cut, neighbors);
                 searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
+                searchNode->nodesInComponent.clear();
+                searchNode->nodesInComponent.insert(component1->begin(), component1->end());
+                for (auto n: neighbors) {
+                    searchNode->nodesInComponent.erase(n);
+                }
                 break;
             }
             case BranchingRule::Type::CUT_RIGHT_1: {
+                std::cout << "right cut 1" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
+                searchNode->nodesInComponent.clear();
+                searchNode->nodesInComponent.insert(component2->begin(), component2->end());
+                searchNode->nodesInComponent.insert(searchNode->cut.begin(), searchNode->cut.end());
                 break;
             }
             case BranchingRule::Type::CUT_RIGHT_2: {
+                std::cout << "right cut 2" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
+                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 component1->insert(component1->end(), searchNode->cut.begin(), searchNode->cut.end());
                 searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
                 for (auto c: searchNode->cut) {
                     component1->pop_back();
                 }
+                searchNode->nodesInComponent.clear();
+                searchNode->nodesInComponent.insert(component2->begin(), component2->end());
                 break;
             }
             default:
@@ -533,7 +596,9 @@ private:
         if (maxDegree < oldTheta) {
             if (maxDegree >= 3) {
                 searchNode->theta = maxDegree;
+                std::cout << "theta " << maxDegree << std::endl;
             } else {
+                std::cout << "theta 3 " << std::endl;
                 searchNode->theta = 3;
             }
         }

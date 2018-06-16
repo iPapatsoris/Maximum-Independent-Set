@@ -28,6 +28,11 @@ Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parent
     finalMis = NULL;
     hasCut = false;
     cutIsDone = false;
+    cut = searchNode.cut;
+    c1 = searchNode.c1;
+    c2 = searchNode.c2;
+    actualComponent1 = searchNode.actualComponent1;
+    nodesInComponent = unordered_set<uint32_t>();
 }
 
 Alg::SearchNode::~SearchNode() {
@@ -47,11 +52,13 @@ void Alg::run() {
     bool down = true;
     uint32_t i = 0;
     while(true) {
+        cout << "hmm" << endl;
         if (down) {
-            if (searchTree[i]->theta == 5 && searchTree[i]->handleCuts()) {
+            cout << "hi" << endl;
+            if (searchTree[i]->theta == 5 && !searchTree[i]->hasCut && searchTree[i]->handleCuts()) {
                 ;
             } else {
-                searchTree[i]->reductions->run(searchTree[i]->theta);
+                searchTree[i]->reductions->run(searchTree[i]->theta, searchTree[i]->nodesInComponent);
                 //cout << "search node " << searchNodes ;
                 searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta, searchTree[i]);
             }
@@ -69,6 +76,7 @@ void Alg::run() {
                 break;
             }
             down = false;
+            cout << "down false" << endl;
             continue;
         }
         //print();
@@ -81,8 +89,10 @@ void Alg::run() {
         } else if (searchTree[i]->rightChild == NONE) {
             nextChild = &searchTree[i]->rightChild;
         } else if (searchTree[i]->hasCut && !searchTree[i]->cutIsDone) {
+            cout << "choosing cut branch" << endl;
             chooseCutBranch(searchTree[i]);
             nextChild = &searchTree[i]->rightChild;
+            down = true;
         } else {
             if (i < minCompletedSearchNode) {
                 minCompletedSearchNode = i;
@@ -92,6 +102,7 @@ void Alg::run() {
             if (parent->hasCut) {
                 assert(parent->cutIsDone);
                 concatMis(parent);
+                cout << "concating mis" << endl;
             } else {
                 chooseMaxMis(parent);
             }

@@ -157,9 +157,12 @@ void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo, const bool &rem
 
 /* Rebuild structures, completely removing nodes that are marked as removed
  * and collecting zero degree nodes */
-void Graph::rebuild(ReduceInfo &reduceInfo) {
+void Graph::rebuild(ReduceInfo &reduceInfo, unordered_set<uint32_t> &nodesInComponent) {
     if (!reduceInfo.nodesRemoved) {
         return;
+    }
+    if (nodesInComponent.size()) {
+        cout << "nodesInComponent size " << nodesInComponent.size() << ", nodes " << getNodeCount() << endl;
     }
     vector<NodeInfo> nodeIndex;
     uint32_t newNodes = this->nodeIndex.size() - reduceInfo.nodesRemoved;
@@ -178,7 +181,7 @@ void Graph::rebuild(ReduceInfo &reduceInfo) {
             continue;
         }
         uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
-        if (!this->nodeIndex[pos].edges) {
+        if (!this->nodeIndex[pos].edges && (!nodesInComponent.size() || nodesInComponent.find(node) != nodesInComponent.end())) {
             //cout << "Found node " << node << " with no edges at rebuilding\n";
             zeroDegreeNodes.push_back(node);
             continue;
@@ -217,6 +220,7 @@ void Graph::rebuild(ReduceInfo &reduceInfo) {
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     reduceInfo.nodesRemoved = 0;
+    nodesInComponent.clear();
 }
 
 /* Contract 'nodes' and 'neighbors' to a single node.
@@ -1244,7 +1248,17 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                                 cut.insert(parentNode);
                                 if (checkSeparation(cut, component1, component2, actualComponent1)) {
                                     vertexCut = cut;
-                                    return true;;
+                                    cout << "one\n";
+                                    for (auto n: component1) {
+                                        cout << n << "\n";
+                                    }
+                                    cout << "other\n";
+                                    for (auto n: component2) {
+                                        cout << n << "\n";
+                                    }
+                                    cout << "and graph is\n";
+                                    print(true);
+                                    return true;
                                 }
                             }
                             frontier.pop();
@@ -1258,7 +1272,7 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                                 cut.insert(frontier.top().graphTraversal.curNode);
                                 if (checkSeparation(cut, component1, component2, actualComponent1)) {
                                     vertexCut = cut;
-                                    return true;;
+                                    return true;
                                 }
                             }
                             frontier.pop();
@@ -1273,6 +1287,7 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
     /*for (auto it: exploredSet) {
         cout << it.first << ": " <<  it.second.visit << " " << it.second.low << endl;
     }*/
+    cout << "Exit" << endl;
     return false;
 }
 

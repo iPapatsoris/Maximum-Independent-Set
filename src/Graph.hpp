@@ -90,7 +90,7 @@ public:
     void getMinDegree(uint32_t &minDegree) const;
     uint32_t getTotalEdges() const;
     void remove(const uint32_t &node, ReduceInfo &reduceInfo, const bool &removeZeroDegreeNodes = false);
-    void rebuild(ReduceInfo &reduceInfo);
+    void rebuild(ReduceInfo &reduceInfo, std::unordered_set<uint32_t> &nodesInComponent);
     void buildNDegreeSubgraph(const uint32_t &degree, Graph &subgraph);
     uint32_t contractToSingleNode(const std::vector<uint32_t> &nodes, const std::vector<uint32_t> &neighbors, ReduceInfo &reduceInfo);
     uint32_t getNodeWithOneUncommonNeighbor(const std::vector<uint32_t> &neighbors, uint32_t &uncommonNeighbor) const;
