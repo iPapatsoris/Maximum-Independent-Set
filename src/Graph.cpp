@@ -157,17 +157,15 @@ void Graph::remove(const uint32_t &node, ReduceInfo &reduceInfo, const bool &rem
 
 /* Rebuild structures, completely removing nodes that are marked as removed
  * and collecting zero degree nodes */
-void Graph::rebuild(ReduceInfo &reduceInfo, unordered_set<uint32_t> &nodesInComponent) {
+void Graph::rebuild(ReduceInfo &reduceInfo) {
     if (!reduceInfo.nodesRemoved) {
         return;
     }
-    if (nodesInComponent.size()) {
-        cout << "nodesInComponent size " << nodesInComponent.size() << ", nodes " << getNodeCount() << endl;
-    }
     vector<NodeInfo> nodeIndex;
-    uint32_t newNodes = this->nodeIndex.size() - reduceInfo.nodesRemoved;
+    uint32_t newNodes = (this->nodeIndex.size() > reduceInfo.nodesRemoved ? this->nodeIndex.size() - reduceInfo.nodesRemoved : this->nodeIndex.size());
     uint32_t newEdges = this->getTotalEdges();
-    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
+    cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << " , size " << this->nodeIndex.size() << endl;
+    cout << newNodes << endl;
     nodeIndex.reserve(newNodes);
     vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
     edgeBuffer->reserve(newEdges);
@@ -181,7 +179,7 @@ void Graph::rebuild(ReduceInfo &reduceInfo, unordered_set<uint32_t> &nodesInComp
             continue;
         }
         uint32_t node = (!mapping ? pos : (*this->posToId)[pos]);
-        if (!this->nodeIndex[pos].edges && (!nodesInComponent.size() || nodesInComponent.find(node) != nodesInComponent.end())) {
+        if (!this->nodeIndex[pos].edges) {
             //cout << "Found node " << node << " with no edges at rebuilding\n";
             zeroDegreeNodes.push_back(node);
             continue;
@@ -220,7 +218,77 @@ void Graph::rebuild(ReduceInfo &reduceInfo, unordered_set<uint32_t> &nodesInComp
     this->edgeBuffer = edgeBuffer;
     //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     reduceInfo.nodesRemoved = 0;
-    nodesInComponent.clear();
+}
+
+void Graph::rebuildFromNodes(unordered_set<uint32_t> &nodes) {
+    zeroDegreeNodes.clear();
+    if (!nodes.size()) {
+        nodeIndex.clear();
+        edgeBuffer->clear();
+        idToPos->clear();
+        posToId->clear();
+        return;
+    }
+    vector<NodeInfo> nodeIndex;
+    nodeIndex.reserve(nodes.size());
+    vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
+    unordered_map<uint32_t, uint32_t> *idToPos = new unordered_map<uint32_t, uint32_t>();
+    vector<uint32_t> *posToId = new vector<uint32_t>();
+    posToId->reserve(nodes.size());
+    uint32_t offset = 0;
+
+/*    cout << "nodes are\n";
+    for (auto n: nodes) {
+        cout << n << "\n";
+    }
+    print(true);
+    cout << endl;
+
+    cout << "idToPos is\n";
+    for (auto i: *(this->idToPos)) {
+        cout << i.first << " -> " << i.second << endl;
+    }*/
+
+    for (auto node: nodes) {
+        uint32_t edges = 0;
+        uint32_t pos = (!mapping ? node : this->idToPos->at(node));
+        cout << "pos is " << pos << ", nodeIndex size is " << this->nodeIndex.size() << endl;
+        cout << "offset is " << this->nodeIndex[pos+1].offset;
+        uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer->size() : this->nodeIndex[pos+1].offset);
+        /* Don't add neighbors that are marked as removed or are outside of nodes struct */
+        for (uint32_t i = this->nodeIndex[pos].offset ; i < nextNodeOffset ; i++) {
+            uint32_t nPos = (!this->mapping ? (*this->edgeBuffer)[i] : this->idToPos->at((*this->edgeBuffer)[i]));
+            if (!this->nodeIndex[nPos].removed || nodes.find((*this->edgeBuffer)[i]) != nodes.end()) {
+                edgeBuffer->push_back((*this->edgeBuffer)[i]);
+                edges++;
+            }
+            if (edges == this->nodeIndex[pos].edges) {
+                break;
+            }
+        }
+        if (!edges) {
+            zeroDegreeNodes.push_back(node);
+        } else {
+            idToPos->insert({node, nodeIndex.size()});
+            posToId->push_back(node);
+            nodeIndex.push_back(Graph::NodeInfo(offset, edges));
+            offset += edges;
+        }
+    }
+    this->mapping = true;
+    if (this->idToPos != NULL) {
+        delete this->idToPos;
+    }
+    if (this->posToId != NULL) {
+        delete this->posToId;
+    }
+    this->idToPos = idToPos;
+    this->posToId = posToId;
+    //assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
+    this->nodeIndex = nodeIndex;
+    delete this->edgeBuffer;
+    this->edgeBuffer = edgeBuffer;
+    //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
 }
 
 /* Contract 'nodes' and 'neighbors' to a single node.

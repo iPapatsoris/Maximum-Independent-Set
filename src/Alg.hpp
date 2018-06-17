@@ -70,7 +70,7 @@ private:
                                 return;
                             }
                             if (graph.nodeIndex.size()) {
-                                reductions.run(theta, searchNode->nodesInComponent);
+                                reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                                 run = true;
                             } else {
@@ -96,7 +96,7 @@ private:
                                 theta = 3;
                             }
                             if (graph.nodeIndex.size()) {
-                                reductions.run(theta, searchNode->nodesInComponent);
+                                reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                                 run = true;
                             } else {
@@ -124,7 +124,7 @@ private:
                         else if (maxDegree < theta) {
                             theta = 3;
                             if (graph.nodeIndex.size()) {
-                                reductions.run(theta, searchNode->nodesInComponent);
+                                reductions.run(theta);
                                 graph.getMaxNodeDegree(maxDegreeNode, maxDegree);
                                 run = true;
                             } else {
@@ -330,7 +330,6 @@ private:
         std::vector<uint32_t> c1, c2;
         bool actualComponent1;
         bool cutIsDone;
-        std::unordered_set<uint32_t> nodesInComponent; // Nodes left after branching on a cut
     };
 
 
@@ -358,8 +357,30 @@ private:
         SearchNode *leftChild = searchTree[parent->leftChild];
         SearchNode *rightChild = searchTree[parent->rightChild];
         assert(parent->rightChild == searchTree.size() - 1 && parent->leftChild == searchTree.size() - 2);
+        for (auto i: *leftChild->finalMis) {
+            for (auto j: *rightChild->finalMis) {
+                if (i == j) {
+                    std::cout << i << std::endl;
+                    if (leftChild->graph.idToPos->find(i) != leftChild->graph.idToPos->end()) {
+                        std::cout << "left" << std::endl;
+                    }
+                    if (rightChild->graph.idToPos->find(i) != rightChild->graph.idToPos->end()) {
+                        std::cout << "right" << std::endl;
+                    }
+                    for (auto l: parent->graph.zeroDegreeNodes) {
+                        if (i == l) {
+                            std::cout << "zero" << std::endl;
+                        }
+                    }
+                    assert(0);
+                }
+            }
+        }
         parent->finalMis = leftChild->finalMis;
         parent->finalMis->insert(parent->finalMis->end(), rightChild->finalMis->begin(), rightChild->finalMis->end());
+        parent->graph.collectZeroDegreeNodes();
+        parent->mis.unfoldHypernodes(parent->graph.zeroDegreeNodes, *(parent->finalMis));
+
         delete rightChild->finalMis;
         delete searchTree.back();
         searchTree.pop_back();
@@ -458,18 +479,19 @@ private:
                 for (auto c: searchNode->cut) {
                     component2->pop_back();
                 }
-                searchNode->nodesInComponent.clear();
-                searchNode->nodesInComponent.insert(component1->begin(), component1->end());
-                for (auto n: searchNode->nodesInComponent) {
-                    std::cout << n << "\n";
-                } std::cout << "\n";
-                searchNode->graph.print(1);
-                std::cout << "\n";
-                for (auto n: *component2) {
-                    std::cout << n << "\n";
+                std::unordered_set<uint32_t> nodesInComponent;
+                nodesInComponent.insert(component1->begin(), component1->end());
+                searchNode->graph.rebuildFromNodes(nodesInComponent);
+                searchNode->mis.getMis().clear();
+                searchNode->mis.removeHypernodes(nodesInComponent);
+                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
+                    assert(false);
                 }
-                std::cout << "cut is " << *(searchNode->cut.begin()) << std::endl;
-
+                for (auto i: searchNode->graph.zeroDegreeNodes) {
+                    if (i == 89) {
+                        assert(false);
+                    }
+                }
                 break;
             }
             default:
@@ -555,10 +577,23 @@ private:
                     component2->pop_back();
                 }
                 searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
-                searchNode->nodesInComponent.clear();
-                searchNode->nodesInComponent.insert(component1->begin(), component1->end());
+                std::unordered_set<uint32_t> nodesInComponent;
+                nodesInComponent.insert(component1->begin(), component1->end());
+                std::cout << "it's " << nodesInComponent.size() << std::endl;
                 for (auto n: neighbors) {
-                    searchNode->nodesInComponent.erase(n);
+                    nodesInComponent.erase(n);
+                }
+                std::cout << "it's " << nodesInComponent.size() << std::endl;
+                searchNode->graph.rebuildFromNodes(nodesInComponent);
+                searchNode->mis.getMis().clear();
+                searchNode->mis.removeHypernodes(nodesInComponent);
+                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
+                    assert(false);
+                }
+                for (auto i: searchNode->graph.zeroDegreeNodes) {
+                    if (i == 89) {
+                        assert(false);
+                    }
                 }
                 break;
             }
@@ -568,9 +603,20 @@ private:
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
                 std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
-                searchNode->nodesInComponent.clear();
-                searchNode->nodesInComponent.insert(component2->begin(), component2->end());
-                searchNode->nodesInComponent.insert(searchNode->cut.begin(), searchNode->cut.end());
+                std::unordered_set<uint32_t> nodesInComponent;
+                nodesInComponent.insert(component2->begin(), component2->end());
+                nodesInComponent.insert(searchNode->cut.begin(), searchNode->cut.end());
+                searchNode->graph.rebuildFromNodes(nodesInComponent);
+                searchNode->mis.getMis().clear();
+                searchNode->mis.removeHypernodes(nodesInComponent);
+                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
+                    assert(false);
+                }
+                for (auto i: searchNode->graph.zeroDegreeNodes) {
+                    if (i == 89) {
+                        assert(false);
+                    }
+                }
                 break;
             }
             case BranchingRule::Type::CUT_RIGHT_2: {
@@ -583,8 +629,19 @@ private:
                 for (auto c: searchNode->cut) {
                     component1->pop_back();
                 }
-                searchNode->nodesInComponent.clear();
-                searchNode->nodesInComponent.insert(component2->begin(), component2->end());
+                std::unordered_set<uint32_t> nodesInComponent;
+                nodesInComponent.insert(component2->begin(), component2->end());
+                searchNode->graph.rebuildFromNodes(nodesInComponent);
+                searchNode->mis.getMis().clear();
+                searchNode->mis.removeHypernodes(nodesInComponent);
+                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
+                    assert(false);
+                }
+                for (auto i: searchNode->graph.zeroDegreeNodes) {
+                    if (i == 89) {
+                        assert(false);
+                    }
+                }
                 break;
             }
             default:

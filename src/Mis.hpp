@@ -51,9 +51,9 @@ private:
                 //std::cout << "Adding regular node " << set[i] << "\n";
                 //fprintf(f, "%ld\n", set[i]);
                 finalMis.push_back(set[i]);
-                if (set[i] == 211) {
-                    //std::cout << "pushing 211 to finalN=Mis from included" << std::endl;
-                }
+                //if (set[i] == 89) {
+                //    assert(false);
+                //}
             } else {
                 //std::cout << "Examining inner nodes of " << set[i] << "\n";
                 assert(res->second.outerLevel);

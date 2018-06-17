@@ -32,7 +32,6 @@ Alg::SearchNode::SearchNode(const SearchNode &searchNode, const uint32_t &parent
     c1 = searchNode.c1;
     c2 = searchNode.c2;
     actualComponent1 = searchNode.actualComponent1;
-    nodesInComponent = unordered_set<uint32_t>();
 }
 
 Alg::SearchNode::~SearchNode() {
@@ -58,7 +57,7 @@ void Alg::run() {
             if (searchTree[i]->theta == 5 && !searchTree[i]->hasCut && searchTree[i]->handleCuts()) {
                 ;
             } else {
-                searchTree[i]->reductions->run(searchTree[i]->theta, searchTree[i]->nodesInComponent);
+                searchTree[i]->reductions->run(searchTree[i]->theta);
                 //cout << "search node " << searchNodes ;
                 searchTree[i]->branchingRule.choose(searchTree[i]->graph, *(searchTree[i]->reductions), searchTree[i]->theta, searchTree[i]);
             }

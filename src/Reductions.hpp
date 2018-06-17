@@ -8,7 +8,7 @@ class Reductions {
 public:
     Reductions(Graph &graph, Mis &mis) : graph(graph), mis(mis) {}
     ~Reductions();
-    void run(const uint32_t &theta, std::unordered_set<uint32_t> &nodesInComponent);
+    void run(const uint32_t &theta);
     ReduceInfo &getReduceInfo() {
         return reduceInfo;
     }
@@ -48,10 +48,10 @@ private:
         return true;
     }
 
-    void reduce6(const uint32_t &theta, std::unordered_set<uint32_t> &nodesInComponent);
-    void reduce5(const uint32_t &theta, std::unordered_set<uint32_t> &nodesInComponent);
-    void reduce4(const uint32_t &theta, std::unordered_set<uint32_t> &nodesInComponent);
-    void reduce3(const uint32_t &theta, std::unordered_set<uint32_t> &nodesInComponent);
+    void reduce6(const uint32_t &theta);
+    void reduce5(const uint32_t &theta);
+    void reduce4(const uint32_t &theta);
+    void reduce3(const uint32_t &theta);
     bool removeDesks();
     bool removeDominatedNodes(const uint32_t &theta);
     bool removeDominatedNodes2(const uint32_t &theta);
@@ -60,8 +60,8 @@ private:
     void findMis(const std::vector<uint32_t> &cc);
     bool removeUnconfinedNodes();
     void removeUnconfinedNodes2();
-    bool foldCompleteKIndependentSets(const uint32_t &theta, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes, std::unordered_set<uint32_t> &componentNodes, const bool &theta4 = false);
-    void foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, std::unordered_set<uint32_t> &oldCandidateNodes, std::unordered_set<uint32_t> &newCandidateNodes, std::unordered_set<uint32_t> &componentNodes, const bool &theta4 = false);
+    bool foldCompleteKIndependentSets(const uint32_t &theta, std::unordered_set<uint32_t> **oldCandidateNodes, std::unordered_set<uint32_t> **newCandidateNodes, const bool &theta4 = false);
+    void foldCompleteKIndependentSets2(const uint32_t &theta, const bool &checkAllNodes, std::unordered_set<uint32_t> &oldCandidateNodes, std::unordered_set<uint32_t> &newCandidateNodes, const bool &theta4 = false);
     void removeLineGraphs(const uint32_t &theta);
     bool findClique(std::vector<Graph::GraphTraversal> &clique, std::vector<Graph::GraphTraversal> *previousClique, const uint32_t &cliqueSize);
     void findMisInComponent(const std::vector<uint32_t> &cc);
