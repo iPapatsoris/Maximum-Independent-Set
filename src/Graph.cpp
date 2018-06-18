@@ -164,8 +164,8 @@ void Graph::rebuild(ReduceInfo &reduceInfo) {
     vector<NodeInfo> nodeIndex;
     uint32_t newNodes = (this->nodeIndex.size() > reduceInfo.nodesRemoved ? this->nodeIndex.size() - reduceInfo.nodesRemoved : this->nodeIndex.size());
     uint32_t newEdges = this->getTotalEdges();
-    cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << " , size " << this->nodeIndex.size() << endl;
-    cout << newNodes << endl;
+    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << " , size " << this->nodeIndex.size() << endl;
+    //cout << newNodes << endl;
     nodeIndex.reserve(newNodes);
     vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
     edgeBuffer->reserve(newEdges);
@@ -237,23 +237,9 @@ void Graph::rebuildFromNodes(unordered_set<uint32_t> &nodes) {
     posToId->reserve(nodes.size());
     uint32_t offset = 0;
 
-/*    cout << "nodes are\n";
-    for (auto n: nodes) {
-        cout << n << "\n";
-    }
-    print(true);
-    cout << endl;
-
-    cout << "idToPos is\n";
-    for (auto i: *(this->idToPos)) {
-        cout << i.first << " -> " << i.second << endl;
-    }*/
-
     for (auto node: nodes) {
         uint32_t edges = 0;
         uint32_t pos = (!mapping ? node : this->idToPos->at(node));
-        cout << "pos is " << pos << ", nodeIndex size is " << this->nodeIndex.size() << endl;
-        cout << "offset is " << this->nodeIndex[pos+1].offset;
         uint32_t nextNodeOffset = (pos == this->nodeIndex.size()-1 ? this->edgeBuffer->size() : this->nodeIndex[pos+1].offset);
         /* Don't add neighbors that are marked as removed or are outside of nodes struct */
         for (uint32_t i = this->nodeIndex[pos].offset ; i < nextNodeOffset ; i++) {
@@ -284,11 +270,9 @@ void Graph::rebuildFromNodes(unordered_set<uint32_t> &nodes) {
     }
     this->idToPos = idToPos;
     this->posToId = posToId;
-    //assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
     this->nodeIndex = nodeIndex;
     delete this->edgeBuffer;
     this->edgeBuffer = edgeBuffer;
-    //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
 }
 
 /* Contract 'nodes' and 'neighbors' to a single node.
@@ -1311,12 +1295,12 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                                 it1->second.low = it2->second.low;
                             }
                             if (parentNode != root && it2->second.low >= it1->second.visit && articulationPoints.insert(parentNode).second) {
-                                cout << "Articulation point " << parentNode << "\n";
+                                //cout << "Articulation point " << parentNode << "\n";
                                 unordered_set<uint32_t> cut;
                                 cut.insert(parentNode);
                                 if (checkSeparation(cut, component1, component2, actualComponent1)) {
                                     vertexCut = cut;
-                                    cout << "one\n";
+                                    /*cout << "one\n";
                                     for (auto n: component1) {
                                         cout << n << "\n";
                                     }
@@ -1325,7 +1309,7 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                                         cout << n << "\n";
                                     }
                                     cout << "and graph is\n";
-                                    print(true);
+                                    print(true);*/
                                     return true;
                                 }
                             }
@@ -1335,7 +1319,7 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                             }
                         } else if (frontier.size() == 1) {
                             if (frontier.top().dfsChildren > 1 && articulationPoints.insert(frontier.top().graphTraversal.curNode).second) {
-                                cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
+                                //cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
                                 unordered_set<uint32_t> cut;
                                 cut.insert(frontier.top().graphTraversal.curNode);
                                 if (checkSeparation(cut, component1, component2, actualComponent1)) {
@@ -1355,13 +1339,12 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
     /*for (auto it: exploredSet) {
         cout << it.first << ": " <<  it.second.visit << " " << it.second.low << endl;
     }*/
-    cout << "Exit" << endl;
     return false;
 }
 
 bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
     if (!buildCC(cut, component1, component2)) {
-        cout << "more than 2 cc" << endl;
+        //cout << "more than 2 cc" << endl;
         component1.clear();
         component2.clear();
         return false;

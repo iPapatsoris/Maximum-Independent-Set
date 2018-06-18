@@ -66,7 +66,6 @@ private:
                             if (theta < 3) {
                                 theta = 3;
                             } else if (theta == 5 && searchNode->handleCuts()) {
-                                std::cout << "hey" << std::endl;
                                 return;
                             }
                             if (graph.nodeIndex.size()) {
@@ -360,18 +359,6 @@ private:
         for (auto i: *leftChild->finalMis) {
             for (auto j: *rightChild->finalMis) {
                 if (i == j) {
-                    std::cout << i << std::endl;
-                    if (leftChild->graph.idToPos->find(i) != leftChild->graph.idToPos->end()) {
-                        std::cout << "left" << std::endl;
-                    }
-                    if (rightChild->graph.idToPos->find(i) != rightChild->graph.idToPos->end()) {
-                        std::cout << "right" << std::endl;
-                    }
-                    for (auto l: parent->graph.zeroDegreeNodes) {
-                        if (i == l) {
-                            std::cout << "zero" << std::endl;
-                        }
-                    }
                     assert(0);
                 }
             }
@@ -396,8 +383,7 @@ private:
             parent->branchingRule.type = BranchingRule::Type::CUT_RIGHT_1;
         } else { //if (leftChild->finalMis->size() > rightChild->finalMis->size()) {
             parent->branchingRule.type = BranchingRule::Type::CUT_RIGHT_2;
-        } /*else {
-            std::cout << leftChild->finalMis->size() << " " << rightChild->finalMis->size() << std::endl;
+        }/* else {
             assert(false);
         }*/
         delete rightChild->finalMis;
@@ -406,7 +392,7 @@ private:
         parent->cutIsDone = true;
     }
 
-    void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode) const {
+    void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode, Mis &parentMis) const {
         /*std::cout << branchingRule.node1 << " ";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
@@ -440,7 +426,7 @@ private:
             case BranchingRule::Type::OPTNODE:
             case BranchingRule::Type::OPT4NODE:
             case BranchingRule::Type::EFFECTIVE_NODE: {
-                std::cout << branchingRule.node1 << std::endl;
+                //std::cout << branchingRule.node1 << std::endl;
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
@@ -470,10 +456,9 @@ private:
                 break;
             }
             case BranchingRule::Type::CUT: {
-                std::cout << "left cut" << std::endl;
+                //std::cout << "left cut" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
-                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 component2->insert(component2->end(), searchNode->cut.begin(), searchNode->cut.end());
                 searchNode->graph.remove(*component2, searchNode->reductions->getReduceInfo());
                 for (auto c: searchNode->cut) {
@@ -483,15 +468,8 @@ private:
                 nodesInComponent.insert(component1->begin(), component1->end());
                 searchNode->graph.rebuildFromNodes(nodesInComponent);
                 searchNode->mis.getMis().clear();
-                searchNode->mis.removeHypernodes(nodesInComponent);
-                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
-                    assert(false);
-                }
-                for (auto i: searchNode->graph.zeroDegreeNodes) {
-                    if (i == 89) {
-                        assert(false);
-                    }
-                }
+                searchNode->mis.removeSubsequentNodes(nodesInComponent);
+                parentMis.removeHypernodes(searchNode->mis.getHypernodeToInnerNode());
                 break;
             }
             default:
@@ -509,7 +487,7 @@ private:
         }
     }
 
-    void branchRight(BranchingRule &branchingRule, SearchNode *searchNode) const {
+    void branchRight(BranchingRule &branchingRule, SearchNode *searchNode, Mis &parentMis) const {
         //std::cout << "right\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
@@ -534,7 +512,6 @@ private:
                     subsequentNodes.insert({neighbor2, branchingRule.node1});
                     searchNode->graph.addEdges(neighbor2, neighbors1);
                 }
-                //searchNode->graph.print(true);
                 break;
             }
             case BranchingRule::Type::GOOD_FUNNEL: {
@@ -565,10 +542,9 @@ private:
                 break;
             }
             case BranchingRule::Type::CUT: {
-                std::cout << "right cut" << std::endl;
+                //std::cout << "right cut" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
-                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 std::set<uint32_t> neighbors;
                 searchNode->graph.gatherAllNeighbors(searchNode->cut, neighbors);
                 component2->insert(component2->end(), searchNode->cut.begin(), searchNode->cut.end());
@@ -579,51 +555,33 @@ private:
                 searchNode->graph.remove(neighbors, searchNode->reductions->getReduceInfo());
                 std::unordered_set<uint32_t> nodesInComponent;
                 nodesInComponent.insert(component1->begin(), component1->end());
-                std::cout << "it's " << nodesInComponent.size() << std::endl;
                 for (auto n: neighbors) {
                     nodesInComponent.erase(n);
                 }
-                std::cout << "it's " << nodesInComponent.size() << std::endl;
                 searchNode->graph.rebuildFromNodes(nodesInComponent);
                 searchNode->mis.getMis().clear();
-                searchNode->mis.removeHypernodes(nodesInComponent);
-                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
-                    assert(false);
-                }
-                for (auto i: searchNode->graph.zeroDegreeNodes) {
-                    if (i == 89) {
-                        assert(false);
-                    }
-                }
+                searchNode->mis.removeSubsequentNodes(nodesInComponent);
+                parentMis.removeHypernodes(searchNode->mis.getHypernodeToInnerNode());
                 break;
             }
             case BranchingRule::Type::CUT_RIGHT_1: {
-                std::cout << "right cut 1" << std::endl;
+                //std::cout << "right cut 1" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
-                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
                 std::unordered_set<uint32_t> nodesInComponent;
                 nodesInComponent.insert(component2->begin(), component2->end());
                 nodesInComponent.insert(searchNode->cut.begin(), searchNode->cut.end());
                 searchNode->graph.rebuildFromNodes(nodesInComponent);
                 searchNode->mis.getMis().clear();
-                searchNode->mis.removeHypernodes(nodesInComponent);
-                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
-                    assert(false);
-                }
-                for (auto i: searchNode->graph.zeroDegreeNodes) {
-                    if (i == 89) {
-                        assert(false);
-                    }
-                }
+                searchNode->mis.removeSubsequentNodes(nodesInComponent);
+                parentMis.removeHypernodes(searchNode->mis.getHypernodeToInnerNode());
                 break;
             }
             case BranchingRule::Type::CUT_RIGHT_2: {
-                std::cout << "right cut 2" << std::endl;
+                //std::cout << "right cut 2" << std::endl;
                 std::vector<uint32_t> *component1 = (searchNode->actualComponent1 ? &(searchNode->c1) : &(searchNode->c2));
                 std::vector<uint32_t> *component2 = (searchNode->actualComponent1 ? &(searchNode->c2) : &(searchNode->c1));
-                std::cout << "component1 size " << component1->size() << " component2 size " << component2->size() << " cut size " << searchNode->cut.size() << std::endl;
                 component1->insert(component1->end(), searchNode->cut.begin(), searchNode->cut.end());
                 searchNode->graph.remove(*component1, searchNode->reductions->getReduceInfo());
                 for (auto c: searchNode->cut) {
@@ -633,15 +591,8 @@ private:
                 nodesInComponent.insert(component2->begin(), component2->end());
                 searchNode->graph.rebuildFromNodes(nodesInComponent);
                 searchNode->mis.getMis().clear();
-                searchNode->mis.removeHypernodes(nodesInComponent);
-                if (searchNode->graph.idToPos->find(89) != searchNode->graph.idToPos->end()) {
-                    assert(false);
-                }
-                for (auto i: searchNode->graph.zeroDegreeNodes) {
-                    if (i == 89) {
-                        assert(false);
-                    }
-                }
+                searchNode->mis.removeSubsequentNodes(nodesInComponent);
+                parentMis.removeHypernodes(searchNode->mis.getHypernodeToInnerNode());
                 break;
             }
             default:
@@ -653,9 +604,9 @@ private:
         if (maxDegree < oldTheta) {
             if (maxDegree >= 3) {
                 searchNode->theta = maxDegree;
-                std::cout << "theta " << maxDegree << std::endl;
+                //std::cout << "theta " << maxDegree << std::endl;
             } else {
-                std::cout << "theta 3 " << std::endl;
+                //std::cout << "theta 3 " << std::endl;
                 searchNode->theta = 3;
             }
         }

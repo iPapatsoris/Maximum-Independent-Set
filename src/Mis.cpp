@@ -60,9 +60,6 @@ void Mis::expandExcludedNodes(vector<uint32_t> &finalMis) {
                 nestedHypernode->second.outerLevel = true;
             }
             mis.push_back(node);
-            if (node == 211) {
-                //cout << "pushing 211 to mis from excluded" << endl;
-            }
         }
         for (auto node : hypernode->second.neighbors) {
             auto innerHypernode = hypernodeToInnernode.find(node);
@@ -73,6 +70,75 @@ void Mis::expandExcludedNodes(vector<uint32_t> &finalMis) {
         }
         hypernodeToInnernode.erase(hypernode);
         expandIncludedNodes(mis, finalMis);
+    }
+}
+
+void Mis::removeHypernodes(unordered_set<uint32_t> &nodes) {
+    unordered_set<uint32_t> toRemove;
+    for (auto &h: hypernodeToInnernode) {
+        bool marked = false;
+        for (auto n: h.second.nodes) {
+            if (hypernodeToInnernode.find(n) == hypernodeToInnernode.end() && nodes.find(n) == nodes.end()) {
+                toRemove.insert(h.first);
+                marked = true;
+                break;
+            }
+        }
+        if (marked) {
+            continue;
+        }
+        for (auto n: h.second.neighbors) {
+            if (hypernodeToInnernode.find(n) == hypernodeToInnernode.end() && nodes.find(n) == nodes.end()) {
+                toRemove.insert(h.first);
+                break;
+            }
+        }
+    }
+
+    /* Also remove outer hypernodes of hypernodes to be removed */
+    while (toRemove.size()) {
+        auto n = *toRemove.begin();
+        hypernodeToInnernode.erase(n);
+        for (auto &h: hypernodeToInnernode) {
+            bool marked = false;
+            for (auto i: h.second.nodes) {
+                if (i == n) {
+                    toRemove.insert(h.first);
+                    marked = true;
+                    break;
+                }
+            }
+            if (!marked) {
+                for (auto i: h.second.neighbors) {
+                    if (i == n) {
+                        toRemove.insert(h.first);
+                        break;
+                    }
+                }
+            }
+        }
+        toRemove.erase(n);
+        //cout << "\n -> removing " << n << endl;
+
+    }
+}
+
+void Mis::removeHypernodes(const unordered_map<uint32_t, Innernode> &hypernodes) {
+    for (auto h: hypernodes) {
+        hypernodeToInnernode.erase(h.first);
+    }
+}
+
+void Mis::removeSubsequentNodes(unordered_set<uint32_t> &nodes) {
+    removeHypernodes(nodes);
+    unordered_set<uint32_t> toRemove;
+    for (auto s: subsequentNodes) {
+        if (nodes.find(s.second) == nodes.end()) {
+            toRemove.insert(s.first);
+        }
+    }
+    for (auto i: toRemove) {
+        subsequentNodes.erase(i);
     }
 }
 

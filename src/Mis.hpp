@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <assert.h>
 #include <iostream>
 #include <algorithm>
@@ -30,7 +31,14 @@ public:
     std::unordered_map<uint32_t, uint32_t> &getSubsequentNodes() {
         return subsequentNodes;
     }
+    std::unordered_map<uint32_t, Innernode> &getHypernodeToInnerNode() {
+        return hypernodeToInnernode;
+    }
+    void removeSubsequentNodes(std::unordered_set<uint32_t> &nodes);
+    void removeHypernodes(std::unordered_set<uint32_t> &nodes);
+    void removeHypernodes(const std::unordered_map<uint32_t, Innernode> &hypernodes);
     void static print(std::vector<uint32_t> &finalMis);
+    void printAll(std::vector<uint32_t> &zeroDegreeNodes) const;
 
 private:
     void expandIncludedNodes(std::vector<uint32_t> &set, std::vector<uint32_t> &finalMis) {
@@ -41,9 +49,6 @@ private:
                     subsequentNodes.erase(subsequent);
                 } else {
                     set.push_back(subsequent->second);
-                    if (subsequent->second == 211) {
-                        //std::cout << "pushing 211 to mis from included subsequent" << std::endl;
-                    }
                 }
             }
             auto res = hypernodeToInnernode.find(set[i]);
@@ -51,9 +56,6 @@ private:
                 //std::cout << "Adding regular node " << set[i] << "\n";
                 //fprintf(f, "%ld\n", set[i]);
                 finalMis.push_back(set[i]);
-                //if (set[i] == 89) {
-                //    assert(false);
-                //}
             } else {
                 //std::cout << "Examining inner nodes of " << set[i] << "\n";
                 assert(res->second.outerLevel);
@@ -65,9 +67,6 @@ private:
                         innerHypernode->second.outerLevel = true;
                     }
                     set.push_back(node);
-                    if (node == 211) {
-                        //std::cout << "pushing 211 to mis from included" << std::endl;
-                    }
                 }
                 for (auto node : res->second.nodes) {
                     auto innerHypernode = hypernodeToInnernode.find(node);
@@ -83,7 +82,6 @@ private:
     }
 
     void expandExcludedNodes(std::vector<uint32_t> &finalMis);
-    void printAll(std::vector<uint32_t> &zeroDegreeNodes) const;
 
     std::vector<uint32_t> mis;
     std::unordered_map<uint32_t, Innernode> hypernodeToInnernode;

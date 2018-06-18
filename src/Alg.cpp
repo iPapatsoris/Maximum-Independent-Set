@@ -51,9 +51,7 @@ void Alg::run() {
     bool down = true;
     uint32_t i = 0;
     while(true) {
-        cout << "hmm" << endl;
         if (down) {
-            cout << "hi" << endl;
             if (searchTree[i]->theta == 5 && !searchTree[i]->hasCut && searchTree[i]->handleCuts()) {
                 ;
             } else {
@@ -67,7 +65,6 @@ void Alg::run() {
         }
         if (down && searchTree[i]->branchingRule.type == BranchingRule::Type::DONE) {
             searchTree[i]->id = searchNodeID++;
-            //cout << "Id " << searchTree[i]->id;
             searchTree[i]->finalMis = new vector<uint32_t>();
             searchTree[i]->mis.unfoldHypernodes(searchTree[i]->graph.zeroDegreeNodes, *searchTree[i]->finalMis);
             i = searchTree[i]->parent;
@@ -75,20 +72,14 @@ void Alg::run() {
                 break;
             }
             down = false;
-            cout << "down false" << endl;
             continue;
         }
-        //print();
-        /*if (down && minCompletedSearchNode == 42) {
-            cout << "node " << searchTree[i]->branchingRule.node1 << "\n";
-        }*/
         uint32_t *nextChild;
         if (searchTree[i]->leftChild == NONE) {
             nextChild = &searchTree[i]->leftChild;
         } else if (searchTree[i]->rightChild == NONE) {
             nextChild = &searchTree[i]->rightChild;
         } else if (searchTree[i]->hasCut && !searchTree[i]->cutIsDone) {
-            cout << "choosing cut branch" << endl;
             chooseCutBranch(searchTree[i]);
             nextChild = &searchTree[i]->rightChild;
             down = true;
@@ -101,7 +92,7 @@ void Alg::run() {
             if (parent->hasCut) {
                 assert(parent->cutIsDone);
                 concatMis(parent);
-                cout << "concating mis" << endl;
+                //cout << "concating mis" << endl;
             } else {
                 chooseMaxMis(parent);
             }
@@ -118,10 +109,10 @@ void Alg::run() {
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
         if (nextChild == &searchTree[i]->leftChild) {
-            branchLeft(searchTree[i]->branchingRule, searchNode);
+            branchLeft(searchTree[i]->branchingRule, searchNode, searchTree[i]->mis);
         }
         else if (nextChild == &searchTree[i]->rightChild) {
-            branchRight(searchTree[i]->branchingRule, searchNode);
+            branchRight(searchTree[i]->branchingRule, searchNode, searchTree[i]->mis);
         }
         else {
             assert(false);
