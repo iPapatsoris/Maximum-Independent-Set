@@ -44,6 +44,9 @@ void Alg::run() {
     unordered_set<uint32_t> cut;
     vector<uint32_t> component1, component2;
     bool actualComponent1;
+    searchTree[0]->graph.getSeparatingPairs(cut, component1, component2, actualComponent1);
+    exit(0);
+
     //searchTree[0]->graph.print(true);
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
     uint32_t searchNodes = 1;

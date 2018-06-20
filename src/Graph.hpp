@@ -65,6 +65,7 @@ public:
     }
 
     bool getArticulationPoints(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
+    bool getSeparatingPairs(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
     uint32_t getOptimalNodeTheta3(const uint32_t initialMaxDegreeNode, const uint32_t &initialMaxDegree) const;
     bool getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &nodeV, uint32_t &nodeA) const;
     bool get4CycleTheta3(std::vector<uint32_t> &optimalCycle) const;
@@ -391,6 +392,7 @@ private:
     void getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode) const;
     bool checkSeparation(const std::unordered_set<uint32_t> &cut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
     bool buildCC(const std::unordered_set<uint32_t> &excludedNodes, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2) const;
+    void static addPalmTreeArc(std::unordered_map<uint32_t, std::vector<uint32_t> > &palmTree, std::unordered_map<uint32_t, std::vector<uint32_t> > &bothPalmTrees, const uint32_t &node, const uint32_t &neighbor);
 
     struct NodeInfo {
     public:

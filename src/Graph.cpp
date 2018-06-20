@@ -1342,6 +1342,147 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
     return false;
 }
 
+void Graph::addPalmTreeArc(unordered_map<uint32_t, vector<uint32_t> > &palmTree, unordered_map<uint32_t, vector<uint32_t> > &bothPalmTrees, const uint32_t &node, const uint32_t &neighbor) {
+    auto res = palmTree.find(node);
+    if (res == palmTree.end()) {
+        vector<uint32_t> tmp;
+        tmp.push_back(neighbor);
+        palmTree.insert({node, tmp});
+        bothPalmTrees.insert({node, tmp});
+    } else {
+        res->second.push_back(neighbor);
+        bothPalmTrees.find(node)->second.push_back(neighbor);
+    }
+}
+
+bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
+    struct Value {
+        Value(const uint32_t &visit) : visit(visit), low1(NONE), low2(visit), nd(0) {}
+        uint32_t visit;
+        uint32_t low1;
+        uint32_t low2;
+        uint32_t nd;
+    };
+
+    struct Instance {
+        Instance(const uint32_t &node, const uint32_t &parentNode, const Graph &graph) : graphTraversal(graph, node), parentNode(parentNode) {}
+        GraphTraversal graphTraversal;
+        uint32_t parentNode;
+    };
+
+    vertexCut.clear();
+    component1.clear();
+    component2.clear();
+
+    unordered_map<uint32_t, Value> exploredSet;
+    stack<Instance> frontier;
+    unordered_set<uint32_t> flags;
+    unordered_map<uint32_t, uint32_t> fathers;
+    unordered_map<uint32_t, vector<uint32_t> > palmTree1;
+    unordered_map<uint32_t, vector<uint32_t> > palmTree2;
+    unordered_map<uint32_t, vector<uint32_t> > bothPalmTrees;
+
+    uint32_t visit;
+    Graph::GraphTraversal graphTraversal(*this);
+    while (graphTraversal.curNode != NONE) {
+        visit = 0;
+        if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
+            frontier.push(Instance(graphTraversal.curNode, NONE, *this));
+            while (!frontier.empty()) {
+                uint32_t node = frontier.top().graphTraversal.curNode;
+                visit++;
+                exploredSet.insert({node, Value(visit)});
+                bool newCall;
+                do {
+                    node = frontier.top().graphTraversal.curNode;
+                    Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
+                    newCall = false;
+                    while (neighbors.curEdgeOffset != NONE) {
+                        uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
+                        auto it = exploredSet.find(neighbor);
+                        if (it == exploredSet.end()) {
+                            addPalmTreeArc(palmTree1, bothPalmTrees, node, neighbor);
+                            fathers.insert({neighbor, node});
+                            newCall = true;
+                            frontier.push(Instance(neighbor, node, *this));
+                            break;
+                        } else if (neighbor != node && it->second.visit < exploredSet.find(node)->second.visit || flags.find(node) != flags.end()) {
+                            addPalmTreeArc(palmTree2, bothPalmTrees, node, neighbor);
+                            auto it1 = exploredSet.find(node);
+                            if (it->second.visit < it1->second.low1) {
+                                it1->second.low2 = it1->second.low1;
+                                it1->second.low1 = it->second.visit;
+                            } else if (it->second.visit > it1->second.low1) {
+                                if (it->second.visit < it1->second.low2) {
+                                    it1->second.low2 = it->second.visit;
+                                }
+                            }
+                        } else if (neighbor == node && flags.find(node) == flags.end()) {
+                            flags.insert(node);
+                        }
+                        getNextEdge(neighbors);
+                    }
+                    if (!newCall) {
+                        uint32_t parentNode = frontier.top().parentNode;
+                        if (parentNode == NONE) {
+                            assert(frontier.size() == 1);
+                            frontier.pop();
+                            break;
+                        }
+                        auto it1 = exploredSet.find(parentNode);
+                        auto it2 = exploredSet.find(node);
+                        assert(it1 != exploredSet.end() && it2 != exploredSet.end());
+                        it1->second.nd += it2->second.nd;
+                        if (it2->second.low1 < it1->second.low1) {
+                            it1->second.low2 = it1->second.low1;
+                            if (it2->second.low2 < it1->second.low1) {
+                                it1->second.low2 = it2->second.low2;
+                            }
+                            it1->second.low1 = it2->second.low1;
+                        } else if (it2->second.low1 == it1->second.low1) {
+                            if (it2->second.low2 < it1->second.low2) {
+                                it1->second.low2 = it2->second.low2;
+                            }
+                        } else if (it2->second.low1 < it1->second.low2) {
+                            it1->second.low2 = it2->second.low1;
+                        }
+                        frontier.pop();
+                        if (!frontier.size()) {
+                            break;
+                        }
+                        if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
+                            getNextEdge(frontier.top().graphTraversal);
+                        }
+                    }
+                } while (!newCall);
+            }
+        }
+        getNextNode(graphTraversal);
+    }
+    for (auto it: exploredSet) {
+        cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
+    }
+
+    struct Edge {
+        uint32_t node;
+        uint32_t neighbor;
+
+        Edge(const uint32_t &node, const uint32_t &neighbor) : node(node), neighbor(neighbor) {}
+    };
+
+    vector<vector<Edge> > buckets(2 * getNodeCount() + 1, vector<Edge>());
+    assert(buckets.size() = 2 * getNodeCount() + 1);
+    for (auto &arc: bothPalmTrees) {
+        uint32_t v = arc.first;
+        for (auto w: arc.second) {
+            auto res = palmTree2.find(v);
+            if (res != palmTree2.end())
+        }
+    }
+
+    return false;
+}
+
 bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
     if (!buildCC(cut, component1, component2)) {
         //cout << "more than 2 cc" << endl;
