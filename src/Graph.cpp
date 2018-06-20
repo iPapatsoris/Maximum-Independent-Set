@@ -1342,16 +1342,14 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
     return false;
 }
 
-void Graph::addPalmTreeArc(unordered_map<uint32_t, vector<uint32_t> > &palmTree, unordered_map<uint32_t, vector<uint32_t> > &bothPalmTrees, const uint32_t &node, const uint32_t &neighbor) {
+void Graph::addPalmTreeArc(unordered_map<uint32_t, vector<uint32_t> > &palmTree, const uint32_t &node, const uint32_t &neighbor) {
     auto res = palmTree.find(node);
     if (res == palmTree.end()) {
         vector<uint32_t> tmp;
         tmp.push_back(neighbor);
         palmTree.insert({node, tmp});
-        bothPalmTrees.insert({node, tmp});
     } else {
         res->second.push_back(neighbor);
-        bothPalmTrees.find(node)->second.push_back(neighbor);
     }
 }
 
@@ -1403,13 +1401,15 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
                         uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
                         auto it = exploredSet.find(neighbor);
                         if (it == exploredSet.end()) {
-                            addPalmTreeArc(palmTree1, bothPalmTrees, node, neighbor);
+                            addPalmTreeArc(palmTree1, node, neighbor);
+                            addPalmTreeArc(bothPalmTrees, node, neighbor);
                             fathers.insert({neighbor, node});
                             newCall = true;
                             frontier.push(Instance(neighbor, node, *this));
                             break;
                         } else if (neighbor != node && it->second.visit < exploredSet.find(node)->second.visit || flags.find(node) != flags.end()) {
-                            addPalmTreeArc(palmTree2, bothPalmTrees, node, neighbor);
+                            addPalmTreeArc(palmTree2, node, neighbor);
+                            addPalmTreeArc(bothPalmTrees, node, neighbor);
                             auto it1 = exploredSet.find(node);
                             if (it->second.visit < it1->second.low1) {
                                 it1->second.low2 = it1->second.low1;
@@ -1434,7 +1434,7 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
                         auto it1 = exploredSet.find(parentNode);
                         auto it2 = exploredSet.find(node);
                         assert(it1 != exploredSet.end() && it2 != exploredSet.end());
-                        it1->second.nd += it2->second.nd;
+                        it1->second.nd += (1 + it2->second.nd);
                         if (it2->second.low1 < it1->second.low1) {
                             it1->second.low2 = it1->second.low1;
                             if (it2->second.low2 < it1->second.low1) {
@@ -1551,10 +1551,12 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             bool newCall;
             do {
                 node = frontier.top().node;
+                cout << "node " << node << endl;
                 uint32_t &curNeighborIndex = frontier.top().curNeighborIndex;
                 newCall = false;
                 while (curNeighborIndex < sortedPalmTree.find(node)->second.size()) {
                     uint32_t neighbor = sortedPalmTree.find(node)->second.at(curNeighborIndex);
+                    cout << "neighbor " << neighbor << endl;
                     auto it = exploredSet.find(neighbor);
                     if (it == exploredSet.end()) {
                         newCall = true;
@@ -1601,7 +1603,7 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
                             itV->second.low2 = itW->second.low2;
                         }
                         itV->second.low1 = itW->second.low1;
-                    } else if (itW->second.low1 < itV->second.low1) {
+                    } else if (itW->second.low1 == itV->second.low1) {
                         if (itW->second.low2 < itV->second.low2) {
                             itV->second.low2 = itW->second.low2;
                         }
