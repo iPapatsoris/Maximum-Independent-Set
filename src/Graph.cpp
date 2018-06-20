@@ -1355,29 +1355,26 @@ void Graph::addPalmTreeArc(unordered_map<uint32_t, vector<uint32_t> > &palmTree,
     }
 }
 
-bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
-    struct Value {
-        Value(const uint32_t &visit) : visit(visit), low1(NONE), low2(visit), nd(0) {}
-        uint32_t visit;
-        uint32_t low1;
-        uint32_t low2;
-        uint32_t nd;
-    };
 
+bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
     struct Instance {
         Instance(const uint32_t &node, const uint32_t &parentNode, const Graph &graph) : graphTraversal(graph, node), parentNode(parentNode) {}
         GraphTraversal graphTraversal;
         uint32_t parentNode;
     };
-
+    unordered_set<uint32_t> globalExploredSet;
     Graph::GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         vertexCut.clear();
         component1.clear();
         component2.clear();
+        if (globalExploredSet.find(graphTraversal.curNode) != globalExploredSet.end()) {
+            getNextNode(graphTraversal);
+            continue;
+        }
 
         unordered_map<uint32_t, uint32_t> visitToId;
-        unordered_map<uint32_t, Value> exploredSet;
+        unordered_map<uint32_t, Value1> exploredSet;
         stack<Instance> frontier;
         unordered_set<uint32_t> flags;
         unordered_map<uint32_t, uint32_t> fathers;
@@ -1392,9 +1389,10 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             while (!frontier.empty()) {
                 uint32_t node = frontier.top().graphTraversal.curNode;
                 visit++;
-                exploredSet.insert({node, Value(visit)});
+                exploredSet.insert({node, Value1(visit)});
+                globalExploredSet.insert(node);
                 visitToId.insert({visit, node});
-                sons.insert(graphTraversal.curNode, 0);
+                sons.insert({visit, 0});
                 numberOfNodes++;
                 bool newCall;
                 do {
@@ -1461,19 +1459,39 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
                 } while (!newCall);
             }
         }
-        // call sort
+        cout << "First\n";
         for (auto it: exploredSet) {
             cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
         }
+        getSeparatingPairs2(vertexCut, component1, component2, actualComponent1, numberOfNodes, palmTree1, palmTree2, bothPalmTrees, exploredSet, fathers, sons, visitToId);
         getNextNode(graphTraversal);
     }
+}
 
+    bool Graph::getSeparatingPairs2(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1,
+                               const uint32_t &numberOfNodes, unordered_map<uint32_t, vector<uint32_t> > &palmTree1, unordered_map<uint32_t, vector<uint32_t> > &palmTree2,
+                               unordered_map<uint32_t, vector<uint32_t> > &bothPalmTrees, unordered_map<uint32_t, Value1> &oldExploredSet, unordered_map<uint32_t, uint32_t> &fathers,
+                               unordered_map<uint32_t, uint32_t> &sons, unordered_map<uint32_t, uint32_t> &visitToId) const {
 
     struct Edge {
         uint32_t node;
         uint32_t neighbor;
 
         Edge(const uint32_t &node, const uint32_t &neighbor) : node(node), neighbor(neighbor) {}
+    };
+
+    struct Value2 {
+        Value2(const uint32_t &visit) : visit(visit), low1(visit), low2(visit), high(visit) {}
+        uint32_t visit;
+        uint32_t low1;
+        uint32_t low2;
+        uint32_t high;
+    };
+
+    struct Instance {
+        Instance(const uint32_t &node) : node(node), curNeighborIndex(0) {}
+        uint32_t node;
+        uint32_t curNeighborIndex;
     };
 
     vector<vector<Edge> > buckets(2 * numberOfNodes + 1, vector<Edge>());
@@ -1484,39 +1502,121 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             auto res = palmTree2.find(v);
             bool edgeExists = false;
             if (res != palmTree2.end()) {
-                for (auto n: *res) {
+                for (auto n: res->second) {
                     if (n == w) {
                         edgeExists = true;
-                        buckets[2 * exploredSet.find(w)->second.visit + 1].push_back(Edge(v, w));
+                        buckets[2 * oldExploredSet.find(w)->second.visit + 1].push_back(Edge(v, w));
                     }
                 }
             }
             if (!edgeExists) {
-                auto itW = exploredSet.find(w);
-                if (itW->second.low2 < exploredSet.find(v)->second.visit) {
+                auto itW = oldExploredSet.find(w);
+                if (itW->second.low2 < oldExploredSet.find(v)->second.visit) {
                     buckets[2 * itW->second.low1].push_back(Edge(v, w));
                 } else {
                     buckets[2 * itW->second.low1 + 1].push_back(Edge(v, w));
                 }
             }
         }
-        unordered_map<vector<uint32_t> > sortedPalmTree(2 * numberOfNodes + 1, vector<uint32_t>());
-        for (auto &bucket: buckets) {
-            for (auto &edge: bucket.second) {
-                auto it = sortedPalmTree.find(edge.node);
-                if (it != sortedPalmTree.end()) {
-                    it->second.push_back(edge.neighbor);
-                } else {
-                    vector<uint32_t> tmp;
-                    tmp.push_back(edge.neighbor);
-                    sortedPalmTree.insert({edge.node, tmp});
-                }
+    }
+    unordered_map<uint32_t, vector<uint32_t> > sortedPalmTree;
+    for (auto &bucket: buckets) {
+        for (auto &edge: bucket) {
+            auto it = sortedPalmTree.find(edge.node);
+            if (it != sortedPalmTree.end()) {
+                it->second.push_back(edge.neighbor);
+            } else {
+                vector<uint32_t> tmp;
+                tmp.push_back(edge.neighbor);
+                sortedPalmTree.insert({edge.node, tmp});
             }
         }
     }
+    cout << "\nSorted palm tree" << endl;
+    for (auto &edge: sortedPalmTree) {
+        for (auto n: edge.second) {
+            cout << edge.first << " -> " << n << endl;
+        }
+    }
 
-    visit = numberOfNodes;
-
+    uint32_t visit = numberOfNodes;
+    unordered_map<uint32_t, Value2> exploredSet;
+    stack<Instance> frontier;
+    uint32_t root = visitToId.find(1)->second;
+    if (exploredSet.find(root) == exploredSet.end()) {
+        frontier.push(Instance(root));
+        while (!frontier.empty()) {
+            uint32_t node = frontier.top().node;
+            exploredSet.insert({node, Value2(visit - oldExploredSet.find(node)->second.nd)});
+            bool newCall;
+            do {
+                node = frontier.top().node;
+                uint32_t &curNeighborIndex = frontier.top().curNeighborIndex;
+                newCall = false;
+                while (curNeighborIndex < sortedPalmTree.find(node)->second.size()) {
+                    uint32_t neighbor = sortedPalmTree.find(node)->second.at(curNeighborIndex);
+                    auto it = exploredSet.find(neighbor);
+                    if (it == exploredSet.end()) {
+                        newCall = true;
+                        frontier.push(Instance(neighbor));
+                        break;
+                    } else {
+                        //for (auto f: fathers) {
+                        //    cout << f.first << " -> " << f.second << endl;
+                        //}
+                        auto itV = exploredSet.find(node);
+                        if (neighbor != root) {
+                            auto itW = exploredSet.find(fathers.find(neighbor)->second);
+                            if (itV->second.visit > itW->second.high) {
+                                itW->second.high = itV->second.visit;
+                            }
+                        }
+                        auto itW = exploredSet.find(neighbor);
+                        if (itW->second.visit < itV->second.low1) {
+                            itV->second.low2 = itV->second.low1;
+                            itV->second.low1 = itW->second.visit;
+                        } else if (itW->second.visit > itV->second.low1 && itW->second.visit < itV->second.low2) {
+                            itV->second.low2 = itW->second.visit;
+                        }
+                    }
+                    curNeighborIndex++;
+                }
+                if (!newCall) {
+                    uint32_t neighbor = frontier.top().node;
+                    frontier.pop();
+                    if (!frontier.size()) {
+                        break;
+                    }
+                    node = frontier.top().node;
+                    auto itVSons = sons.find(exploredSet.find(node)->second.visit);
+                    auto itW = exploredSet.find(neighbor);
+                    if (itVSons->second == 0) {
+                        itVSons->second = itW->second.visit;
+                    }
+                    visit--;
+                    auto itV = exploredSet.find(node);
+                    if (itW->second.low1 < itV->second.low1) {
+                        itV->second.low2 = itV->second.low1;
+                        if (itW->second.low2 < itV->second.low2) {
+                            itV->second.low2 = itW->second.low2;
+                        }
+                        itV->second.low1 = itW->second.low1;
+                    } else if (itW->second.low1 < itV->second.low1) {
+                        if (itW->second.low2 < itV->second.low2) {
+                            itV->second.low2 = itW->second.low2;
+                        }
+                    } else if (itW->second.low1 < itV->second.low2) {
+                        itV->second.low2 = itW->second.low1;
+                    }
+                    frontier.top().curNeighborIndex++;
+                }
+            } while (!newCall);
+        }
+    }
+    cout << "\nSecond\n";
+    for (auto it: exploredSet) {
+        cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
+    }
     return false;
 }
 

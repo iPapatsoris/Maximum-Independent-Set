@@ -394,6 +394,18 @@ private:
     bool checkSeparation(const std::unordered_set<uint32_t> &cut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
     bool buildCC(const std::unordered_set<uint32_t> &excludedNodes, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2) const;
     void static addPalmTreeArc(std::unordered_map<uint32_t, std::vector<uint32_t> > &palmTree, std::unordered_map<uint32_t, std::vector<uint32_t> > &bothPalmTrees, const uint32_t &node, const uint32_t &neighbor);
+    struct Value1 {
+        Value1(const uint32_t &visit) : visit(visit), low1(NONE), low2(visit), nd(0) {}
+        uint32_t visit;
+        uint32_t low1;
+        uint32_t low2;
+        uint32_t nd;
+    };
+    bool getSeparatingPairs2(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1,
+                               const uint32_t &numberOfNodes, std::unordered_map<uint32_t, std::vector<uint32_t> > &palmTree1, std::unordered_map<uint32_t, std::vector<uint32_t> > &palmTree2,
+                               std::unordered_map<uint32_t, std::vector<uint32_t> > &bothPalmTrees, std::unordered_map<uint32_t, Value1> &oldExploredSet, std::unordered_map<uint32_t, uint32_t> &fathers, std::unordered_map<uint32_t, uint32_t> &sons, std::unordered_map<uint32_t, uint32_t> &visitToId) const;
+
+
 
     struct NodeInfo {
     public:
