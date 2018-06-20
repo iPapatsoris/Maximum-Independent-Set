@@ -29,6 +29,7 @@ public:
     Graph& operator=(const Graph &graph);
 
     uint32_t getNodeCount() const;
+    uint32_t getNodeCountWithEdges() const;
 
     uint32_t getPos(const uint32_t &node) const {
         return (!mapping ? node : idToPos->at(node));

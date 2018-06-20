@@ -1370,28 +1370,32 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
         uint32_t parentNode;
     };
 
-    vertexCut.clear();
-    component1.clear();
-    component2.clear();
-
-    unordered_map<uint32_t, Value> exploredSet;
-    stack<Instance> frontier;
-    unordered_set<uint32_t> flags;
-    unordered_map<uint32_t, uint32_t> fathers;
-    unordered_map<uint32_t, vector<uint32_t> > palmTree1;
-    unordered_map<uint32_t, vector<uint32_t> > palmTree2;
-    unordered_map<uint32_t, vector<uint32_t> > bothPalmTrees;
-
-    uint32_t visit;
     Graph::GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
-        visit = 0;
+        vertexCut.clear();
+        component1.clear();
+        component2.clear();
+
+        unordered_map<uint32_t, uint32_t> visitToId;
+        unordered_map<uint32_t, Value> exploredSet;
+        stack<Instance> frontier;
+        unordered_set<uint32_t> flags;
+        unordered_map<uint32_t, uint32_t> fathers;
+        unordered_map<uint32_t, uint32_t> sons;
+        unordered_map<uint32_t, vector<uint32_t> > palmTree1;
+        unordered_map<uint32_t, vector<uint32_t> > palmTree2;
+        unordered_map<uint32_t, vector<uint32_t> > bothPalmTrees;
+        uint32_t visit = 0;
+        uint32_t numberOfNodes = 0;
         if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
             frontier.push(Instance(graphTraversal.curNode, NONE, *this));
             while (!frontier.empty()) {
                 uint32_t node = frontier.top().graphTraversal.curNode;
                 visit++;
                 exploredSet.insert({node, Value(visit)});
+                visitToId.insert({visit, node});
+                sons.insert(graphTraversal.curNode, 0);
+                numberOfNodes++;
                 bool newCall;
                 do {
                     node = frontier.top().graphTraversal.curNode;
@@ -1457,11 +1461,13 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
                 } while (!newCall);
             }
         }
+        // call sort
+        for (auto it: exploredSet) {
+            cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
+        }
         getNextNode(graphTraversal);
     }
-    for (auto it: exploredSet) {
-        cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
-    }
+
 
     struct Edge {
         uint32_t node;
@@ -1470,15 +1476,46 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
         Edge(const uint32_t &node, const uint32_t &neighbor) : node(node), neighbor(neighbor) {}
     };
 
-    vector<vector<Edge> > buckets(2 * getNodeCount() + 1, vector<Edge>());
-    assert(buckets.size() = 2 * getNodeCount() + 1);
+    vector<vector<Edge> > buckets(2 * numberOfNodes + 1, vector<Edge>());
+    assert(buckets.size() == 2 * numberOfNodes + 1);
     for (auto &arc: bothPalmTrees) {
         uint32_t v = arc.first;
         for (auto w: arc.second) {
             auto res = palmTree2.find(v);
-            if (res != palmTree2.end())
+            bool edgeExists = false;
+            if (res != palmTree2.end()) {
+                for (auto n: *res) {
+                    if (n == w) {
+                        edgeExists = true;
+                        buckets[2 * exploredSet.find(w)->second.visit + 1].push_back(Edge(v, w));
+                    }
+                }
+            }
+            if (!edgeExists) {
+                auto itW = exploredSet.find(w);
+                if (itW->second.low2 < exploredSet.find(v)->second.visit) {
+                    buckets[2 * itW->second.low1].push_back(Edge(v, w));
+                } else {
+                    buckets[2 * itW->second.low1 + 1].push_back(Edge(v, w));
+                }
+            }
+        }
+        unordered_map<vector<uint32_t> > sortedPalmTree(2 * numberOfNodes + 1, vector<uint32_t>());
+        for (auto &bucket: buckets) {
+            for (auto &edge: bucket.second) {
+                auto it = sortedPalmTree.find(edge.node);
+                if (it != sortedPalmTree.end()) {
+                    it->second.push_back(edge.neighbor);
+                } else {
+                    vector<uint32_t> tmp;
+                    tmp.push_back(edge.neighbor);
+                    sortedPalmTree.insert({edge.node, tmp});
+                }
+            }
         }
     }
+
+    visit = numberOfNodes;
 
     return false;
 }
@@ -1566,6 +1603,16 @@ uint32_t Graph::getNodeCount() const {
     uint32_t count = 0;
     for (auto &node: nodeIndex) {
         if (!node.removed) {
+            count++;
+        }
+    }
+    return count;
+}
+
+uint32_t Graph::getNodeCountWithEdges() const {
+    uint32_t count = 0;
+    for (auto &node: nodeIndex) {
+        if (!node.removed && node.edges) {
             count++;
         }
     }
