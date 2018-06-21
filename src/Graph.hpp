@@ -65,7 +65,7 @@ public:
         return nodeIndex[pos].edges;
     }
 
-    bool getArticulationPoints(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
+    bool getArticulationPoints(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1, bool &connected) const;
     bool getSeparatingPairs(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1) const;
     uint32_t getOptimalNodeTheta3(const uint32_t initialMaxDegreeNode, const uint32_t &initialMaxDegree) const;
     bool getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &nodeV, uint32_t &nodeA) const;
@@ -403,7 +403,7 @@ private:
     };
     bool getSeparatingPairs2(std::unordered_set<uint32_t> &vertexCut, std::vector<uint32_t> &component1, std::vector<uint32_t> &component2, bool &actualComponent1,
                                const uint32_t &numberOfNodes, std::unordered_map<uint32_t, std::vector<uint32_t> > &palmTree1, std::unordered_map<uint32_t, std::vector<uint32_t> > &palmTree2,
-                               std::unordered_map<uint32_t, std::vector<uint32_t> > &bothPalmTrees, std::unordered_map<uint32_t, Value1> &oldExploredSet, std::unordered_map<uint32_t, uint32_t> &fathers, std::unordered_map<uint32_t, uint32_t> &sons, std::unordered_map<uint32_t, uint32_t> &visitToId) const;
+                               std::unordered_map<uint32_t, std::vector<uint32_t> > &bothPalmTrees, std::unordered_map<uint32_t, Value1> &oldExploredSet, std::unordered_map<uint32_t, uint32_t> &fathers, std::unordered_map<uint32_t, uint32_t> &sons, std::unordered_map<uint32_t, std::unordered_set<uint32_t> > &descendants, std::unordered_map<uint32_t, uint32_t> &visitToId) const;
 
 
 

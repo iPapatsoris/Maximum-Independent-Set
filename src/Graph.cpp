@@ -1227,7 +1227,7 @@ void Graph::collectZeroDegreeNodes() {
     }
 }
 
-bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
+bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1, bool &connected) const {
     struct Value {
         Value(const uint32_t &visit) : visit(visit), low(visit) {}
         uint32_t visit;
@@ -1245,100 +1245,107 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
     component1.clear();
     component2.clear();
 
+    Graph::GraphTraversal graphTraversal(*this);
+    if (graphTraversal.curNode == NONE) {
+        return false;
+    }
     unordered_set<uint32_t> articulationPoints;
     unordered_map<uint32_t, Value> exploredSet;
     stack<Instance> frontier;
     uint32_t visit = 0;
     uint32_t root = NONE;
-    Graph::GraphTraversal graphTraversal(*this);
-    while (graphTraversal.curNode != NONE) {
-        if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
-            root = graphTraversal.curNode;
-            frontier.push(Instance(graphTraversal.curNode, NONE, *this));
-            while (!frontier.empty()) {
-                uint32_t node = frontier.top().graphTraversal.curNode;
-                exploredSet.insert({node, Value(visit)});
-                visit++;
-                bool newCall;
-                do {
-                    node = frontier.top().graphTraversal.curNode;
-                    //cout << node << endl;
-                    Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
-                    newCall = false;
-                    while (neighbors.curEdgeOffset != NONE) {
-                        uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
-                        //cout << "checking neighbor " << neighbor << endl;
-                        if (neighbor != node) {
-                            auto it = exploredSet.find(neighbor);
-                            if (it == exploredSet.end()) {
-                                newCall = true;
-                                frontier.top().dfsChildren++;
-                                frontier.push(Instance(neighbor, node, *this));
-                                break;
-                            } else if (it->second.visit < exploredSet.find(node)->second.visit) {
-                                //cout << "neighbor " << neighbor << " already exists" << endl;
-                                auto it1 = exploredSet.find(node);
-                                if (it->second.visit < it1->second.low) {
-                                    it1->second.low = it->second.visit;
-                                }
-                            }
-                        }
-                        getNextEdge(neighbors);
-                    }
-                    if (!newCall) {
-                        uint32_t parentNode = frontier.top().parentNode;
-                        if (frontier.size() > 1) {
-                            auto it1 = exploredSet.find(parentNode);
-                            auto it2 = exploredSet.find(node);
-                            assert(it1 != exploredSet.end() && it2 != exploredSet.end());
-                            if (it2->second.low < it1->second.low) {
-                                it1->second.low = it2->second.low;
-                            }
-                            if (parentNode != root && it2->second.low >= it1->second.visit && articulationPoints.insert(parentNode).second) {
-                                //cout << "Articulation point " << parentNode << "\n";
-                                unordered_set<uint32_t> cut;
-                                cut.insert(parentNode);
-                                if (checkSeparation(cut, component1, component2, actualComponent1)) {
-                                    vertexCut = cut;
-                                    /*cout << "one\n";
-                                    for (auto n: component1) {
-                                        cout << n << "\n";
-                                    }
-                                    cout << "other\n";
-                                    for (auto n: component2) {
-                                        cout << n << "\n";
-                                    }
-                                    cout << "and graph is\n";
-                                    print(true);*/
-                                    return true;
-                                }
-                            }
-                            frontier.pop();
-                            if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
-                                getNextEdge(frontier.top().graphTraversal);
-                            }
-                        } else if (frontier.size() == 1) {
-                            if (frontier.top().dfsChildren > 1 && articulationPoints.insert(frontier.top().graphTraversal.curNode).second) {
-                                //cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
-                                unordered_set<uint32_t> cut;
-                                cut.insert(frontier.top().graphTraversal.curNode);
-                                if (checkSeparation(cut, component1, component2, actualComponent1)) {
-                                    vertexCut = cut;
-                                    return true;
-                                }
-                            }
-                            frontier.pop();
+    if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
+        root = graphTraversal.curNode;
+        frontier.push(Instance(graphTraversal.curNode, NONE, *this));
+        while (!frontier.empty()) {
+            uint32_t node = frontier.top().graphTraversal.curNode;
+            exploredSet.insert({node, Value(visit)});
+            visit++;
+            bool newCall;
+            do {
+                node = frontier.top().graphTraversal.curNode;
+                //cout << node << endl;
+                Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
+                newCall = false;
+                while (neighbors.curEdgeOffset != NONE) {
+                    uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
+                    //cout << "checking neighbor " << neighbor << endl;
+                    if (neighbor != node) {
+                        auto it = exploredSet.find(neighbor);
+                        if (it == exploredSet.end()) {
+                            newCall = true;
+                            frontier.top().dfsChildren++;
+                            frontier.push(Instance(neighbor, node, *this));
                             break;
+                        } else if (it->second.visit < exploredSet.find(node)->second.visit) {
+                            //cout << "neighbor " << neighbor << " already exists" << endl;
+                            auto it1 = exploredSet.find(node);
+                            if (it->second.visit < it1->second.low) {
+                                it1->second.low = it->second.visit;
+                            }
                         }
                     }
-                } while (!newCall);
-            }
+                    getNextEdge(neighbors);
+                }
+                if (!newCall) {
+                    uint32_t parentNode = frontier.top().parentNode;
+                    if (frontier.size() > 1) {
+                        auto it1 = exploredSet.find(parentNode);
+                        auto it2 = exploredSet.find(node);
+                        assert(it1 != exploredSet.end() && it2 != exploredSet.end());
+                        if (it2->second.low < it1->second.low) {
+                            it1->second.low = it2->second.low;
+                        }
+                        if (parentNode != root && it2->second.low >= it1->second.visit && articulationPoints.insert(parentNode).second) {
+                            //cout << "Articulation point " << parentNode << "\n";
+                            unordered_set<uint32_t> cut;
+                            cut.insert(parentNode);
+                            if (checkSeparation(cut, component1, component2, actualComponent1)) {
+                                vertexCut = cut;
+                                /*cout << "one\n";
+                                for (auto n: component1) {
+                                    cout << n << "\n";
+                                }
+                                cout << "other\n";
+                                for (auto n: component2) {
+                                    cout << n << "\n";
+                                }
+                                cout << "and graph is\n";
+                                print(true);*/
+                                //cout << "Articulation point " << parentNode << "\n";
+                                return true;
+                            }
+                        }
+                        frontier.pop();
+                        if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
+                            getNextEdge(frontier.top().graphTraversal);
+                        }
+                    } else if (frontier.size() == 1) {
+                        if (frontier.top().dfsChildren > 1 && articulationPoints.insert(frontier.top().graphTraversal.curNode).second) {
+                            //cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
+                            unordered_set<uint32_t> cut;
+                            cut.insert(frontier.top().graphTraversal.curNode);
+                            if (checkSeparation(cut, component1, component2, actualComponent1)) {
+                                vertexCut = cut;
+                                //cout << "Root articulation point " << frontier.top().graphTraversal.curNode << "\n";
+                                return true;
+                            }
+                        }
+                        frontier.pop();
+                        break;
+                    }
+                }
+            } while (!newCall);
         }
-        getNextNode(graphTraversal);
     }
     /*for (auto it: exploredSet) {
         cout << it.first << ": " <<  it.second.visit << " " << it.second.low << endl;
     }*/
+    if (exploredSet.size() != getNodeCountWithEdges()) {
+        connected = false;
+    } else {
+        connected = true;
+    }
     return false;
 }
 
@@ -1360,118 +1367,126 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
         GraphTraversal graphTraversal;
         uint32_t parentNode;
     };
-    unordered_set<uint32_t> globalExploredSet;
-    Graph::GraphTraversal graphTraversal(*this);
-    while (graphTraversal.curNode != NONE) {
-        vertexCut.clear();
-        component1.clear();
-        component2.clear();
-        if (globalExploredSet.find(graphTraversal.curNode) != globalExploredSet.end()) {
-            getNextNode(graphTraversal);
-            continue;
-        }
 
-        unordered_map<uint32_t, uint32_t> visitToId;
-        unordered_map<uint32_t, Value1> exploredSet;
-        stack<Instance> frontier;
-        unordered_set<uint32_t> flags;
-        unordered_map<uint32_t, uint32_t> fathers;
-        unordered_map<uint32_t, uint32_t> sons;
-        unordered_map<uint32_t, vector<uint32_t> > palmTree1;
-        unordered_map<uint32_t, vector<uint32_t> > palmTree2;
-        unordered_map<uint32_t, vector<uint32_t> > bothPalmTrees;
-        uint32_t visit = 0;
-        uint32_t numberOfNodes = 0;
-        if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
-            frontier.push(Instance(graphTraversal.curNode, NONE, *this));
-            while (!frontier.empty()) {
-                uint32_t node = frontier.top().graphTraversal.curNode;
-                visit++;
-                exploredSet.insert({node, Value1(visit)});
-                globalExploredSet.insert(node);
-                visitToId.insert({visit, node});
-                sons.insert({visit, 0});
-                numberOfNodes++;
-                bool newCall;
-                do {
-                    node = frontier.top().graphTraversal.curNode;
-                    Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
-                    newCall = false;
-                    while (neighbors.curEdgeOffset != NONE) {
-                        uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
-                        auto it = exploredSet.find(neighbor);
-                        if (it == exploredSet.end()) {
-                            addPalmTreeArc(palmTree1, node, neighbor);
-                            addPalmTreeArc(bothPalmTrees, node, neighbor);
-                            fathers.insert({neighbor, node});
-                            newCall = true;
-                            frontier.push(Instance(neighbor, node, *this));
-                            break;
-                        } else if (neighbor != node && it->second.visit < exploredSet.find(node)->second.visit || flags.find(node) != flags.end()) {
-                            addPalmTreeArc(palmTree2, node, neighbor);
-                            addPalmTreeArc(bothPalmTrees, node, neighbor);
-                            auto it1 = exploredSet.find(node);
-                            if (it->second.visit < it1->second.low1) {
-                                it1->second.low2 = it1->second.low1;
-                                it1->second.low1 = it->second.visit;
-                            } else if (it->second.visit > it1->second.low1) {
-                                if (it->second.visit < it1->second.low2) {
-                                    it1->second.low2 = it->second.visit;
-                                }
-                            }
-                        } else if (neighbor == node && flags.find(node) == flags.end()) {
-                            flags.insert(node);
-                        }
-                        getNextEdge(neighbors);
-                    }
-                    if (!newCall) {
-                        uint32_t parentNode = frontier.top().parentNode;
-                        if (parentNode == NONE) {
-                            assert(frontier.size() == 1);
-                            frontier.pop();
-                            break;
-                        }
-                        auto it1 = exploredSet.find(parentNode);
-                        auto it2 = exploredSet.find(node);
-                        assert(it1 != exploredSet.end() && it2 != exploredSet.end());
-                        it1->second.nd += (1 + it2->second.nd);
-                        if (it2->second.low1 < it1->second.low1) {
-                            it1->second.low2 = it1->second.low1;
-                            if (it2->second.low2 < it1->second.low1) {
-                                it1->second.low2 = it2->second.low2;
-                            }
-                            it1->second.low1 = it2->second.low1;
-                        } else if (it2->second.low1 == it1->second.low1) {
-                            if (it2->second.low2 < it1->second.low2) {
-                                it1->second.low2 = it2->second.low2;
-                            }
-                        } else if (it2->second.low1 < it1->second.low2) {
-                            it1->second.low2 = it2->second.low1;
-                        }
-                        frontier.pop();
-                        if (!frontier.size()) {
-                            break;
-                        }
-                        if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
-                            getNextEdge(frontier.top().graphTraversal);
-                        }
-                    }
-                } while (!newCall);
-            }
-        }
-        cout << "First\n";
-        for (auto it: exploredSet) {
-            cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
-        }
-        getSeparatingPairs2(vertexCut, component1, component2, actualComponent1, numberOfNodes, palmTree1, palmTree2, bothPalmTrees, exploredSet, fathers, sons, visitToId);
-        getNextNode(graphTraversal);
+    Graph::GraphTraversal graphTraversal(*this);
+    if (graphTraversal.curNode == NONE) {
+        return false;
     }
+    vertexCut.clear();
+    component1.clear();
+    component2.clear();
+    unordered_map<uint32_t, uint32_t> visitToId;
+    unordered_map<uint32_t, Value1> exploredSet;
+    stack<Instance> frontier;
+    unordered_set<uint32_t> flags;
+    unordered_map<uint32_t, uint32_t> fathers;
+    unordered_map<uint32_t, uint32_t> sons;
+    unordered_map<uint32_t, vector<uint32_t> > palmTree1;
+    unordered_map<uint32_t, vector<uint32_t> > palmTree2;
+    unordered_map<uint32_t, vector<uint32_t> > bothPalmTrees;
+    unordered_map<uint32_t, unordered_set<uint32_t> > descendants;
+    uint32_t visit = 0;
+    uint32_t numberOfNodes = 0;
+    if (exploredSet.find(graphTraversal.curNode) == exploredSet.end()) {
+        frontier.push(Instance(graphTraversal.curNode, NONE, *this));
+        while (!frontier.empty()) {
+            uint32_t node = frontier.top().graphTraversal.curNode;
+            visit++;
+            exploredSet.insert({node, Value1(visit)});
+            visitToId.insert({visit, node});
+            sons.insert({visit, 0});
+            numberOfNodes++;
+            bool newCall;
+            do {
+                node = frontier.top().graphTraversal.curNode;
+                Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
+                newCall = false;
+                while (neighbors.curEdgeOffset != NONE) {
+                    uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
+                    auto it = exploredSet.find(neighbor);
+                    if (it == exploredSet.end()) {
+                        addPalmTreeArc(palmTree1, node, neighbor);
+                        addPalmTreeArc(bothPalmTrees, node, neighbor);
+                        fathers.insert({neighbor, node});
+                        newCall = true;
+                        frontier.push(Instance(neighbor, node, *this));
+                        break;
+                    } else if (neighbor != node && it->second.visit < exploredSet.find(node)->second.visit || flags.find(node) != flags.end()) {
+                        addPalmTreeArc(palmTree2, node, neighbor);
+                        addPalmTreeArc(bothPalmTrees, node, neighbor);
+                        auto it1 = exploredSet.find(node);
+                        if (it->second.visit < it1->second.low1) {
+                            it1->second.low2 = it1->second.low1;
+                            it1->second.low1 = it->second.visit;
+                        } else if (it->second.visit > it1->second.low1) {
+                            if (it->second.visit < it1->second.low2) {
+                                it1->second.low2 = it->second.visit;
+                            }
+                        }
+                    } else if (neighbor == node && flags.find(node) == flags.end()) {
+                        flags.insert(node);
+                    }
+                    getNextEdge(neighbors);
+                }
+                if (!newCall) {
+                    uint32_t parentNode = frontier.top().parentNode;
+                    if (parentNode == NONE) {
+                        assert(frontier.size() == 1);
+                        frontier.pop();
+                        break;
+                    }
+                    auto it1 = exploredSet.find(parentNode);
+                    auto it2 = exploredSet.find(node);
+                    assert(it1 != exploredSet.end() && it2 != exploredSet.end());
+                    it1->second.nd += (1 + it2->second.nd);
+                    auto d1 = descendants.find(parentNode);
+                    if (d1 == descendants.end()) {
+                        descendants.insert({parentNode, unordered_set<uint32_t>()});
+                        d1 = descendants.find(parentNode);
+                    }
+                    d1->second.insert(node);
+                    auto d2 = descendants.find(node);
+                    if (d2 != descendants.end()) {
+                        d1->second.insert(d2->second.begin(), d2->second.end());
+                    }
+                    if (it2->second.low1 < it1->second.low1) {
+                        it1->second.low2 = it1->second.low1;
+                        if (it2->second.low2 < it1->second.low1) {
+                            it1->second.low2 = it2->second.low2;
+                        }
+                        it1->second.low1 = it2->second.low1;
+                    } else if (it2->second.low1 == it1->second.low1) {
+                        if (it2->second.low2 < it1->second.low2) {
+                            it1->second.low2 = it2->second.low2;
+                        }
+                    } else if (it2->second.low1 < it1->second.low2) {
+                        it1->second.low2 = it2->second.low1;
+                    }
+                    frontier.pop();
+                    if (!frontier.size()) {
+                        break;
+                    }
+                    if (frontier.top().graphTraversal.curEdgeOffset != NONE) {
+                        getNextEdge(frontier.top().graphTraversal);
+                    }
+                }
+            } while (!newCall);
+        }
+    }
+    /*cout << "First\n";
+    for (auto it: exploredSet) {
+        cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
+    }*/
+    if (getSeparatingPairs2(vertexCut, component1, component2, actualComponent1, numberOfNodes, palmTree1, palmTree2, bothPalmTrees, exploredSet, fathers, sons, descendants, visitToId)) {
+        return true;
+    }
+    return false;
 }
 
     bool Graph::getSeparatingPairs2(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1,
                                const uint32_t &numberOfNodes, unordered_map<uint32_t, vector<uint32_t> > &palmTree1, unordered_map<uint32_t, vector<uint32_t> > &palmTree2,
                                unordered_map<uint32_t, vector<uint32_t> > &bothPalmTrees, unordered_map<uint32_t, Value1> &oldExploredSet, unordered_map<uint32_t, uint32_t> &fathers,
-                               unordered_map<uint32_t, uint32_t> &sons, unordered_map<uint32_t, uint32_t> &visitToId) const {
+                               unordered_map<uint32_t, uint32_t> &sons, unordered_map<uint32_t, unordered_set<uint32_t> > &descendants, unordered_map<uint32_t, uint32_t> &visitToId) const {
 
     struct Edge {
         uint32_t node;
@@ -1532,12 +1547,12 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             }
         }
     }
-    cout << "\nSorted palm tree" << endl;
+    /*cout << "\nSorted palm tree" << endl;
     for (auto &edge: sortedPalmTree) {
         for (auto n: edge.second) {
             cout << edge.first << " -> " << n << endl;
         }
-    }
+    }*/
 
     uint32_t visit = numberOfNodes;
     unordered_map<uint32_t, Value2> exploredSet;
@@ -1551,21 +1566,16 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             bool newCall;
             do {
                 node = frontier.top().node;
-                cout << "node " << node << endl;
                 uint32_t &curNeighborIndex = frontier.top().curNeighborIndex;
                 newCall = false;
                 while (curNeighborIndex < sortedPalmTree.find(node)->second.size()) {
                     uint32_t neighbor = sortedPalmTree.find(node)->second.at(curNeighborIndex);
-                    cout << "neighbor " << neighbor << endl;
                     auto it = exploredSet.find(neighbor);
                     if (it == exploredSet.end()) {
                         newCall = true;
                         frontier.push(Instance(neighbor));
                         break;
                     } else {
-                        //for (auto f: fathers) {
-                        //    cout << f.first << " -> " << f.second << endl;
-                        //}
                         auto itV = exploredSet.find(node);
                         if (neighbor != root) {
                             auto itW = exploredSet.find(fathers.find(neighbor)->second);
@@ -1615,9 +1625,40 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             } while (!newCall);
         }
     }
-    cout << "\nSecond\n";
+    /*cout << "\nSecond\n";
     for (auto it: exploredSet) {
         cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
+    }*/
+
+    for (auto &edge: sortedPalmTree) {
+        uint32_t b = edge.first;
+        uint32_t visitB = exploredSet.find(b)->second.visit;
+        for (auto r: edge.second) {
+            auto itR = exploredSet.find(r);
+            uint32_t low1R = itR->second.low1;
+            uint32_t low2R = itR->second.low2;
+            if (low2R >= visitB) {
+                for (auto &a: exploredSet) {
+                    if (a.second.visit < visitB && low1R == a.second.visit) {
+                        auto descendantsR = descendants.find(r);
+                        for (auto &node: exploredSet) {
+                            if (node.first != a.first && node.first != b && node.first != r && (descendantsR == descendants.end() || descendantsR->second.find(node.first) == descendantsR->second.end())) {
+                                //cout << "Separating pair " << a.first << "-" << b << endl;
+                                unordered_set<uint32_t> cut;
+                                cut.insert(a.first);
+                                cut.insert(b);
+                                if (checkSeparation(cut, component1, component2, actualComponent1)) {
+                                    vertexCut = cut;
+                                    //cout << "Separating pair " << a.first << "-" << b << endl;
+                                    return true;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     return false;
 }

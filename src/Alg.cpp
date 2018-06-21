@@ -41,11 +41,11 @@ Alg::SearchNode::~SearchNode() {
 uint32_t searchNodeID = 0;
 
 void Alg::run() {
-    unordered_set<uint32_t> cut;
+    /*unordered_set<uint32_t> cut;
     vector<uint32_t> component1, component2;
     bool actualComponent1;
     searchTree[0]->graph.getSeparatingPairs(cut, component1, component2, actualComponent1);
-    exit(0);
+    exit(0);*/
 
     //searchTree[0]->graph.print(true);
     //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
@@ -131,7 +131,8 @@ void Alg::run() {
 }
 
 bool Alg::SearchNode::handleCuts() {
-    if (graph.getArticulationPoints(cut, c1, c2, actualComponent1)) {
+    bool connected;
+    if (graph.getArticulationPoints(cut, c1, c2, actualComponent1, connected) || connected && graph.getSeparatingPairs(cut, c1, c2, actualComponent1)) {
         branchingRule.type = BranchingRule::Type::CUT;
         hasCut = true;
         return true;
