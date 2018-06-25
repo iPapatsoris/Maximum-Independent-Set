@@ -2,10 +2,7 @@
 #define CONTROLUNIT_H
 
 #include <string>
-#include "Graph.hpp"
-#include "Reductions.hpp"
 #include "Alg.hpp"
-#include "Mis.hpp"
 
 class ControlUnit {
 public:

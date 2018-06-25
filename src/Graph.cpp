@@ -225,8 +225,10 @@ void Graph::rebuildFromNodes(unordered_set<uint32_t> &nodes) {
     if (!nodes.size()) {
         nodeIndex.clear();
         edgeBuffer->clear();
-        idToPos->clear();
-        posToId->clear();
+        if (mapping) {
+            idToPos->clear();
+            posToId->clear();
+        }
         return;
     }
     vector<NodeInfo> nodeIndex;
@@ -1663,51 +1665,102 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
     return false;
 }
 
+bool Graph::getSeparatingTriplets(unordered_set<uint32_t> &vertexCut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
+    return false;
+    for (uint32_t pos1 = 0 ; pos1 < nodeIndex.size() ; pos1++) {
+        if (nodeIndex[pos1].removed || !nodeIndex[pos1].edges) {
+            continue;
+        }
+        for (uint32_t pos2 = pos1+1 ; pos2 < nodeIndex.size() ; pos2++) {
+            if (nodeIndex[pos2].removed || !nodeIndex[pos2].edges) {
+                continue;
+            }
+            for (uint32_t pos3 = pos2+1 ; pos3 < nodeIndex.size() ; pos3++) {
+                if (nodeIndex[pos3].removed || !nodeIndex[pos3].edges) {
+                    continue;
+                }
+                unordered_set<uint32_t> excludedNodes;
+                excludedNodes.insert((!mapping ? pos1 : posToId->at(pos1)));
+                excludedNodes.insert((!mapping ? pos2 : posToId->at(pos2)));
+                excludedNodes.insert((!mapping ? pos3 : posToId->at(pos3)));
+                if (checkSeparation(excludedNodes, component1, component2, actualComponent1)) {
+                    vertexCut = excludedNodes;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t> &component1, vector<uint32_t> &component2, bool &actualComponent1) const {
-    if (!buildCC(cut, component1, component2)) {
+    if (!buildCC(cut, component1, component2) || !component1.size() || !component2.size()) {
         //cout << "more than 2 cc" << endl;
         component1.clear();
         component2.clear();
         return false;
     }
-    uint32_t degreeSum1 = 0;
-    for (auto node: component1) {
-        uint32_t degree = getNodeDegree(node);
-        for (auto z: cut) {
-            if (edgeExists(z, node)) {
-                degree--;
+    if (cut.size() < 3) {
+        uint32_t degreeSum1 = 0;
+        for (auto node: component1) {
+            uint32_t degree = getNodeDegree(node);
+            for (auto z: cut) {
+                if (edgeExists(z, node)) {
+                    degree--;
+                }
+            }
+            if (degree >= 3) {
+                degreeSum1 += degree;
             }
         }
-        if (degree >= 3) {
-            degreeSum1 += degree;
-        }
-    }
 
-    uint32_t degreeSum2 = 0;
-    for (auto node: component2) {
-        uint32_t degree = getNodeDegree(node);
-        for (auto z: cut) {
-            if (edgeExists(z, node)) {
-                degree--;
+        uint32_t degreeSum2 = 0;
+        for (auto node: component2) {
+            uint32_t degree = getNodeDegree(node);
+            for (auto z: cut) {
+                if (edgeExists(z, node)) {
+                    degree--;
+                }
+            }
+            if (degree >= 3) {
+                degreeSum2 += degree;
+                if (degreeSum2 >= degreeSum1) {
+                    break;
+                }
             }
         }
-        if (degree >= 3) {
-            degreeSum2 += degree;
-            if (degreeSum2 >= degreeSum1) {
-                break;
-            }
+        if (degreeSum1 <= degreeSum2) {
+            actualComponent1 = true;
+        } else {
+            actualComponent1 = false;
         }
-    }
-    if (degreeSum1 <= degreeSum2) {
-        actualComponent1 = true;
+        return true;
     } else {
-        actualComponent1 = false;
+        if (component1.size() <= 24) {
+            actualComponent1 = true;
+        } else if (component2.size() <= 24) {
+            actualComponent1 = false;
+        } else {
+            return false;
+        }
+        vector<uint32_t> *c = (actualComponent1 ? &component1 : &component2);
+        uint32_t degreeSum = 0;
+        for (auto node: *c) {
+            degreeSum += getNodeDegree(node);
+            if (degreeSum >= 17) {
+                return true;
+            }
+        }
+        return false;
     }
-    return true;
 }
+
+
 
 /* Only builds 2 CCs, optimized for separation set detection */
 bool Graph::buildCC(const unordered_set<uint32_t> &excludedNodes, vector<uint32_t> &component1, vector<uint32_t> &component2) const {
+    component1.clear();
+    component2.clear();
     uint32_t component = 0;
     unordered_set<uint32_t> exploredSet;
     stack<uint32_t> frontier;

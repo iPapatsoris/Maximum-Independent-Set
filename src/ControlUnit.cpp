@@ -1,17 +1,37 @@
-#include <iostream>
 #include "ControlUnit.hpp"
+#include <iostream>
+#include <string>
+#include <cstring>
+#include <cstdlib>
 
 using namespace std;
 
+int main(int argc, char **argv) {
+    string graphInputFile;
+    bool checkIndependentSet = false;
+    for (int i=1 ; i < argc ; i++) {
+        if (!strcmp(argv[i], "-f")) {
+            if (++i < argc) {
+                graphInputFile = argv[i];
+            }
+        } else if (!strcmp(argv[i], "-check")) {
+            checkIndependentSet = true;
+        }
+   }
+   if (!graphInputFile.compare("")) {
+       cerr << "Error: No graph input file specified" << endl;
+       exit(EXIT_FAILURE);
+   }
+   ControlUnit controlUnit(graphInputFile, checkIndependentSet);
+   if (!checkIndependentSet) {
+       controlUnit.run();
+   } else {
+       controlUnit.checkIndependentSet(graphInputFile + ".mis");
+   }
+}
+
 void ControlUnit::run() {
-    //return;
-    //graph.print(true); return;
-    //graph.printEdgeCounts(); return;
-    //graph.printWithGraphTraversal(false); return;
     alg.run();
-    //Graph g = graph;
-    //g.nodeIndex.push_back(NodeInfo(1337, 1337);
-    //g.print
 }
 
 void ControlUnit::checkIndependentSet(const string &misInputFile) const {
