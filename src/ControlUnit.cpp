@@ -10,12 +10,10 @@ int main(int argc, char **argv) {
     string graphInputFile;
     bool checkIndependentSet = false;
     for (int i=1 ; i < argc ; i++) {
-        if (!strcmp(argv[i], "-f")) {
-            if (++i < argc) {
-                graphInputFile = argv[i];
-            }
-        } else if (!strcmp(argv[i], "-check")) {
+        if (!strcmp(argv[i], "-check")) {
             checkIndependentSet = true;
+        } else {
+            graphInputFile = argv[i];
         }
    }
    if (!graphInputFile.compare("")) {
