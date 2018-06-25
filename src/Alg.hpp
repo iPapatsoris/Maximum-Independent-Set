@@ -106,15 +106,15 @@ private:
                     case 4: {
                         type = Type::MAX_DEGREE;
                         if (maxDegree >= 5) {
-                            /*uint32_t goodNode = graph.getGoodNode(reductions.getCCToNodes());
+                            uint32_t goodNode = graph.getGoodNode(reductions.getCCToNodes());
                             if (goodNode != NONE) {
                                 maxDegreeNode = goodNode;
-                            }*/
+                            }
                         } else if (graph.getGoodFunnel(node1, node2)) {
                             type = Type::GOOD_FUNNEL;
                         } else if (graph.get4Cycle(container)) {
                             type = Type::FOUR_CYCLE;
-                            std::cout << "branching on optimal cycle " << container[0] << "-" << container[1] << "-" << container[2] << "-" << container[3] << "\n";
+                            //std::cout << "branching on optimal cycle " << container[0] << "-" << container[1] << "-" << container[2] << "-" << container[3] << "\n";
                         } else if (maxDegree == theta) {
                             node1 = graph.getOptimalDegree4Node();
                             assert(node1 != NONE);
@@ -168,35 +168,6 @@ private:
             if (type == Type::MAX_DEGREE) {
                 node1 = maxDegreeNode;
             }
-            //
-
-            /*std::cout << node1 << " ";
-            switch (type) {
-                case Type::MAX_DEGREE:
-                    std::cout << "-> MAX_DEGREE\n";
-                    break;
-                case Type::SHORT_EDGE:
-                    std::cout << "-> SHORT_EDGE\n";
-                    break;
-                case Type::OPTNODE:
-                    std::cout << "-> OPTNODE\n";
-                    break;
-                case Type::GOOD_FUNNEL:
-                    std::cout << "-> GOOD_FUNNEL\n";
-                    break;
-                case Type::FOUR_CYCLE:
-                    std::cout << "-> FOUR_CYCLE\n";
-                    break;
-                case Type::OPT4NODE:
-                    std::cout << "-> OPT4NODE\n";
-                    break;
-                case Type::EFFECTIVE_NODE:
-                    std::cout << "-> EFFECTIVE_NODE\n";
-                    break;
-                case Type::DONE:
-                    std::cout << "-> DONE\n";
-                    break;
-            }*/
         }
 
         void getOptimalNode(const Graph &graph, const uint32_t &theta) {
@@ -206,7 +177,6 @@ private:
             while (graphTraversal.curNode != NONE) {
                 if (graph.getNodeDegree(graphTraversal.curNode) == theta) {
                     count++;
-                    //std::cout << "theta " << theta << " count " << count << "\n";
                     uint32_t node = graphTraversal.curNode;
                     switch (theta) {
                         case 8: {
@@ -277,7 +247,6 @@ private:
             assert(found);
             node1 = graphTraversal.curNode;
         }
-
 
         static uint32_t getMeasure(const Graph &graph, const uint32_t &node, std::unordered_set<uint32_t> *neighborsAtDistance2Ptr = NULL) {
             std::vector<uint32_t> neighbors;
@@ -393,40 +362,11 @@ private:
     }
 
     void branchLeft(const BranchingRule &branchingRule, SearchNode *searchNode, Mis &parentMis) const {
-        /*std::cout << branchingRule.node1 << " ";
-        switch (branchingRule.type) {
-            case BranchingRule::Type::MAX_DEGREE:
-                std::cout << "-> MAX_DEGREE\n";
-                break;
-            case BranchingRule::Type::SHORT_EDGE:
-                std::cout << "-> SHORT_EDGE\n";
-                break;
-            case BranchingRule::Type::OPTNODE:
-                std::cout << "-> OPTNODE\n";
-                break;
-            case BranchingRule::Type::GOOD_FUNNEL:
-                std::cout << "-> GOOD_FUNNEL\n";
-                break;
-            case BranchingRule::Type::FOUR_CYCLE:
-                std::cout << "-> FOUR_CYCLE\n";
-                break;
-            case BranchingRule::Type::OPT4NODE:
-                std::cout << "-> OPT4NODE\n";
-                break;
-            case BranchingRule::Type::EFFECTIVE_NODE:
-                std::cout << "-> EFFECTIVE_NODE\n";
-                break;
-            case BranchingRule::Type::DONE:
-                std::cout << "-> DONE\n";
-                break;
-        }*/
-        //std::cout << "left\n";
         switch (branchingRule.type) {
             case BranchingRule::Type::MAX_DEGREE:
             case BranchingRule::Type::OPTNODE:
             case BranchingRule::Type::OPT4NODE:
             case BranchingRule::Type::EFFECTIVE_NODE: {
-                //std::cout << branchingRule.node1 << std::endl;
                 searchNode->graph.remove(branchingRule.node1, searchNode->reductions->getReduceInfo());
                 break;
             }
@@ -604,9 +544,7 @@ private:
         if (maxDegree < oldTheta) {
             if (maxDegree >= 3) {
                 searchNode->theta = maxDegree;
-                //std::cout << "theta " << maxDegree << std::endl;
             } else {
-                //std::cout << "theta 3 " << std::endl;
                 searchNode->theta = 3;
             }
         }
@@ -622,15 +560,6 @@ private:
         std::unordered_set<uint32_t> neighbors;
         searchNode->graph.gatherAllNeighbors(extendedGrandchildren, neighbors);
 
-        /*std::cout << "extending grandchildren are\n";
-                for (auto n: extendedGrandchildren) {
-                    std::cout << n << "\n";
-                }
-                std::cout << "their neighbors are\n";
-                for (auto n: neighbors) {
-                    std::cout << n << "\n";
-                }
-    */
         std::unordered_set<uint32_t> *smaller = &neighbors;
         std::unordered_set<uint32_t> *bigger = &extendedGrandchildren;
         if (smaller->size() > bigger->size()) {
@@ -643,9 +572,6 @@ private:
     }
 
     std::vector<SearchNode *> searchTree;
-
-
-
 };
 
 

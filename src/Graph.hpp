@@ -28,7 +28,6 @@ public:
     Graph(const Graph &graph);
     Graph& operator=(const Graph &graph);
 
-    uint32_t getNodeCount() const;
     uint32_t getNodeCountWithEdges() const;
 
     uint32_t getPos(const uint32_t &node) const {
@@ -201,22 +200,16 @@ public:
     uint32_t findEdgeOffset(const uint32_t &node, const uint32_t &neighbor) const {
         uint32_t pos = (!mapping ? node : idToPos->at(node));
         uint32_t nPos = (!mapping ? neighbor : idToPos->at(neighbor));
-        /*if (nodeIndex[pos].removed || nodeIndex[nPos].removed) {
-            std::cout << "testing edge " << node << " " << neighbor << std::endl;
-        }*/
         assert(!nodeIndex[pos].removed && !nodeIndex[nPos].removed);
         uint32_t offset = nodeIndex[pos].offset;
         uint32_t endOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() - 1 : nodeIndex[pos+1].offset - 1);
         if (offset == endOffset+1) {
             return NONE;
         }
-        //std::cout <<"hey" << std::endl;
         uint32_t startIndex = 0;
         uint32_t endIndex = endOffset - offset;
         uint32_t index = (endIndex - startIndex) / 2;
         while (startIndex != endIndex) {
-            //std::cout << "endIndex " << endIndex << ", startIndex " << startIndex << ", index " << index << std::endl;
-            //std::cout << "size is " << edgeBuffer->size() << " vs " << offset+startIndex+index << std::endl;
             if ((*edgeBuffer)[offset + startIndex + index] == neighbor) {
                 return offset + startIndex + index;
             } else if ((*edgeBuffer)[offset + startIndex + index] < neighbor) {
@@ -241,7 +234,6 @@ public:
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t extendedGrandchild = (*edgeBuffer)[graphTraversal.curEdgeOffset];
             if (extendedGrandchild != node && !edgeExists(extendedGrandchild, node)) {
-                //std::cout << "edge " << node << " " << extendedGrandchild << " does not exist\n";
                 if (!found) {
                     found = true;
                     outerNeighbor = extendedGrandchild;
@@ -489,8 +481,6 @@ private:
     bool mapping;
     std::unordered_map<uint32_t, uint32_t> *idToPos;
     std::vector<uint32_t> *posToId;
-
-    //std::unordered_map<uint32_t, std::set<uint32_t> > extraEdges;
 };
 
 #endif

@@ -57,7 +57,6 @@ Graph::GraphTraversal::GraphTraversal(const Graph &graph, const uint32_t &node) 
 /* Could be potentially replaced by structures that are updated on the fly as degrees change,
  * but is pretty fast and memory efficient nonetheless, even on huge graphs */
 void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree, const uint32_t &bound) const {
-    //cout << "Finding max node degree" << endl;
     node = NONE;
     maxDegree = 0;
     for (uint32_t i = 0 ; i < nodeIndex.size() ; i++) {
@@ -69,13 +68,11 @@ void Graph::getMaxNodeDegree(uint32_t &node, uint32_t &maxDegree, const uint32_t
             }
         }
     }
-    //cout << "node " << node << " with max degree " << maxDegree << endl;
 }
 
 /* Optimized for short funnel detection to not necesssarily return the min degree,
  * if it is less than 3 */
 void Graph::getMinDegree(uint32_t &minDegree) const {
-    //cout << "Finding min degree" << endl;
     minDegree = NONE;
     for (uint32_t i = 0 ; i < nodeIndex.size() ; i++) {
         if (!nodeIndex[i].removed && nodeIndex[i].edges && nodeIndex[i].edges < minDegree) {
@@ -164,8 +161,6 @@ void Graph::rebuild(ReduceInfo &reduceInfo) {
     vector<NodeInfo> nodeIndex;
     uint32_t newNodes = (this->nodeIndex.size() > reduceInfo.nodesRemoved ? this->nodeIndex.size() - reduceInfo.nodesRemoved : this->nodeIndex.size());
     uint32_t newEdges = this->getTotalEdges();
-    //cout << "\nRebuilding: nodes removed " << reduceInfo.nodesRemoved << " , size " << this->nodeIndex.size() << endl;
-    //cout << newNodes << endl;
     nodeIndex.reserve(newNodes);
     vector<uint32_t> *edgeBuffer = new vector<uint32_t>();
     edgeBuffer->reserve(newEdges);
@@ -212,11 +207,9 @@ void Graph::rebuild(ReduceInfo &reduceInfo) {
     }
     this->idToPos = idToPos;
     this->posToId = posToId;
-    //assert(nodeIndex.size() == this->nodeIndex.size() - reduceInfo.nodesRemoved - zeroDegreeNodes.size());
     this->nodeIndex = nodeIndex;
     delete this->edgeBuffer;
     this->edgeBuffer = edgeBuffer;
-    //cout << "Rebuilding: nodes removed " << reduceInfo.nodesRemoved << ", edges removed " << reduceInfo.edgesRemoved << endl;
     reduceInfo.nodesRemoved = 0;
 }
 
@@ -280,11 +273,6 @@ void Graph::rebuildFromNodes(unordered_set<uint32_t> &nodes) {
 /* Contract 'nodes' and 'neighbors' to a single node.
  * It is taken for granted that the only neighbors of 'nodes' are 'neighbors' */
 uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector<uint32_t> &neighbors, ReduceInfo &reduceInfo) {
-    /*cout << "Contracting node " << nodes[0];
-    if (nodes.size() == 2) {
-        cout << " and " << nodes[1];
-    }
-    cout <<" with their neighbors" << endl;*/
     uint32_t newNode = nextUnusedId;
     assert(++nextUnusedId != 0);
     assert(!mapping || mapping && idToPos->find(newNode) == idToPos->end());
@@ -293,7 +281,6 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
         GraphTraversal graphTraversal(*this, *it);
         while (graphTraversal.curEdgeOffset != NONE) {
             uint32_t neighbor = (*edgeBuffer)[graphTraversal.curEdgeOffset];
-            //cout << "\nneighbor " << neighbor << endl;
             if (find(nodes.begin(), nodes.end(), neighbor) == nodes.end() && find(neighbors.begin(), neighbors.end(), neighbor) == neighbors.end()) {
                 if (newNeighbors.insert(neighbor).second) {
                     replaceNeighbor(neighbor, *it, newNode);
@@ -317,19 +304,12 @@ uint32_t Graph::contractToSingleNode(const vector<uint32_t> &nodes, const vector
             posToId->push_back(newNode);
         }
     }
-    //print(true);
-    //cout << "hypernode " << newNode << endl;
     return newNode;
 }
 
 void Graph::replaceNeighbor(const uint32_t &node, const uint32_t &oldNeighbor, const uint32_t &newNeighbor) {
     uint32_t offset;
     offset = findEdgeOffset(node, oldNeighbor);
-    //print(true);
-    //if (offset == NONE) {
-    //    cout << "replacing node " << node << " old neighbor " << oldNeighbor << " with " << newNeighbor << endl;
-    //    this->print(true);
-    //}
     assert(offset != NONE);
     uint32_t pos = (!mapping ? node : idToPos->at(node));
     uint32_t endOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
@@ -380,11 +360,9 @@ void Graph::getExtendedGrandchildren(Graph::GraphTraversal &graphTraversal, unor
         bool exactlyOne;
         getOuterNeighbor(graphTraversal.curNode, neighbor, outerNeighbor, exactlyOne);
         if (isUnconfined != NULL && outerNeighbor == NONE) {
-            ////cout << "none\n";
             *isUnconfined = true;
             break;
         } else if (exactlyOne) {
-            ////cout << "exactly one\n";
             extendedGrandchildren.insert(outerNeighbor);
             if (stopAtFirst) {
                 return;
@@ -433,7 +411,6 @@ uint32_t Graph::getOptimalDegree4Node() const {
 }
 
 uint32_t Graph::getOptimalDegree4Node1() const {
-    cout << "OPT 1" << endl;
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         if (getNodeDegree(graphTraversal.curNode) == 4) {
@@ -455,7 +432,6 @@ uint32_t Graph::getOptimalDegree4Node1() const {
 }
 
 uint32_t Graph::getOptimalDegree4Node2() const {
-    cout << "OPT 2" << endl;
     GraphTraversal graphTraversal(*this);
     while (graphTraversal.curNode != NONE) {
         if (getNodeDegree(graphTraversal.curNode) == 4) {
@@ -479,7 +455,6 @@ uint32_t Graph::getOptimalDegree4Node2() const {
 }
 
 void Graph::getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode) const {
-    cout << "OPT 3" << endl;
     uint32_t maxDegree3NeighborsWithCond = NONE;
     maxNodeWithCond = NONE;
     uint32_t maxDegree3Neighbors = NONE;
@@ -519,7 +494,6 @@ void Graph::getOptimalDegree4Node3(uint32_t &maxNodeWithCond, uint32_t &maxNode)
                                 i++;
                             }
                         }
-                        cout << "should be different: a b c v " << a << b << c << v << "\n";
                         bool ab = edgeExists(a, b);
                         bool bc = edgeExists(b, c);
                         bool ac = edgeExists(a, c);
@@ -743,7 +717,7 @@ bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
         Funnel &funnel = funnels.back();
         node1 = funnel.a;
         node2 = funnel.v;
-        cout << "branching on good funnel ";
+        //cout << "branching on good funnel ";
         funnel.print();
         return true;
     } else {
@@ -754,7 +728,7 @@ bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
                 if (!i && bDegree == 4 && cDegree == 4 || i && (bDegree == 4 || cDegree == 4)) {
                     node1 = funnel.a;
                     node2 = funnel.v;
-                    cout << "branching on good funnel ";
+                    //cout << "branching on good funnel ";
                     funnel.print();
                     return true;
                 }
@@ -799,7 +773,7 @@ bool Graph::getGoodFunnelTheta5(uint32_t &node1, uint32_t &node2) const {
                             if (commonNeighbors.size() >= 3) {
                                 node1 = nodeA;
                                 node2 = nodeV;
-                                cout << "branching on theta-5 good funnel " << node1 << "-" << node2 << "\n";
+                                //cout << "branching on theta-5 good funnel " << node1 << "-" << node2 << "\n";
                                 return true;
                             }
                         }
@@ -818,7 +792,6 @@ bool Graph::getFunnels(vector<Funnel> &funnels, const uint32_t *measure, uint32_
         uint32_t nodeV = graphTraversal.curNode;
         uint32_t vDegree = getNodeDegree(nodeV);
         if (vDegree == 3 || vDegree == 4) {
-            //cout << "nodeV " << nodeV << endl;
             vector<uint32_t> neighborsV;
             gatherNeighbors(nodeV, neighborsV);
             for (uint32_t i = 0 ; i < neighborsV.size() ; i++) {
@@ -1033,6 +1006,7 @@ bool Graph::isFineInstance() const {
 }
 
 uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNodes) const {
+    return NONE;
     for (auto &cc: ccToNodes) {
         vector<uint32_t> &nodes = *(cc.second);
         if (nodes.size() < 9) {
@@ -1053,11 +1027,6 @@ uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNod
                 frontier.push_back(new Traversal(node, *this));
                 set.insert(node);
                 cout << "size " << size << " node " << node << endl;
-                /*print(true);
-                cout << "Component nodes: " << endl;
-                for (auto n: nodes) {
-                    cout << n << endl;
-                }*/
                 uint32_t goodNode = getGoodNode(frontier, set, nodes, size);
                 if (goodNode != NONE) {
                     //cout << "Found good node for good set of size " << size << "\n";
@@ -1070,7 +1039,6 @@ uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNod
 }
 
 uint32_t Graph::getGoodNode(vector<Traversal *> &frontier, unordered_set<uint32_t> &set, vector<uint32_t> &nodes, const uint32_t &size) const {
-    //cout << "Size " << size << endl;
     Traversal *traversal = frontier[0];
     if (traversal->index == NONE) {
         return NONE;
@@ -1079,23 +1047,17 @@ uint32_t Graph::getGoodNode(vector<Traversal *> &frontier, unordered_set<uint32_
         auto it = traversal->set.begin();
         std::advance(it, traversal->index);
         uint32_t neighbor = *it;
-        //cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
         if (set.find(neighbor) == set.end()) {
             frontier.push_back(new Traversal(neighbor, *this, frontier[frontier.size()-1]));
             set.insert(neighbor);
             traversal = frontier[frontier.size()-1];
-            /*for (auto &n: set) {
-                cout << n << endl;
-            }
-            cout << "\n";*/
+
             if (set.size() == size) {
                 unordered_set<uint32_t> neighbors;
                 gatherAllNeighbors(set, neighbors, 3);
                 if (neighbors.size() == 3) {
-                    //cout << "FOUND" << endl;
                     return *(neighbors.begin());
                 } else {
-                    //cout << "NOT FOUND" << endl;
                     delete traversal;
                     frontier.pop_back();
                     set.erase(neighbor);
@@ -1138,7 +1100,6 @@ void Graph::getOptimalShortEdge(const uint32_t &degree, uint32_t &finalNode1, ui
                         getCommonNeighbors(node1, node2, commonNeighbors);
                         if ((degree == 6 && commonNeighbors.size() >= 3 || (degree == 7 || degree == 8) && commonNeighbors.size() >= 4) &&
                         commonNeighbors.size() > finalContainer.size()) {
-                            //cout << node1 << " " << node2 << " common neighbors: " << commonNeighbors.size() << "\n";
                             finalContainer.clear();
                             finalContainer.insert(finalContainer.end(), commonNeighbors.begin(), commonNeighbors.end());
                             finalNode1 = node1;
@@ -1177,11 +1138,6 @@ void Graph::getCommonNeighbors(const uint32_t &node1, const uint32_t &node2, vec
  * the mirror edges are not added. It is more performant to add them manually with another call
  * to this function, along with any other edges. (Optimization for branching on edges) */
 void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
-    /*cout << "connecting " << node << " with ";
-    for (auto &node: nodes) {
-        cout << node << " ";
-    }
-    cout << "\n";*/
     uint32_t pos = (!mapping ? node : idToPos->at(node));
     set<uint32_t> neighbors;
     vector<uint32_t> removedNeighbors;
@@ -1189,9 +1145,7 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
     uint32_t space = neighbors.size() + removedNeighbors.size();
     neighbors.insert(nodes.begin(), nodes.end());
     uint32_t finalNeighborCount = neighbors.size();
-    //cout << "space " << space << endl;
     if (neighbors.size() <= space) {
-        //cout << "case 1\n";
         while (neighbors.size() < space) {
             uint32_t removed = removedNeighbors.back();
             removedNeighbors.pop_back();
@@ -1199,7 +1153,6 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
         }
         copy(neighbors.begin(), neighbors.end(), edgeBuffer->begin() + nodeIndex[pos].offset);
     } else {
-        //cout << "case 2\n";
         auto it = neighbors.begin();
         uint32_t insertedElements = 0;
         uint32_t nextNodeOffset = (pos == nodeIndex.size()-1 ? edgeBuffer->size() : nodeIndex[pos+1].offset);
@@ -1209,7 +1162,6 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
             insertedElements++;
         }
         uint32_t addition = (neighbors.size() - insertedElements);
-        //cout << "neighbors " << neighbors.size() << ", insertedElements " << insertedElements << endl;
         edgeBuffer->reserve(edgeBuffer->size() + addition);
         edgeBuffer->insert(edgeBuffer->begin() + nextNodeOffset, it, neighbors.end());
         for (uint32_t i = pos + 1 ; i < nodeIndex.size() ; i++) {
@@ -1217,7 +1169,6 @@ void Graph::addEdges(const uint32_t node, const vector<uint32_t> &nodes) {
         }
     }
     nodeIndex[pos].edges = finalNeighborCount;
-    //print(true);
 }
 
 void Graph::collectZeroDegreeNodes() {
@@ -1266,12 +1217,10 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
             bool newCall;
             do {
                 node = frontier.top().graphTraversal.curNode;
-                //cout << node << endl;
                 Graph::GraphTraversal &neighbors = frontier.top().graphTraversal;
                 newCall = false;
                 while (neighbors.curEdgeOffset != NONE) {
                     uint32_t neighbor = (*edgeBuffer)[neighbors.curEdgeOffset];
-                    //cout << "checking neighbor " << neighbor << endl;
                     if (neighbor != node) {
                         auto it = exploredSet.find(neighbor);
                         if (it == exploredSet.end()) {
@@ -1280,7 +1229,6 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                             frontier.push(Instance(neighbor, node, *this));
                             break;
                         } else if (it->second.visit < exploredSet.find(node)->second.visit) {
-                            //cout << "neighbor " << neighbor << " already exists" << endl;
                             auto it1 = exploredSet.find(node);
                             if (it->second.visit < it1->second.low) {
                                 it1->second.low = it->second.visit;
@@ -1304,16 +1252,6 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
                             cut.insert(parentNode);
                             if (checkSeparation(cut, component1, component2, actualComponent1)) {
                                 vertexCut = cut;
-                                /*cout << "one\n";
-                                for (auto n: component1) {
-                                    cout << n << "\n";
-                                }
-                                cout << "other\n";
-                                for (auto n: component2) {
-                                    cout << n << "\n";
-                                }
-                                cout << "and graph is\n";
-                                print(true);*/
                                 //cout << "Articulation point " << parentNode << "\n";
                                 return true;
                             }
@@ -1340,9 +1278,6 @@ bool Graph::getArticulationPoints(unordered_set<uint32_t> &vertexCut, vector<uin
             } while (!newCall);
         }
     }
-    /*for (auto it: exploredSet) {
-        cout << it.first << ": " <<  it.second.visit << " " << it.second.low << endl;
-    }*/
     if (exploredSet.size() != getNodeCountWithEdges()) {
         connected = false;
     } else {
@@ -1475,10 +1410,6 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             } while (!newCall);
         }
     }
-    /*cout << "First\n";
-    for (auto it: exploredSet) {
-        cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
-    }*/
     if (getSeparatingPairs2(vertexCut, component1, component2, actualComponent1, numberOfNodes, palmTree1, palmTree2, bothPalmTrees, exploredSet, fathers, sons, descendants, visitToId)) {
         return true;
     }
@@ -1549,12 +1480,6 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             }
         }
     }
-    /*cout << "\nSorted palm tree" << endl;
-    for (auto &edge: sortedPalmTree) {
-        for (auto n: edge.second) {
-            cout << edge.first << " -> " << n << endl;
-        }
-    }*/
 
     uint32_t visit = numberOfNodes;
     unordered_map<uint32_t, Value2> exploredSet;
@@ -1627,10 +1552,6 @@ bool Graph::getSeparatingPairs(unordered_set<uint32_t> &vertexCut, vector<uint32
             } while (!newCall);
         }
     }
-    /*cout << "\nSecond\n";
-    for (auto it: exploredSet) {
-        cout << "node " << it.first << " visit " << it.second.visit << ": " << it.second.low1 << " " << it.second.low2 << endl;
-    }*/
 
     for (auto &edge: sortedPalmTree) {
         uint32_t b = edge.first;
@@ -1755,8 +1676,6 @@ bool Graph::checkSeparation(const unordered_set<uint32_t> &cut, vector<uint32_t>
     }
 }
 
-
-
 /* Only builds 2 CCs, optimized for separation set detection */
 bool Graph::buildCC(const unordered_set<uint32_t> &excludedNodes, vector<uint32_t> &component1, vector<uint32_t> &component2) const {
     component1.clear();
@@ -1791,18 +1710,6 @@ bool Graph::buildCC(const unordered_set<uint32_t> &excludedNodes, vector<uint32_
         getNextNode(graphTraversal);
     }
     return true;
-}
-
-/* Only for debugging. If needed in actual algorithm,
- * make it a class field */
-uint32_t Graph::getNodeCount() const {
-    uint32_t count = 0;
-    for (auto &node: nodeIndex) {
-        if (!node.removed) {
-            count++;
-        }
-    }
-    return count;
 }
 
 uint32_t Graph::getNodeCountWithEdges() const {
@@ -1856,7 +1763,6 @@ void Graph::printWithGraphTraversal(bool direction) const {
 }
 
 void Graph::printEdgeCounts() const {
-    //cout << "Nodes: " << nodeIndex.size() << " Edges: " << edgeBuffer->size() / 2 << "\n";
     for (uint32_t pos = 0 ; pos < nodeIndex.size() ; pos++) {
         if (nodeIndex[pos].removed) {
             continue;

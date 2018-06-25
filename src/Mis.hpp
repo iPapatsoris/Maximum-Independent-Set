@@ -53,16 +53,12 @@ private:
             }
             auto res = hypernodeToInnernode.find(set[i]);
             if (res == hypernodeToInnernode.end()) {
-                //std::cout << "Adding regular node " << set[i] << "\n";
-                //fprintf(f, "%ld\n", set[i]);
                 finalMis.push_back(set[i]);
             } else {
-                //std::cout << "Examining inner nodes of " << set[i] << "\n";
                 assert(res->second.outerLevel);
                 for (auto node : res->second.neighbors) {
                     auto innerHypernode = hypernodeToInnernode.find(node);
                     if (innerHypernode != hypernodeToInnernode.end()) {
-                        //std::cout << "queing " << node << " for later examination\n";
                         assert(!innerHypernode->second.outerLevel);
                         innerHypernode->second.outerLevel = true;
                     }

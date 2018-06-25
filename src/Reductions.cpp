@@ -11,9 +11,6 @@
 using namespace std;
 
 void Reductions::run(const uint32_t &theta) {
-    //cout << " \nReductions theta " << theta << "\n";
-    //printCC();
-    //graph.print(true);
     if (!graph.nodeIndex.size()) {
         return;
     }
@@ -35,10 +32,6 @@ void Reductions::run(const uint32_t &theta) {
         default:
             assert(false);
     }
-    //graph.printEdgeCounts();
-    //graph.printWithGraphTraversal(true);
-    //graph.print(true);
-    //printCCSizes();
 }
 
 void Reductions::reduce6(const uint32_t &theta) {
@@ -122,10 +115,8 @@ bool Reductions::removeDominatedNodes(const uint32_t &theta) {
         return false;
     }
     do {
-        //reduceInfo.print(&old);
         old = reduceInfo;
         removeDominatedNodes2(theta);
-        //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
     return true;
 }
@@ -199,7 +190,7 @@ bool Reductions::removeDesks() {
                                         }
                                     }
                                     if (valid) {
-                                        cout << "reducing desk " << graphTraversal.curNode << "-" << b << "-" << c << "-" << d << "\n";
+                                        //cout << "reducing desk " << graphTraversal.curNode << "-" << b << "-" << c << "-" << d << "\n";
                                         graph.remove(neighborsAC, reduceInfo);
                                         graph.remove(neighborsBD, reduceInfo);
                                         std::unordered_map<uint32_t, uint32_t> &subsequentNodes = mis.getSubsequentNodes();
@@ -232,7 +223,6 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
     //cout << "\n**Performing short funnels reduction**" << endl;
     uint32_t minDegree = NONE;
     graph.getMinDegree(minDegree);
-    //cout << "min degree " << minDegree << endl;
     if (minDegree > 4) {
         return false;
     }
@@ -261,7 +251,6 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                     vector<uint32_t> neighborsA;
                     graph.gatherNeighbors(nodeA, neighborsA);
                     if (theta == 5 && minDegree == 3 || theta == 4) {
-                        //cout << "minDegree " << minDegree << endl;
                         uint32_t edges;
                         if (theta == 5) {
                             edges = 1;
@@ -280,7 +269,6 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                             }
                         }
                     } else if (theta == 5 && minDegree == 4) {
-                        //cout << "minDegree " << minDegree << endl;
                         uint32_t countB = 0;
                         uint32_t countC = 0;
                         uint32_t *count;
@@ -304,8 +292,6 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                             }
                         }
                     } else if (theta == 3) {
-                        //cout << "k" << endl;
-                        //cout << "minDegree " << minDegree << endl;
                         uint32_t count = 0;
                         uint32_t atmost = graph.getNodeDegree(nodeA);
                         shortFunnel = true;
@@ -357,7 +343,6 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
                         }
                         subsequentNodes.insert({nodeB, nodeA});
                         subsequentNodes.insert({nodeC, nodeA});
-                        //graph.print(true);
                         return true;
                     }
                 }
@@ -369,7 +354,6 @@ bool Reductions::removeShortFunnels(const uint32_t &theta) {
 }
 
 void Reductions::removeEasyInstances(const uint32_t &theta) {
-    //printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
@@ -422,10 +406,6 @@ void Reductions::findMis(const vector<uint32_t> &cc) {
             frontier.push_back(newIndex);
             removedNodes.push_back(removedNodes.back());
         } else {
-            /*for (auto &i: frontier) {
-                cout << i << " ";
-            }
-            cout << "\n";*/
             if (frontier.size() > maximumIndependentSet.size()) {
                 maximumIndependentSet = frontier;
             }
@@ -452,10 +432,6 @@ void Reductions::findMis(const vector<uint32_t> &cc) {
             }
         }
     }
-    /*for (auto &i: maximumIndependentSet) {
-        cout << i << " ";
-    }
-    cout << "\n";*/
     vector<uint32_t> &mis = this->mis.getMis();
     for (auto &i: maximumIndependentSet) {
         mis.push_back(cc[i]);
@@ -463,18 +439,15 @@ void Reductions::findMis(const vector<uint32_t> &cc) {
 }
 
 bool Reductions::foldCompleteKIndependentSets(const uint32_t &theta, unordered_set<uint32_t> **oldCandidateNodes, unordered_set<uint32_t> **newCandidateNodes, const bool &theta4) {
-    //graph.print(true);
     //cout << "\n**Performing K-Independent set folding reduction**" << endl;
     (*oldCandidateNodes)->clear();
     ReduceInfo old = reduceInfo;
     foldCompleteKIndependentSets2(theta, true, **oldCandidateNodes, **newCandidateNodes, theta4);
     swap(oldCandidateNodes, newCandidateNodes);
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
-        //cout << "No nodes removed." << endl;
         return false;
     }
     do {
-        //reduceInfo.print(&old);
         old = reduceInfo;
         foldCompleteKIndependentSets2(theta, false, **oldCandidateNodes, **newCandidateNodes, theta4);
         swap(oldCandidateNodes, newCandidateNodes);
@@ -488,14 +461,11 @@ bool Reductions::removeUnconfinedNodes() {
     ReduceInfo old = reduceInfo;
     removeUnconfinedNodes2();
     if (old.nodesRemoved == reduceInfo.nodesRemoved) {
-        //cout << "No nodes removed." << endl;
         return false;
     }
     do {
-        //reduceInfo.print(&old);
         old = reduceInfo;
         removeUnconfinedNodes2();
-        //assert(old.nodesRemoved == reduceInfo.nodesRemoved);
     } while (old.nodesRemoved != reduceInfo.nodesRemoved);
     return true;
 }
@@ -505,7 +475,6 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
     Graph::GraphTraversal graphTraversal(graph);
     auto it = oldCandidateNodes.begin();
     uint32_t node = (checkAllNodes ? graphTraversal.curNode : (it == oldCandidateNodes.end() ? NONE : *it));
-    uint32_t bound = 5000;
     while (node != NONE) {
         uint32_t k, end;
         if (theta >= 6) {
@@ -528,10 +497,6 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
         for (; k <= end ; k++) {
             if ((checkAllNodes || (!checkAllNodes && !graph.nodeIndex[graph.getPos(*it)].removed)) &&
             graph.getNodeDegree(node) == k+1 && k != 3 || k == 3 && (graph.getNodeDegree(node) == 3 || graph.getNodeDegree(node) == 4)) {
-                if (node >= bound) {
-                    //cout << fixed << setprecision(0) << ((float) bound / graph.nodeIndex.size()) * 100 << "% done" << endl;
-                    bound += 5000;
-                }
                 vector<uint32_t> nodes;
                 vector<uint32_t> neighbors;
                 nodes.push_back(node);
@@ -573,7 +538,6 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
                 }
                 neighbors.insert(neighbors.end(), nodes.begin(), nodes.end());
                 graph.remove(neighbors, reduceInfo, false, &newCandidateNodes);
-                //graph.print(true);
                 break;
             }
         }
@@ -589,30 +553,19 @@ void Reductions::foldCompleteKIndependentSets2(const uint32_t &theta, const bool
 
 void Reductions::removeUnconfinedNodes2() {
     Graph::GraphTraversal graphTraversal(graph);
-    //uint32_t boolCount = 0;
-    //uint32_t independentCount = 0;
     while (graphTraversal.curNode != NONE) {
-        ////cout << "node " << graphTraversal.curNode << "\n";
         bool isUnconfined = false;
         unordered_set<uint32_t> extendedGrandchildren;
         graph.getExtendedGrandchildren(graphTraversal, extendedGrandchildren, &isUnconfined);
         if (isUnconfined || !graph.isIndependentSet(extendedGrandchildren)) {
-            /*if (isUnconfined) {
-                boolCount++;
-            } else {
-                independentCount++;
-            }*/
-            //cout << "Unconfined node " << graphTraversal.curNode << "\n";
             graph.remove(graphTraversal.curNode, reduceInfo);
         }
         graph.getNextNode(graphTraversal);
     }
-    //cout << "bool " << boolCount << ", independent " << independentCount << endl;
 }
 
 void Reductions::removeLineGraphs(const uint32_t &theta) {
     //cout << "\n**Performing line graph reduction**" << endl;
-    //printCCSizes();
     vector<unordered_map<uint32_t, vector<uint32_t>* >::iterator> removedCCs;
     for (auto it = ccToNodes.begin() ; it != ccToNodes.end() ; it++) {
         vector<uint32_t> *cc = it->second;
@@ -667,22 +620,14 @@ void Reductions::removeLineGraphs(const uint32_t &theta) {
                         foundCliques = false;
                         break;
                     }
-                    //cout << "Clique1: " << endl;
-                    for (uint32_t i = 0 ; i < clique1.size() ; i++) {
-                        //cout << clique1[i].curNode << endl;
-                    }
                     clique2.push_back(Graph::GraphTraversal(graph, node));
                     if (!findClique(clique2, &clique1, clique2Size)) {
                         foundCliques = false;
                         break;
                     }
-                    //cout << "Clique2: " << endl;
-                    for (uint32_t i = 0 ; i < clique2.size() ; i++) {
-                        //cout << clique2[i].curNode << endl;
-                    }
                 }
                 if (foundCliques) {
-                    cout << "Removing component " << it->first << "\n";
+                    //cout << "Removing component " << it->first << "\n";
                     findMisInComponent(*cc);
                     graph.remove(*cc, reduceInfo, true);
                     removedCCs.push_back(it);
@@ -723,18 +668,9 @@ bool Reductions::findClique(vector<Graph::GraphTraversal> &clique, vector<Graph:
         return false;
     }
     while (clique.size() < cliqueSize) {
-        //if (clique[0].curNode == 11) {
-        ////cout << "Cur clique: \n";
-        //for (uint32_t i = 0 ; i < clique.size() ; i++) {
-        ////cout << clique[i].curNode << endl;
-        //}
-        //}
         uint32_t neighbor = (*graph.edgeBuffer)[graphTraversal.curEdgeOffset];
         bool existsInPreviousClique = (previousClique == NULL ? false : find(neighbor, *previousClique));
-        ////cout << "node " << graphTraversal.curNode << " neighbor " << neighbor << endl;
         if (!existsInPreviousClique && !find(neighbor, clique) && isSubsetOfNeighbors(clique, neighbor, graph)) {
-            ////cout << "going to " << neighbor << endl;
-            ////cout << "commonNode is " << commonNode << endl;
             graph.goToNode(neighbor, graphTraversal);
             clique.push_back(graphTraversal);
         } else {
@@ -798,7 +734,7 @@ Reductions::~Reductions() {
 
 void Reductions::printCC() const {
     for (auto &cc : ccToNodes) {
-        //cout << "\nCC " << cc.first << ":\n";
+        cout << "\nCC " << cc.first << ":\n";
     }
 }
 

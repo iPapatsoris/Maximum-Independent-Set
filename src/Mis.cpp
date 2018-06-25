@@ -20,7 +20,6 @@ void Mis::markHypernode(const uint32_t &hypernode, const vector<uint32_t> &nodes
 }
 
 void Mis::unfoldHypernodes(vector<uint32_t> &zeroDegreeNodes, vector<uint32_t> &finalMis) {
-    //printAll(zeroDegreeNodes);
     finalMis.reserve(zeroDegreeNodes.size() + mis.size());
     expandIncludedNodes(mis, finalMis);
     expandIncludedNodes(zeroDegreeNodes, finalMis);
@@ -28,9 +27,8 @@ void Mis::unfoldHypernodes(vector<uint32_t> &zeroDegreeNodes, vector<uint32_t> &
 }
 
 void Mis::print(vector<uint32_t> &finalMis) {
-    //printAll(zeroDegreeNodes);
     cout <<"\nWriting Maximum Independent Set to file " << Mis::misOutputFile << endl;
-    cout << "\nMis size: " << finalMis.size() << "\n";
+    cout << "Maximum Independent Set size: " << finalMis.size() << "\n";
     FILE *f;
     f = fopen(Mis::misOutputFile.c_str(), "w");
     if (f == NULL) {
@@ -42,17 +40,14 @@ void Mis::print(vector<uint32_t> &finalMis) {
         fprintf(f, "%" PRIu32 "\n", node);
     }
     fclose(f);
-    //cout << "Zero degree nodes: " << zeroDegreeNodes.size() << "\n";
 }
 
 void Mis::expandExcludedNodes(vector<uint32_t> &finalMis) {
     while (!hypernodeToInnernode.empty()) {
         auto hypernode = hypernodeToInnernode.begin();
         while (!hypernode->second.outerLevel) {
-            //cout << "Leftover inner hypernode " << hypernode->first << ", skipping for now\n";
             hypernode++;
         }
-        //cout << "Leftover outer hypernode " << hypernode->first << ", examining inner nodes\n";
         for (auto node : hypernode->second.nodes) {
             auto nestedHypernode = hypernodeToInnernode.find(node);
             if (nestedHypernode != hypernodeToInnernode.end()) {
@@ -118,8 +113,6 @@ void Mis::removeHypernodes(unordered_set<uint32_t> &nodes) {
             }
         }
         toRemove.erase(n);
-        //cout << "\n -> removing " << n << endl;
-
     }
 }
 

@@ -41,8 +41,6 @@ Alg::SearchNode::~SearchNode() {
 uint32_t searchNodeID = 0;
 
 void Alg::run() {
-    //searchTree[0]->graph.print(true);
-    //searchTree[0]->mis.print(searchTree[0]->graph.zeroDegreeNodes);
     uint32_t searchNodes = 1;
     uint32_t minCompletedSearchNode = NONE;
     bool down = true;
@@ -99,10 +97,8 @@ void Alg::run() {
             }
             continue;
         }
-        //cout << "Copying graph" << endl;
         SearchNode *searchNode = new SearchNode(*searchTree[i], i);
         searchNodes++;
-        //cout << "Done" << endl;
         searchTree.push_back(searchNode);
         *nextChild = searchTree.size() - 1;
         if (nextChild == &searchTree[i]->leftChild) {
@@ -117,9 +113,8 @@ void Alg::run() {
         i = *nextChild;
     }
     cout << searchNodes << " search nodes\n";
-    //print();
     searchTree[0]->graph.collectZeroDegreeNodes();
-    cout << "Final id " << searchTree[0]->id;
+    //cout << "Final id " << searchTree[0]->id;
     Mis::print(*searchTree[0]->finalMis);
     delete searchTree[0]->finalMis;
 }
@@ -136,7 +131,6 @@ bool Alg::SearchNode::handleCuts() {
 }
 
 void Alg::print() const {
-    //searchTree[searchTree.size()-1]->graph.print(true);
     cout << searchTree.size();
     cout << "\n";
     return;
@@ -148,7 +142,7 @@ void Alg::print() const {
 }
 
 void Alg::SearchNode::print() const {
-    cout << "Nodes: " << graph.getNodeCount() <<
+    cout << "Nodes: " << graph.getNodeCountWithEdges() <<
     "\nParent: " << (parent == NONE ? "NONE" : to_string(parent)) << "\nLeft: " << (leftChild == NONE ? "NONE" : to_string(leftChild)) <<
     "\nRight: " << (rightChild == NONE ? "NONE" : to_string(rightChild));
     if (finalMis != NULL) {
