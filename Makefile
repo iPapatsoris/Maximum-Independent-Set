@@ -1,9 +1,8 @@
-OBJS =  Graph.o Reductions.o Alg.o Mis.o Launcher.o ControlUnit.o Util.o
-HEADER = src/Graph.hpp src/ControlUnit.hpp src/Reductions.hpp src/Alg.hpp
+OBJS =  Graph.o Reductions.o Alg.o Mis.o ControlUnit.o Util.o
 all: mis
 
 CC 	= g++
-FLAGS	= -g -std=c++11 -O2 -c
+FLAGS	= -std=c++11 -O2 -c
 
 mis: $(OBJS) $(HEADER)
 	$(CC) -g -O2 -o mis $(OBJS)
@@ -13,9 +12,6 @@ Util.o: src/Util.cpp
 
 Graph.o: src/Graph.cpp
 	$(CC) $(FLAGS) src/Graph.cpp
-
-Launcher.o: src/Launcher.cpp
-	$(CC) $(FLAGS) src/Launcher.cpp
 
 ControlUnit.o: src/ControlUnit.cpp
 	$(CC) $(FLAGS) src/ControlUnit.cpp
