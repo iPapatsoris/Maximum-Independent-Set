@@ -406,7 +406,7 @@ uint32_t Graph::getOptimalDegree4Node() const {
             }
         }
     }
-    cout << "branching on optimal degree 4 node " << node << "\n";
+    //cout << "branching on optimal degree 4 node " << node << "\n";
     return node;
 }
 
@@ -718,7 +718,7 @@ bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
         node1 = funnel.a;
         node2 = funnel.v;
         //cout << "branching on good funnel ";
-        funnel.print();
+        //funnel.print();
         return true;
     } else {
         for (uint32_t i = 0 ; i < 2 ; i++) {
@@ -1026,7 +1026,7 @@ uint32_t Graph::getGoodNode(unordered_map<uint32_t, vector<uint32_t>* > &ccToNod
                 unordered_set<uint32_t> set;
                 frontier.push_back(new Traversal(node, *this));
                 set.insert(node);
-                cout << "size " << size << " node " << node << endl;
+                //cout << "size " << size << " node " << node << endl;
                 uint32_t goodNode = getGoodNode(frontier, set, nodes, size);
                 if (goodNode != NONE) {
                     //cout << "Found good node for good set of size " << size << "\n";

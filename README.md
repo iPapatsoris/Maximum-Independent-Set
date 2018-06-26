@@ -7,7 +7,7 @@ on the publication [Exact Algorithms for Maximum Independent Set](https://arxiv.
 **`./mis <input_graph> -check `**
 
 Replace `<input_graph>` with the input file location. The first run option executes the algorithm, and outputs the maximum independent set to
-the a new file named `<input_graph>.mis`. The second one verifies whether the vertex set at `<input_graph>.mis` is an independent set or not,
+a new file named `<input_graph>.mis`. The second one verifies whether the vertex set at `<input_graph>.mis` is an independent set or not,
 according to the respective graph at `<input_graph>`.
 
 ### Input graph format
@@ -22,8 +22,12 @@ x2 y2
 ```
 
 This indicates that there is an edge between nodes x1 and y1, x2 and y2, etc. The nodes on the left column are sorted in ascending order,
-the nodes on the right corner that correspond to a specific node on the left are also locally sorted in ascending order, and are
+the nodes on the right column that correspond to a specific node on the left are also locally sorted in ascending order, and are
 larger than the corresponding left column node. Any nodes that belong within the total node count but don't appear on the list, are considered zero degree nodes.
+
+A graph that uses this format can be easily generated with SNAP, by using a command like the following:
+`Snap-4.0/examples/graphgen/graphgen -g:e -n:100 -m:500 -o:graph.txt`
+
 
 ### Output
 

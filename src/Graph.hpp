@@ -11,7 +11,7 @@
 #include <assert.h>
 #include "Util.hpp"
 
-#define MAXLINE 100
+#define MAXLINE 1024
 
 class Graph {
 
