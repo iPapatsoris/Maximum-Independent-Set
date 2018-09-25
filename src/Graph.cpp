@@ -729,7 +729,7 @@ bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
                     node1 = funnel.a;
                     node2 = funnel.v;
                     //cout << "branching on good funnel ";
-                    funnel.print();
+                    //funnel.print();
                     return true;
                 }
             }
@@ -1900,7 +1900,7 @@ void Graph::parseNodeIDs(char *buf, uint32_t *sourceNode, uint32_t *targetNode) 
     uint32_t *node = sourceNode;
     for (int i = 0 ; i < 2 ; i++) {
         uint32_t id = 0;
-        for (; *buf != ' ' && *buf != '\t' && *buf != '\n' ; buf++) {
+        for (; *buf != ' ' && *buf != '\t' && *buf != '\n' && *buf != '\0' ; buf++) {
             id = id * 10 + (*buf - '0');
         }
         *node = id;
