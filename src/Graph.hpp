@@ -167,6 +167,7 @@ public:
                 removedNeighbors.insert(removedNeighbors.end(), (*edgeBuffer)[offset]);
             }
         }
+        return true;
     }
 
     template <typename Container, typename OriginalNodesContainer>

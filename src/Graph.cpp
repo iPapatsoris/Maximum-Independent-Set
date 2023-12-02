@@ -709,6 +709,7 @@ bool Graph::getEffectiveNodeOrOptimalFunnel(uint32_t &effectiveNode, uint32_t &n
             }
         }
     }
+    return true;
 }
 
 bool Graph::getGoodFunnel(uint32_t &node1, uint32_t &node2) const {
