@@ -11,14 +11,19 @@ class Alg {
 
 public:
     Alg(const std::string &inputFile, const bool &checkIndependentSet);
+    Alg(const std::vector<uint32_t> & src, const std::vector<uint32_t> & dst, const bool &checkIndependentSet);
     ~Alg();
     void run();
+    const std::vector<uint32_t> & getSolution() const {
+        return solution;
+    }
     const std::vector<SearchNode *> &getSearchTree() const {
         return searchTree;
     }
     void print() const;
 
 private:
+    std::vector<uint32_t> solution;
     struct BranchingRule {
     public:
         enum class Type {
@@ -267,6 +272,15 @@ private:
     public:
         SearchNode(const SearchNode &searchNode, const uint32_t &parent = NONE);
         SearchNode(const std::string &inputFile, const bool &checkIndependentSet) : id(NONE), graph(inputFile, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL), hasCut(false), cutIsDone(false) {
+            uint32_t maxDegreeNode;
+            graph.getMaxNodeDegree(maxDegreeNode, theta);
+            if (theta > 8) {
+                theta = 8;
+            } else if (theta < 3) {
+                theta = 3;
+            }
+        }
+        SearchNode(const std::vector<uint32_t> &src, const std::vector<uint32_t> & dst, const bool &checkIndependentSet) : id(NONE), graph(src, dst, checkIndependentSet), reductions(new Reductions(graph, mis)), parent(NONE), leftChild(NONE), rightChild(NONE), finalMis(NULL), hasCut(false), cutIsDone(false) {
             uint32_t maxDegreeNode;
             graph.getMaxNodeDegree(maxDegreeNode, theta);
             if (theta > 8) {

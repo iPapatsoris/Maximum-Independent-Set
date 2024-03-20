@@ -23,6 +23,7 @@ struct Traversal;
 
 public:
     struct GraphTraversal;
+    Graph(const std::vector<uint32_t> & src, const std::vector<uint32_t> & dst, const bool &checkIndependentSet);
     Graph(const std::string &inputFile, const bool &checkIndependentSet);
     Graph() : mapping(false), idToPos(NULL), posToId(NULL) {}
     Graph(const Graph &graph);

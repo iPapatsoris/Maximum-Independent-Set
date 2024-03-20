@@ -9,6 +9,12 @@ Alg::Alg(const string &inputFile, const bool &checkIndependentSet) {
     searchTree.push_back(root);
 }
 
+Alg::Alg(const std::vector<uint32_t> & src, const std::vector<uint32_t> & dst, const bool &checkIndependentSet)
+{
+    SearchNode *root = new SearchNode(src, dst, checkIndependentSet);
+    root->mis.setMisOutputFile("output.mis");
+    searchTree.push_back(root);
+}
 Alg::~Alg() {
     for (auto &searchNode: searchTree) {
         delete searchNode;
@@ -115,7 +121,8 @@ void Alg::run() {
     cout << searchNodes << " search nodes\n";
     searchTree[0]->graph.collectZeroDegreeNodes();
     //cout << "Final id " << searchTree[0]->id;
-    Mis::print(*searchTree[0]->finalMis);
+    // Mis::print(*searchTree[0]->finalMis);
+    solution = *searchTree[0]->finalMis;
     delete searchTree[0]->finalMis;
 }
 

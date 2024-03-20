@@ -1772,6 +1772,94 @@ void Graph::printEdgeCounts() const {
     }
 }
 
+Graph::Graph(const std::vector<uint32_t> & src, const std::vector<uint32_t> & dst, const bool &checkIndependentSet) : mapping(false), idToPos(NULL), posToId(NULL)
+{
+    // std::cout << "number of edges in graph = " << src.size() << std::endl;
+    uint32_t nodes = (uint32_t) (std::max(* std::max_element(std::begin(src), std::end(src)), * std::max_element(std::begin(dst), std::end(dst))) + 1);
+    uint32_t edges = src.size();
+    try {
+        nodeIndex.reserve(nodes);
+    }
+    catch (const length_error &le) {
+        cerr << "NodeIndex length error: " << le.what() << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    edgeBuffer = new vector<uint32_t>();
+    try {
+        edgeBuffer->reserve(edges * 2);
+    }
+    catch (const length_error &le) {
+        cerr << "EdgeBuffer length error: " << le.what() << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    /* Hold reverse direction edges temporarily */
+    std::vector<std::vector<uint32_t> > reverseEdges(nodes);
+
+    /* Build graph with both edge directions, keep them sorted */
+    uint32_t sourceNode, targetNode, previousNode, straightEdges, offset;
+    previousNode = NONE;
+    straightEdges = 0;
+    offset = 0;
+    for(int e = 0; e < edges; ++ e)
+    {
+        sourceNode = std::min(src[e], dst[e]);
+        targetNode = std::max(src[e], dst[e]);
+        if (sourceNode >= nodes || targetNode >= nodes) {
+            cerr << "Error: received a node id equal or larger than the total nodes number specified at the beginning of the file" << endl;
+            exit(EXIT_FAILURE);
+        }
+        /* Add smaller nodes than first source node */
+        if (previousNode == NONE && sourceNode) {
+            this->fill(sourceNode, checkIndependentSet);
+        }
+        if (previousNode != sourceNode && previousNode != NONE) {
+            /* At new source node, add previous nodes' (including those who don't appear as source nodes) smaller neighbors */
+            for (uint32_t node = previousNode + 1 ; node <= sourceNode ; node++) {
+                uint32_t previousEdges = straightEdges + reverseEdges[node - 1].size();
+                nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
+                if (!previousEdges && !checkIndependentSet) {
+                    zeroDegreeNodes.push_back(nodeIndex.size()-1);
+                    nodeIndex[nodeIndex.size()-1].removed = true;
+                }
+                offset += previousEdges;
+                edgeBuffer->insert(edgeBuffer->end(), reverseEdges[node].begin(), reverseEdges[node].end());
+                straightEdges = 0;
+                if (node < sourceNode) {
+                    //cout << "in between missing node " << node << endl;
+                }
+            }
+        }
+        /* Add source node's bigger neighbors */
+        edgeBuffer->push_back(targetNode);
+        straightEdges++;
+        reverseEdges[targetNode].push_back(sourceNode);
+        previousNode = sourceNode;
+    }
+    /* Add final source node's info */
+    uint32_t previousEdges = straightEdges + reverseEdges[previousNode].size();
+    nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
+    if (!previousEdges && !checkIndependentSet) {
+        zeroDegreeNodes.push_back(nodeIndex.size()-1);
+        nodeIndex[nodeIndex.size()-1].removed = true;
+    }
+    offset += previousEdges;
+    /* Add smaller neighbors of the nodes left that don't appear as source nodes */
+    for (uint32_t missingNode = nodeIndex.size() ; missingNode < nodes ; missingNode++) {
+        //cout << "end missing node " << missingNode << endl;
+        previousEdges = reverseEdges[missingNode].size();
+        nodeIndex.push_back(Graph::NodeInfo(offset, previousEdges));
+        if (!previousEdges && !checkIndependentSet) {
+            zeroDegreeNodes.push_back(nodeIndex.size()-1);
+            nodeIndex[nodeIndex.size()-1].removed = true;
+        }
+        offset += previousEdges;
+        edgeBuffer->insert(edgeBuffer->end(), reverseEdges[missingNode].begin(), reverseEdges[missingNode].end());
+    }
+    nextUnusedId = nodeIndex.size();
+}
+    
 /* Build graph from file, include both edge directions, keep them sorted.
  * Zero degree nodes are included in nodeIndex, but are makred as removed.
  * They are also held on zeroDegreeNodes seperate structure */
