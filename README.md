@@ -1,3 +1,8 @@
+⚠️ **WARNING ⚠️  
+Repository has been archived due to a significant open bug. Solving it would require a lot of time and effort, as the research papers its based one are very extensive, and a lot of changes need to be made.
+For the foreseeable future, please do not use this program.**
+
+
 # Maximum-Independent-Set
 A program for finding an exact solution to the [Maximum Independent Set](https://en.wikipedia.org/wiki/Independent_set_(graph_theory)) problem in Graph Theory. The implementation is based
 on the publication [Exact Algorithms for Maximum Independent Set](https://arxiv.org/pdf/1312.6260.pdf), by Mingyu Xiao and Hiroshi Nagamochi.
