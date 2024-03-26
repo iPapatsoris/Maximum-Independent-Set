@@ -1,5 +1,5 @@
 ⚠️ **WARNING ⚠️  
-Repository has been archived due to a significant open bug. Solving it would require a lot of time and effort, as the research papers its based one are very extensive, and a lot of changes need to be made.
+Repository has been archived due to a significant open bug. Solving it would require a lot of time and effort, as the research papers its based on are very extensive, and a lot of changes need to be made.
 For the foreseeable future, please do not use this program.**
 
 
